@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.7 2003-07-29 18:29:00 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.8 2003-10-31 23:53:53 -0800 woods Exp $"
 #
 # rblookup - Lookup a dotted quad IP address, or hostname in one of many
 #		Reverse/Realtime DNS-based Lists
@@ -80,8 +80,6 @@ reversed=""
 #
 #	http://moensted.dk/spam/	# less info, but also comprehensive
 #
-#	http://relays.osirusoft.com/cgi-bin/rbcheck.cgi	# has a test interface
-#
 #	http://openrbl.org/zones/	# incomplete, very little info, but has
 #					# an on-line test interface.
 #
@@ -89,6 +87,8 @@ reversed=""
 #				# interface, no commentary.
 #
 #	http://www.iki.fi/era/rbl/rbl.html	# very dated 2001/12/02
+#
+#	http://moensted.dk/spam/
 #
 # some published stats by some users of DNS Black Lists.
 #
@@ -287,6 +287,8 @@ ALL_RBLS="${ORDB_ROOT} ${ALL_RBLS}"
 # Osirusoft Open Relay Spam Stopper
 # <URL:http://relays.osirusoft.com/>
 #
+# OFF THE AIR:  2003/08/26
+#
 #     * 127.0.0.2 Verified Open Relay
 #     * 127.0.0.3 Dialup Spam Source
 #       Dialup Spam Sources are imported into the Zone file from other sources
@@ -325,11 +327,11 @@ ALL_RBLS="${ORDB_ROOT} ${ALL_RBLS}"
 #       though it will be created, it should only be used to warn the servers
 #       listed.
 #
-OSIRUSOFT_ROOT="relays.osirusoft.com"
-BLOCKTEST_OSIRUSOFT_ROOT="blocktest.${OSIRUSOFT_ROOT}"
-OUTPUTS_OSIRUSOFT_ROOT="outputs.${OSIRUSOFT_ROOT}"
-OSIRUSOFT_ALL="${OSIRUSOFT_ROOT} ${BLOCKTEST_OSIRUSOFT_ROOT} ${OUTPUTS_OSIRUSOFT_ROOT}"
-ALL_RBLS="${OSIRUSOFT_ALL} ${ALL_RBLS}"
+#OSIRUSOFT_ROOT="relays.osirusoft.com"
+#BLOCKTEST_OSIRUSOFT_ROOT="blocktest.${OSIRUSOFT_ROOT}"
+#OUTPUTS_OSIRUSOFT_ROOT="outputs.${OSIRUSOFT_ROOT}"
+#OSIRUSOFT_ALL="${OSIRUSOFT_ROOT} ${BLOCKTEST_OSIRUSOFT_ROOT} ${OUTPUTS_OSIRUSOFT_ROOT}"
+#ALL_RBLS="${OSIRUSOFT_ALL} ${ALL_RBLS}"
 
 # reynolds boycott list
 # <URL:http://bl.reynolds.net.au/>
@@ -338,6 +340,14 @@ ALL_RBLS="${OSIRUSOFT_ALL} ${ALL_RBLS}"
 #
 REYNOLDS_T1_BL_ROOT="t1.bl.reynolds.net.au"
 ALL_RBLS="${REYNOLDS_T1_BL_ROOT} ${ALL_RBLS}"
+
+# rfc-ignorant IP-based whois List
+# <URL:http://www.rfc-ignorant.org/policy-ipwhois.php>
+#
+# list of nets without proper WHOIS information
+#
+RFC_IGNORANT_IPWHOIS_ROOT="ipwhois.rfc-ignorant.org"
+ALL_RBLS="${RFC_IGNORANT_IPWHOIS_ROOT} ${ALL_RBLS}"
 
 # spambag.org spam List
 # <URL:http://www.spambag.org/>
