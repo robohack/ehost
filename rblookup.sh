@@ -10,7 +10,7 @@
 #
 # Ongoing maintenance by Greg A. Woods <woods@planix.com>
 #
-#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.2 2003-03-21 19:11:02 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.3 2003-04-09 00:17:11 -0800 woods Exp $"
 #
 # Lookup a dotted quad IP address, or hostname in one of many
 # Reverse/Realtime Blackhole Lists
@@ -326,8 +326,12 @@ ALL_RBLS="${DEVNULL_ROOT} ${ALL_RBLS}"
 # automatically de-list after 90 days.  Apparently they'll gladly
 # remove any listing on request too.
 #
-VISI_ROOT="relays.visi.com"
-ALL_RBLS="${VISI_ROOT} ${ALL_RBLS}"
+# Not functional since since 2002/12/16.  They are apparently planning
+# to re-write their software and database and start up again sometime
+# in the future.
+#
+#VISI_ROOT="relays.visi.com"
+#ALL_RBLS="${VISI_ROOT} ${ALL_RBLS}"
 
 # xbl.selwerd.cx spam List
 # <URL:http://selwerd.cx/xbl/>
