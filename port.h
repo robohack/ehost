@@ -1,18 +1,21 @@
 /*
 ** Various portability definitions.
 **
-**	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
+** from: @(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.10 2003-03-30 23:38:21 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.11 2003-03-31 21:14:58 -0800 woods Exp $"
 
-#if defined(__SVR4) || defined(__svr4__)
-# define SVR4
+#if (defined(__SVR4) || defined(__svr4) || defined(SVR4) || defined(svr4)) && !defined(__svr4__)
+# define __svr4__	1
 #endif
 
-#if defined(SYSV) || defined(SVR4) || (defined(sun) && defined(unix) && !defined(SVR4))
-# define SYSV_MALLOC	1
-# define SYSV_MEMSET	1
+#if defined(__APPLE__) && defined(__MACH__) && !defined(__darwin__)
+# define __darwin__	1
+#endif
+
+#if defined(SYSV) || (defined(sun) && defined(unix) && !defined(__svr4__))
+# define HAVE_VOID_MALLOC 1
 # define SYSV_SETVBUF	1
 # define HAVE_UNISTD_H	1
 # define HAVE_STRING_H	1
@@ -20,12 +23,11 @@
 #endif
 
 #if defined(WINNT)
-# define SYSV_MALLOC	1
 # define SYSV_SETVBUF	1
 #endif
 
 #if defined(__hpux) || defined(hpux)
-# define SYSV_MALLOC	1
+# define HAVE_VOID_MALLOC 1	/* XXX necessary?  not on any modern HP/UX */
 # define SYSV_SETVBUF	1
 # define HAVE_UNISTD_H	1
 # define HAVE_STRING_H	1
@@ -33,30 +35,27 @@
 #endif
 
 #if defined(sgi)
-# define SYSV_MALLOC	1
+# define HAVE_VOID_MALLOC 1	/* XXX necessary?  not on any modern IRIX */
 # define HAVE_UNISTD_H	1
 #endif
 
 #if defined(linux) || defined(__linux__)
-# define SYSV_MALLOC	1
 # define HAVE_UNISTD_H	1
 # define HAVE_STRING_H	1
 #endif
 
 #if defined(bsdi) || defined(__bsdi__)
-# define SYSV_MALLOC	1
 # define HAVE_UNISTD_H	1
 # define HAVE_STRING_H	1
 #endif
 
-#if defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__)
-# define SYSV_MEMSET	1
+#if defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__darwin__)
 # define HAVE_UNISTD_H	1
 # define HAVE_STRING_H	1
 #endif
 
 #if defined(NeXT)
-# define SYSV_MALLOC	1
+# define HAVE_VOID_MALLOC 1	/* XXX necessary?  not likely! */
 #endif
 
 #if !defined(sgi) && !defined(__STDC__)
@@ -72,13 +71,9 @@
 */
 
 #if defined(RES_PRF_STATS)
-# define BIND_4_9
+# define BIND_4_9	1
 #else
-# define BIND_4_8
-#endif
-
-#if defined(__BIND)		/* ((__BIND - 0) > 19950621) */
-# define BIND_4_9_3
+# define BIND_4_8	1
 #endif
 
 /*
@@ -110,6 +105,10 @@ typedef int		bool_t;		/* boolean type */
 #undef FALSE				/* SunOS-5 defines this in <rpc/types.h> */
 #define FALSE		0
 
+#if !defined(STDC_HEADERS) && defined(__STDC__)
+# define STDC_HEADERS	1
+#endif
+
 #ifndef STDIN_FILENO
 # define STDIN_FILENO	0
 #endif
@@ -121,9 +120,9 @@ typedef int		bool_t;		/* boolean type */
 #endif
 
 #if !defined(HAVE_INET_ATON) && \
-    (((__BIND - 0) > 19950621) || \
-     ((__NAMESER - 0) > 19961001) || \
-     defined(BSD4_3) || \
+    ((defined(__BIND) && (__BIND - 0) > 19950621) || \
+     (defined(__NAMESER) && (__NAMESER - 0) > 19961001) || \
+     (defined(BSD4_3) && !defined(BSD4_4)) || \
      (defined(BSD) && (BSD >= 199103)))
 # define HAVE_INET_ATON
 #endif
@@ -137,23 +136,26 @@ typedef struct __res_state	res_state_t;
 #if defined(BIND_4_8)
 typedef struct rrec	rrec_t;
 #else
-# if ((__BIND - 0) > 19950621) || ((__NAMESER - 0) > 19961001)
+# if (defined(__BIND) && (__BIND - 0) > 19950621) || \
+     (defined(__NAMESER) && (__NAMESER - 0) > 19961001)
 typedef u_char		rrec_t;
 # else
 typedef char		rrec_t;
 # endif
 #endif
 
-#if ((__BIND - 0) > 19950621) || ((__NAMESER - 0) > 19961001)
-typedef u_char	qbuf_t;
+#if (defined(__BIND) && (__BIND - 0) > 19950621) || \
+    (defined(__NAMESER) && (__NAMESER - 0) > 19961001)
+typedef u_char		qbuf_t;
 #else
-typedef char	qbuf_t;
+typedef char		qbuf_t;
 #endif
 
-#if ((__BIND - 0) > 19950621) || ((__NAMESER - 0) > 19961001)
-typedef char	nbuf_t;
+#if (defined(__BIND) && (__BIND - 0) > 19950621) || \
+    (defined(__NAMESER) && (__NAMESER - 0) > 19961001)
+typedef char		nbuf_t;
 #else
-typedef u_char	nbuf_t;
+typedef u_char		nbuf_t;
 #endif
 
 #if !defined(__NAMESER)
@@ -165,30 +167,31 @@ typedef u_char	nbuf_t;
 
 #ifndef _IPADDR_T
 # if defined(__alpha) || defined(BIND_4_9)
-typedef u_int	ipaddr_t;
+typedef u_int		ipaddr_t;
 # else
-typedef u_long	ipaddr_t;
+typedef u_long		ipaddr_t;
 # endif
+# define _IPADDR_T	ipaddr_t
 #endif
 
 /*
- * FreeBSD is a bit brain-dead in the way they do this -- they use the fact
- * that _BSD_SOCKLEN_T_ is NOT defined in order to typedef socklen_t at the
- * earliest point it's needed.  However they leave no means for applications to
- * know if the typedef has already been done.
+ * FreeBSD (and Darwin in its image) is a bit brain-dead in the way they do
+ * this -- they use the fact that _BSD_SOCKLEN_T_ is NOT defined in order to
+ * typedef socklen_t at the earliest point it's needed.  However they leave no
+ * means for applications to know if the typedef has already been done.
  *
  * FYI: In NetBSD socklen_t came into use just before 1.3J:
  *
  *	(__NetBSD_Version__ - 0) > 103100000
  */
-#if defined(__FreeBSD__) && defined(_BSD_SOCKLEN_T_)
+#if (defined(__FreeBSD__) || defined(__darwin__)) && defined(_BSD_SOCKLEN_T_)
 # include "ERROR: something's wrong with the #includes above!"
 #endif
 /* Sigh, standards are such wonderful things.... */
-#if !defined(socklen_t) && !defined(__FreeBSD__) && !defined(_SOCKLEN_T) && !defined(__socklen_t_defined)
-# if (defined(__sun__) && !defined(SVR4)) || \
-     (defined(sun) && defined(unix)) || \
-     ((BSD - 0 > 0) && ((BSD - 0) < 199506))
+#if !defined(socklen_t) && !defined(__FreeBSD__) && !defined(__darwin__) && !defined(_SOCKLEN_T) && !defined(__socklen_t_defined)
+# if (/* SunOS-4 gcc */defined(__sun__) && !defined(__svr4__)) || \
+     (/* SunOS-4 cc */defined(sun) && defined(unix) && !defined(__svr4__)) || \
+     (/* 4.3BSD */defined(BSD) && ((BSD - 0) > 0) && ((BSD - 0) < 199506))
 typedef int		__socklen_t;	/* 4.3BSD and older */
 # else
 typedef size_t		__socklen_t;	/* P1003.1g socket-related datum length */
@@ -208,10 +211,10 @@ typedef __socklen_t	socklen_t;
  * Perhaps the defined(__sun__) shouldn't be there on the _SOCKLEN_T line....
  */
 #if !defined(sock_buflen_t)			/* silly dreamer! */
-# if (defined(sun) && defined(unix)) || \
-     (defined(__sun__) && !defined(SVR4)) || \
-     (defined(__sun__) && defined(__svr4__) && !defined(_SOCKLEN_T)) || \
-     ((BSD - 0 > 0) && ((BSD - 0) < 199506))
+# if (/* SunOS-4 gcc */defined(__sun__) && !defined(__svr4__)) || \
+     (/* SunOS-4 cc */defined(sun) && defined(unix) && !defined(__svr4__)) || \
+     (/* SunOS-5.9 */defined(__sun__) && defined(__svr4__) && !defined(_SOCKLEN_T)) || \
+     (/* 4.3BSD */defined(BSD) && ((BSD - 0) > 0) && ((BSD - 0) < 199506))
 typedef int		__sock_buflen_t;	/* 4.3BSD and older used int */
 # else
 typedef size_t		__sock_buflen_t;	/* P1003.1g adherents use size_t */
@@ -226,21 +229,19 @@ typedef int	sigtype_t;
 typedef void	sigtype_t;
 #endif
 
-#if defined(SYSV_MALLOC) || defined(__STDC__)
+#if defined(HAVE_VOID_MALLOC) || defined(__STDC__)
 typedef void	ptr_t;		/* generic pointer type */
 typedef void	free_t;
 #else
+/*
+ * These may not always be 100% correct for old non-STDC systems....
+ */
 typedef char	ptr_t;		/* generic pointer type */
 typedef int	free_t;
 #endif
 
-#ifdef SYSV_MEMSET
-# define bzero(a, n)	(void) memset(a, '\0', n)
-# define bcopy(a, b, n)	(void) memcpy(b, a, n)
-#endif
-
-#ifdef SYSV_SETVBUF
-# define linebufmode(a)	(void) setvbuf(a, (char *) NULL, _IOLBF, BUFSIZ)
+#if defined(SYSV_SETVBUF) || defined(__STDC__)
+# define linebufmode(a)	(void) setvbuf(a, (char *) NULL, _IOLBF, (size_t) 0)
 #else
 # define linebufmode(a)	(void) setlinebuf(a)
 #endif
@@ -262,7 +263,7 @@ typedef int	free_t;
 # define gethostbyaddr	(struct hostent *) res_gethostbyaddr
 #endif
 
-#if defined(SVR4)
+#if defined(__svr4__)
 # define jmp_buf	sigjmp_buf
 # define setjmp(e)	sigsetjmp(e, 1)
 # define longjmp(e, n)	siglongjmp(e, n)
