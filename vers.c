@@ -2,11 +2,14 @@
  *	vers.c -- global version identifier
  */
 
-#ident "@(#)host:$Name:  $:$Id: vers.c,v 1.5 2003-03-29 02:53:04 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: vers.c,v 1.6 2003-04-05 22:23:39 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)vers.c	e07@nikhef.nl (Eric Wassenaar) 991529";
 #endif
+
+#include "host.h"
+#include "glob.h"
 
 char *version = "$Name:  $";
 
