@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.7 2003-03-29 19:49:18 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.8 2003-03-30 17:30:57 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -25,6 +25,8 @@ static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
 
 #include "host.h"
 #include "glob.h"
+
+static bool_t check_cache	__P((char *, char *));
 
 
 /*
@@ -1015,7 +1017,7 @@ sort_servers()
 	 * Use the maximum value of all comparisons.
 	 */
 	for (q = prefserver, p = q; p != NULL; p = q) {
-		if ((q = index(p, ',')))
+		if ((q = strchr(p, ',')))
 			*q = '\0';
 
 		for (n = 0; n < nservers; n++) {
@@ -1078,7 +1080,7 @@ skip_transfer(name)
 	bool_t skip = FALSE;
 
 	for (q = skipzone, p = q; p != NULL; p = q) {
-		if ((q = index(p, ',')))
+		if ((q = strchr(p, ',')))
 			*q = '\0';
 
 		if (sameword(name, p))
@@ -1485,7 +1487,7 @@ get_zone(name, inaddr, host)
 	char *answer = NULL;		/* allocated to size -- axfer replies can be big! */
 	HEADER *bp;
 	int ancount;
-	int sock;
+	int sock = -1;
 	struct sockaddr_in ns_sin;
 	register int i;
 	register int n;
@@ -2078,7 +2080,7 @@ check_zone(name, host)
 **	This implies that we cannot call print_info() here.
 */
 
-bool_t
+static bool_t
 check_cache(name, host)
 	input char *name;		/* name of zone to get soa for */
 	input char *host;		/* name of server to be queried */
@@ -2598,7 +2600,7 @@ check_ttl(name, type, class, ttl)
 	 * Look it up in the appropriate hash chain.
 	 */
 	for (hfunc = type, p = name; (c = *p) != '\0'; p++) {
-		hfunc = ((hfunc << 1) ^ (lowercase(c) & 0377)) % HASHSIZE;
+		hfunc = ((hfunc << 1) ^ (lowercase((int) c) & 0377)) % HASHSIZE;
 	}
 	for (ps = &ttltab[hfunc]; (s = *ps) != NULL; ps = &s->next) {
 		if (s->type != type || s->class != class)
@@ -2716,7 +2718,7 @@ host_index(name, enter)
 	 * Look it up in the appropriate hash chain.
 	 */
 	for (hfunc = 0, p = name; (c = *p) != '\0'; p++) {
-		hfunc = ((hfunc << 1) ^ (lowercase(c) & 0377)) % HASHSIZE;
+		hfunc = ((hfunc << 1) ^ (lowercase((int) c) & 0377)) % HASHSIZE;
 	}
 	for (ps = &hosttab[hfunc]; (s = *ps) != NULL; ps = &s->next) {
 		if (s->slot >= hostcount)
@@ -2817,7 +2819,7 @@ zone_index(name, enter)
 	 * Look it up in the appropriate hash chain.
 	 */
 	for (hfunc = 0, p = name; (c = *p) != '\0'; p++) {
-		hfunc = ((hfunc << 1) ^ (lowercase(c) & 0377)) % HASHSIZE;
+		hfunc = ((hfunc << 1) ^ (lowercase((int) c) & 0377)) % HASHSIZE;
 	}
 	for (ps = &zonetab[hfunc]; (s = *ps) != NULL; ps = &s->next) {
 		if (s->slot >= zonecount)
@@ -2917,7 +2919,7 @@ check_canon(name)
 	 * Look it up in the appropriate hash chain.
 	 */
 	for (hfunc = 0, p = name; (c = *p) != '\0'; p++){
-		hfunc = ((hfunc << 1) ^ (lowercase(c) & 0377)) % HASHSIZE;
+		hfunc = ((hfunc << 1) ^ (lowercase((int) c) & 0377)) % HASHSIZE;
 	}
 
 	for (ps = &canontab[hfunc]; (s = *ps) != NULL; ps = &s->next) {
