@@ -5,13 +5,23 @@
 #
 #	make -f Makefile.BSD __NetBSD__=1 __GNUC__=2
 #
-#ident	"@(#)newsyslog:$Name:  $:$Id: Makefile.BSD,v 1.4 2003-04-04 03:15:24 -0800 woods Exp $"
+#ident	"@(#)newsyslog:$Name:  $:$Id: Makefile.BSD,v 1.5 2003-04-05 03:32:55 -0800 woods Exp $"
 #
 
 .if defined(HOSTNAME) && $(HOSTNAME) == "proven"
 PREFIX ?= /usr/pkg
 CC = PATH=/usr/pkg/gcc-ssp/bin:$$PATH /usr/pkg/gcc-ssp/bin/cc
 CFLAGS += -pipe -fstack-protector
+__NetBSD__ = 1
+__GNUC__ = 2
+.endif
+.if defined(HOSTNAME) && $(HOSTNAME) == "proven-bind8"
+PREFIX ?= /usr/pkg
+CC = PATH=/usr/pkg/gcc-ssp/bin:$$PATH /usr/pkg/gcc-ssp/bin/cc
+CFLAGS += -pipe -fstack-protector
+CPPFLAGS += -I$(PREFIX)/bind/include
+LDFLAGS += -L$(PREFIX)/lib
+LDADD += -lbind
 __NetBSD__ = 1
 __GNUC__ = 2
 .endif
