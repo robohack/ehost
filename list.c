@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.20 2003-06-05 01:13:16 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.21 2003-11-01 01:22:24 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -726,7 +726,7 @@ find_servers(name)
 		naddrs[0] = i;
 
 		if (verbose)
-			printf("Found %d address%s for %s\n",
+			printf("Found %d address%s for primary %s\n",
 				naddrs[0], plurale(naddrs[0]), nsname[0]);
 		nservers = 1;
 		geth_freehostent(hp);
