@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.13 2003-04-03 18:28:33 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.14 2003-04-03 23:21:29 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1517,7 +1517,12 @@ get_zone(name, inaddr, host)
 			printf("Loading zone from cache for %s ...\n", name);
 
 		len = cache_getfilesize();
-		answer = malloc(len);
+		if (!(answer = malloc(len))) {
+			sys_error("unable to allocate %s byte buffer to hold zone for %s from cache",
+				 dtoa(len), name);
+			seth_errno(TRY_AGAIN);
+			return (FALSE);
+		}
 		n = cache_read(answer, (size_t) len);
 	} else {
 		/*
@@ -1646,7 +1651,7 @@ get_zone(name, inaddr, host)
 		if (!(answer = (answer) ?
 		      realloc(answer, len) : /* XXX is realloc() really cheaper? */
 		      malloc(len))) {
-			pr_error("unable to allocate %s byte buffer to hold %s for %s from %s",
+			sys_error("unable to allocate %s byte buffer to hold %s for %s from %s",
 				 dtoa(len), pr_type(T_AXFR), name, host);
 			if (loading)
 				(void) cache_close(FALSE);
