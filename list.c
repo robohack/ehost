@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.2 2002-01-12 01:00:54 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.3 2003-03-21 19:10:31 -0800 woods Exp $"
 
 #ifndef lint
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -206,8 +206,9 @@ input char *name;			/* name of zone to process */
  * Suppress various checks if working beyond the recursion skip level.
  * This affects processing in print_rrec(). It may need refinement.
  */
-	canonskip = ((recursion_level > skip_level) && !addrmode &&
-			!canoncheck) ? TRUE : FALSE;
+	if (!canonskip || canoncheck)
+		canonskip = ((recursion_level > skip_level) && !addrmode &&
+			     !canoncheck) ? TRUE : FALSE;
 
 	underskip = ((recursion_level > skip_level) && !addrmode &&
 			!undercheck) ? TRUE : FALSE;
@@ -1556,12 +1557,12 @@ input char *host;			/* name of server to be queried */
 
 bool
 get_zone(name, inaddr, host)
-input char *name;			/* name of zone to do zone xfer for */
-input struct in_addr inaddr;		/* address of server to be queried */
-input char *host;			/* name of server to be queried */
+	input char *name;		/* name of zone to do zone xfer for */
+	input struct in_addr inaddr;	/* address of server to be queried */
+	input char *host;		/* name of server to be queried */
 {
 	querybuf query;
-	querybuf answer;
+	char *answer = NULL;		/* allocated to size -- axfer replies can be big! */
 	HEADER *bp;
 	int ancount;
 	int sock;
@@ -1569,19 +1570,22 @@ input char *host;			/* name of server to be queried */
 	register int n, i;
 	int nrecords = 0;		/* number of records processed */
 	int npackets = 0;		/* number of packets received */
+	u_short len;
+	char *buffer;
+	int buflen;
 
 	/* clear global counts */
 	soacount = 0;			/* count of SOA records */
 	zonecount = 0;			/* count of delegated zones */
 	hostcount = 0;			/* count of host names */
 
-/*
- * When loading the zone from the local cache, the cache file must exist.
- */
-	if (loading)
-	{
-		if (cache_open(name, FALSE) < 0)
-		{
+	seterrno(0);	/* reset before going on any furhter */
+
+	/*
+	 * When loading the zone from the local cache, the cache file must exist.
+	 */
+	if (loading) {
+		if (cache_open(name, FALSE) < 0) {
 			seth_errno(NO_RREC);
 			return(FALSE);
 		}
@@ -1589,142 +1593,225 @@ input char *host;			/* name of server to be queried */
 		if (verbose)
 			printf("Loading zone from cache for %s ...\n", name);
 
-		goto start;
-	}
+#if 0
+		len = getfilesize(name);
+		answer = malloc(len);
+#endif
+		n = cache_read(answer, len);
+	} else {
+		/*
+		 * Construct query, and connect to the given server.
+		 */
+		n = res_mkquery(QUERY, name, queryclass, T_AXFR, (qbuf_t *) NULL, 0,
+				(rrec_t *) NULL, (qbuf_t *) &query, sizeof(querybuf));
+		if (n < 0) {
+			if (debug)
+				printf("%sres_mkquery failed\n", dbprefix);
+			seth_errno(NO_RECOVERY);
+			return(FALSE);
+		}
 
-/*
- * Construct query, and connect to the given server.
- */
-	seterrno(0);	/* reset before querying nameserver */
+		if (debug) {
+			printf("%sget_zone()\n", dbprefix);
+			pr_query((qbuf_t *) &query, n, stdout);
+		}
 
-	n = res_mkquery(QUERY, name, queryclass, T_AXFR, (qbuf_t *)NULL, 0,
-			(rrec_t *)NULL, (qbuf_t *)&query, sizeof(querybuf));
-	if (n < 0)
-	{
-		if (debug)
-			printf("%sres_mkquery failed\n", dbprefix);
-		seth_errno(NO_RECOVERY);
-		return(FALSE);
-	}
+		/* setup destination address */
+		bzero((char *) &sin, sizeof(sin));
 
-	if (debug)
-	{
-		printf("%sget_zone()\n", dbprefix);
-		pr_query((qbuf_t *)&query, n, stdout);
-	}
+		sin.sin_family = AF_INET;
+		sin.sin_port = htons(NAMESERVER_PORT);
+		sin.sin_addr = inaddr;
 
-	/* setup destination address */
-	bzero((char *)&sin, sizeof(sin));
-
-	sin.sin_family = AF_INET;
-	sin.sin_port = htons(NAMESERVER_PORT);
-	sin.sin_addr = inaddr;
-
-	sock = _res_socket(AF_INET, SOCK_STREAM, 0);
-	if (sock < 0)
-	{
-		_res_perror(&sin, host, "socket");
-		seth_errno(TRY_AGAIN);
-		return(FALSE);
-	}
-
-	if (_res_connect(sock, &sin, sizeof(sin)) < 0)
-	{
-		if (verbose || debug)
-			_res_perror(&sin, host, "connect");
-		(void) close(sock);
-		seth_errno(TRY_AGAIN);
-		return(FALSE);
-	}
-
-	if (verbose)
-		printf("Asking zone transfer for %s ...\n", name);
-
-/*
- * Send the query buffer.
- */
-	if (_res_write(sock, &sin, host, (char *)&query, n) < 0)
-	{
-		(void) close(sock);
-		seth_errno(TRY_AGAIN);
-		return(FALSE);
-	}
-
-start:
-
-/*
- * Process all incoming packets, usually one record in a separate packet.
- */
-	while ((n = loading ? cache_read((char *)&answer, sizeof(querybuf)) :
-		_res_read(sock, &sin, host, (char *)&answer, sizeof(querybuf))) != 0)
-	{
-		if (n < 0)
-		{
-			if (loading)
-				(void) cache_close(FALSE);
-			else
-				(void) close(sock);
+		sock = _res_socket(AF_INET, SOCK_STREAM, 0);
+		if (sock < 0) {
+			_res_perror(&sin, host, "socket()");
 			seth_errno(TRY_AGAIN);
 			return(FALSE);
 		}
 
-		seterrno(0);	/* reset after we got an answer */
-
-		if (n < HFIXEDSZ)
-		{
-			pr_error("answer length %s too short during %s for %s from %s",
-				dtoa(n), pr_type(T_AXFR), name, host);
-			if (loading)
-				(void) cache_close(FALSE);
-			else
-				(void) close(sock);
-			seth_errno(TRY_AGAIN);
-			return(FALSE);
-		}
-
-		if (debug > 1)
-		{
-			printf("%sgot answer, %d bytes:\n", dbprefix, n);
-			pr_query((qbuf_t *)&answer, querysize(n), stdout);
-		}
-
-	/*
-	 * Analyze the contents of the answer and check for errors.
-	 * An error can be expected only in the very first packet.
-	 * The query section should be empty except in the first packet.
-	 * Note the special error status codes for specific failures.
-	 */
-		bp = (HEADER *)&answer;
-		ancount = ntohs((u_short)bp->ancount);
-
-		if (bp->rcode != NOERROR || ancount == 0)
-		{
+		if (_res_connect(sock, &sin, sizeof(sin)) < 0) {
 			if (verbose || debug)
-				print_answer(&answer, n, T_AXFR);
+				_res_perror(&sin, host, "connect()");
+			(void) close(sock);
+			seth_errno(TRY_AGAIN);
+			return(FALSE);
+		}
 
-			switch (bp->rcode)
-			{
-			    case NXDOMAIN:
+		if (verbose)
+			printf("Asking zone transfer for %s ...\n", name);
+
+		/*
+		 * Send the query buffer.
+		 */
+		if (_res_write(sock, &sin, host, (char *) &query, n) < 0) {
+			(void) close(sock);
+			seth_errno(TRY_AGAIN);
+			return(FALSE);
+		}
+	}
+
+	do {
+/*
+ * this sould probably be something like _res_read_anslen() in send.c
+ */
+		/*
+		 * Read the length of answer buffer.
+		 */
+		buffer = (char *) &len;
+		buflen = INT16SZ;
+
+		if (loading) {
+			/* XXX read anslen from cache */
+#if 0
+			n = cache_read(buffer, buflen);
+			if (n < 0 | n != buflen) {
+				(void) cache_close(FALSE);
+				seth_errno(TRY_AGAIN);
+				return(FALSE);
+			}
+#endif
+		} else {
+			/* set stream timeout for recv_sock() */
+			timeout = READTIMEOUT;
+
+			while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0) {
+				buffer += n;
+				buflen -= n;
+			}
+			if (buflen != 0) {
+				_res_perror(&sin, host, "recv_sock(): error reading answer length");
+				(void) close(sock);
+				seth_errno(TRY_AGAIN);
+				return(FALSE);
+			}
+		}
+		/*
+		 * Terminate if length is zero.
+		 */
+#if 0 /* why not? */
+		len = ntohs(len);
+#else
+		len = _getshort((u_char *) &len);
+#endif
+		if (len == 0) {
+			seterrno(EINVAL);
+			_res_perror(&sin, host, "answer has length of zero");
+			if (loading)
+				(void) cache_close(FALSE);
+			else
+				(void) close(sock);
+			seth_errno(TRY_AGAIN);
+			return(FALSE);
+		}
+/*
+ * end of what should be _res_read_anslen()
+ */
+
+		if (debug > 2)
+			printf("%sexpecting an answer of %d bytes\n", dbprefix, len);
+
+		if (!(answer = (answer) ?
+		      realloc(answer, len) : /* XXX is realloc() really cheaper? */
+		      malloc(len))) {
+			pr_error("unable to allocate %s byte buffer to hold %s for %s from %s",
+				 dtoa(len), pr_type(T_AXFR), name, host);
+			if (loading)
+				(void) cache_close(FALSE);
+			else
+				(void) close(sock);
+			seth_errno(TRY_AGAIN);
+			return(FALSE);
+		}
+
+#if 0
+		if (loading)
+			n = cache_read(answer, len);
+		else
+#endif
+			n = _res_read_stream(sock, &sin, host, answer, len);
+
+		if (n < 0) {
+			/* _res_perror() already called */
+			if (loading)
+				(void) cache_close(FALSE);
+			else
+				(void) close(sock);
+			seth_errno(TRY_AGAIN);
+			return(FALSE);
+		}
+
+		if (n == 0) {
+			if (debug > 1)
+				printf("%sgot EOF\n", dbprefix);
+			
+			break;
+		}
+
+		seterrno(0);	/* reset after we have a possible answer */
+
+		if (n < HFIXEDSZ) {
+			pr_error("answer length of %s too short for a header during %s for %s from %s",
+				 dtoa(n), pr_type(T_AXFR), name, host);
+			if (loading)
+				(void) cache_close(FALSE);
+			else
+				(void) close(sock);
+			seth_errno(TRY_AGAIN);
+			return(FALSE);
+		}
+
+		if (n != len) {
+			pr_error("answer length of %s too %s during %s for %s from %s",
+				 dtoa(n), (n < len) ? "short" : "long", pr_type(T_AXFR), name, host);
+			if (loading)
+				(void) cache_close(FALSE);
+			else
+				(void) close(sock);
+			seth_errno(TRY_AGAIN);
+			return(FALSE);
+		}
+
+		if (debug > 2)
+			printf("%sgot an answer of %d bytes\n", dbprefix, n);
+
+		if (debug)
+			pr_query((qbuf_t *) answer, n, stdout);
+
+		if (verbose || debug)
+			print_answer((querybuf *) answer, n, T_AXFR);
+		/*
+		 * Analyze the contents of the answer and check for errors.  An
+		 * error can be expected only in the very first packet.  The
+		 * query section should be empty except in the first packet.
+		 * Note the special error status codes for specific failures.
+		 */
+		bp = (HEADER *) answer;
+		ancount = ntohs((u_short) bp->ancount);
+
+		if (bp->rcode != NOERROR || ancount == 0) {
+			switch (bp->rcode) {
+			case NXDOMAIN:
 				/* distinguish between authoritative or not */
 				seth_errno(bp->aa ? HOST_NOT_FOUND : NO_HOST);
 				break;
 
-			    case NOERROR:
+			case NOERROR:
 				/* distinguish between authoritative or not */
 				seth_errno(bp->aa ? NO_DATA : NO_RREC);
 				break;
 
-			    case REFUSED:
+			case REFUSED:
 				/* special status if zone transfer refused */
 				seth_errno(QUERY_REFUSED);
 				break;
 
-			    case SERVFAIL:
+			case SERVFAIL:
 				/* special status upon explicit failure */
 				seth_errno(SERVER_FAILURE);
 				break;
 
-			    default:
+			default:
 				/* all other errors will cause a retry */
 				seth_errno(TRY_AGAIN);
 				break;
@@ -1732,7 +1819,7 @@ start:
 
 			if (npackets != 0)
 				pr_error("unexpected error during %s for %s from %s",
-					pr_type(T_AXFR), name, host);
+					 pr_type(T_AXFR), name, host);
 
 			if (loading)
 				(void) cache_close(FALSE);
@@ -1743,104 +1830,102 @@ start:
 
 		/* valid answer received, avoid buffer overrun */
 		seth_errno(0);
-		n = querysize(n);
 
-	/*
-	 * The nameserver and additional info section should be empty.
-	 * There may be multiple answers in the answer section.
-	 */
+		/*
+		 * The nameserver and additional info section should be empty.
+		 * There may be multiple answers in the answer section.
+		 */
 #ifdef obsolete
 		if (ancount > 1)
 			pr_error("multiple answers during %s for %s from %s",
-				pr_type(T_AXFR), name, host);
+				 pr_type(T_AXFR), name, host);
 #endif
 		if (ntohs((u_short)bp->nscount) != 0)
 			pr_error("nonzero nscount during %s for %s from %s",
-				pr_type(T_AXFR), name, host);
+				 pr_type(T_AXFR), name, host);
 
 		if (ntohs((u_short)bp->arcount) != 0)
 			pr_error("nonzero arcount during %s for %s from %s",
-				pr_type(T_AXFR), name, host);
+				 pr_type(T_AXFR), name, host);
 
-	/*
-	 * Valid packet received. Print contents if appropriate.
-	 * Specific zone information will be saved by update_zone().
-	 */
+		/*
+		 * Valid packet received. Print contents if appropriate.
+		 * Specific zone information will be saved by update_zone().
+		 */
 		npackets += 1;
 		nrecords += ancount;
 
 		soaname = NULL, subname = NULL, adrname = NULL, address = 0;
 		listhost = host;
 
-		(void) print_info(&answer, n, name, T_AXFR, queryclass, FALSE);
+		(void) print_info(answer, n, name, T_AXFR, queryclass, FALSE);
 
 #ifdef notyet
 		/* make answer authoritative if it comes from such server */
 		if (dumping && authserver)
 			bp->aa = 1;
 #endif
-	/*
-	 * Dump data to cache if so requested.
-	 */
-		if (dumping && (cache_write((char *)&answer, n) < 0))
-		{
+		/*
+		 * Dump data to cache if so requested.
+		 */
+		if (dumping && (cache_write(answer, n) < 0)) {
 			(void) close(sock);
 			seth_errno(CACHE_ERROR);
 			return(FALSE);
 		}
+	} while (n > 0 && soacount < 2);
 
 	/*
-	 * Terminate upon the second SOA record for this zone.
+	 * Note the case where we got an EOF reading before we see the second
+	 * SOA denoting true "end of zone".
 	 */
-		if (soacount > 1)
-			break;
-	}
+	if (soacount != 2)
+		pr_error("missing trailing SOA during %s for %s from %s",
+			 pr_type(T_AXFR), name, host);
 
-/*
- * Write a zero length trailer to the cache to indicate end-of-file.
- * This is not strictly necessary if the second SOA marks the end.
- */
-	if (dumping && (cache_write((char *)&answer, 0) < 0))
-	{
+	/*
+	 * Write a zero length trailer to the cache to indicate end-of-file.
+	 * This is not strictly necessary if the second SOA marks the end.
+	 */
+	if (dumping && (cache_write(answer, 0) < 0)) {
+		assert(!loading);
 		(void) close(sock);
 		seth_errno(CACHE_ERROR);
 		return(FALSE);
 	}
 
-/*
- * End of zone transfer at second SOA record or zero length read.
- */
+	/*
+	 * End of zone transfer at second SOA record or zero length read.
+	 */
 	if (loading)
 		(void) cache_close(FALSE);
 	else
 		(void) close(sock);
 
-/*
- * Check for the anomaly that the whole transfer consisted of the
- * SOA records only. Could occur if we queried the victim of a lame
- * delegation which happened to have the SOA record present.
- */
-	if (nrecords <= soacount)
-	{
+	/*
+	 * Check for the anomaly that the whole transfer consisted of the
+	 * SOA records only. Could occur if we queried the victim of a lame
+	 * delegation which happened to have the SOA record present.
+	 */
+	if (nrecords <= soacount) {
 		pr_error("empty zone transfer for %s from %s",
 			name, host);
 		seth_errno(NO_RREC);
 		return(FALSE);
 	}
 
-/*
- * Do an extra check for delegated zones that also have an A record.
- * Those may have been defined in the child zone, and crept in the
- * parent zone, or may have been defined as glue records.
- * This is not necessarily an error, but the host count may be wrong.
- * Note that an A record for the current zone has been ignored above.
- * Skip this check if explicitly requested in quick mode, or in case
- * nothing would be printed anyway in quiet mode.
- */
+	/*
+	 * Do an extra check for delegated zones that also have an A record.
+	 * Those may have been defined in the child zone, and crept in the
+	 * parent zone, or may have been defined as glue records.
+	 * This is not necessarily an error, but the host count may be wrong.
+	 * Note that an A record for the current zone has been ignored above.
+	 * Skip this check if explicitly requested in quick mode, or in case
+	 * nothing would be printed anyway in quiet mode.
+	 */
 	i = (quiet || quick) ? zonecount : 0;
 
-	for (n = i; n < zonecount; n++)
-	{
+	for (n = i; n < zonecount; n++) {
 		i = host_index(zonename[n], FALSE);
 #ifdef obsolete
 		for (i = 0; i < hostcount; i++)
@@ -1852,11 +1937,10 @@ start:
 				zonename[n], name, host);
 	}
 
-/*
- * The zone transfer has been successful.
- */
-	if (verbose)
-	{
+	/*
+	 * The zone transfer has been successful.
+	 */
+	if (verbose) {
 		printf("Transfer complete, %d record%s received for %s\n",
 			nrecords, plural(nrecords), name);
 		if (npackets != nrecords)
