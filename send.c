@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.8 2003-03-30 22:56:15 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.9 2003-03-31 21:06:33 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -469,7 +469,7 @@ _res_socket(family, type, protocol)
 	/* set an explicit source address/port if so requested */
 	for (port = minport; port > 0 || srcaddr != INADDR_ANY; port++) {
 		/* setup source address */
-		bzero((char *) &res_sin, sizeof(res_sin));
+		memset((char *) &res_sin, (int) '\0', sizeof(res_sin));
 
 		res_sin.sin_family = family;
 		res_sin.sin_addr.s_addr = srcaddr;
@@ -648,7 +648,7 @@ _res_write(sock, addr, host, buf, bufsize)
 	/*
 	 * Write the query buffer itself.
 	 */
-	if (send(sock, buf, (sock_buflen_t) bufsize, 0) != bufsize) {
+	if ((size_t) send(sock, buf, (sock_buflen_t) bufsize, 0) != bufsize) {
 		_res_perror(addr, host, "write query");
 		return (-1);
 	}
@@ -691,7 +691,7 @@ _res_read(sock, addr, host, buf, bufsize)
 	u_short len;
 	char *buffer;
 	socklen_t buflen;
-	int reslen;			/* residue length.... */
+	size_t reslen;			/* residue length.... */
 	register int n;
 
 	/* set stream timeout for recv_sock() */
@@ -733,10 +733,10 @@ _res_read(sock, addr, host, buf, bufsize)
 	 * Do not chop the returned length in case of buffer overflow.
 	 */
 	reslen = 0;
-	if ((int) len > bufsize) {
+	if (len > bufsize) {
 		if (bitset(RES_DEBUG, _res.options)) {
-			printf("%sanswer length %d bytes, bufsize only %d bytes\n",
-				dbprefix, (int)len, bufsize);
+			printf("%sanswer length %u bytes, bufsize only %lu bytes\n",
+			       dbprefix, (unsigned int) len, (unsigned long) bufsize);
 		}
 		reslen = len - bufsize;
 #if 0
@@ -781,8 +781,8 @@ _res_read(sock, addr, host, buf, bufsize)
 			return (-1);
 		}
 		if (bitset(RES_DEBUG, _res.options)) {
-			printf("%sresponse truncated to %d bytes\n",
-				dbprefix, bufsize);
+			printf("%sresponse truncated to %lu bytes\n",
+			       dbprefix, (unsigned long) bufsize);
 		}
 		/* set truncation flag */
 		bp->tc = 1;
@@ -863,7 +863,7 @@ recv_sock(sock, buffer, buflen)
 	wait.tv_usec = 0;
 rewait:
 	/* FD_ZERO(&fds); */
-	bzero((char *) &fds, sizeof(fds));
+	memset((char *) &fds, (int) '\0', sizeof(fds));
 	FD_SET(sock, &fds);
 
 	/* wait for the arrival of data, or timeout */
