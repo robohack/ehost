@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.6 2003-03-29 02:51:33 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.7 2003-03-30 17:36:11 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -61,7 +61,7 @@ get_hostinfo(name, qualified)
 	int dot;			/* number of dots in query name */
 	bool_t result;			/* result status of action taken */
 	char oldnamebuf[(2 * MAXDNAME) + 2];
-	char *oldname;			/* saved actual name when NO_DATA */
+	char *oldname = NULL;		/* saved actual name when NO_DATA */
 	int nodata = 0;			/* NO_DATA status during DNSRCH */
 	int nquery = 0;			/* number of extra search queries */
 
@@ -541,11 +541,11 @@ static bool_t doprint;		/* indicates whether or not to print */
 /*VARARGS1*/
 #ifdef __STDC__
 void
-print_data(char *fmt, ...)
+print_data(const char *fmt, ...)
 #else
 void
 print_data(fmt, va_alist)
-	input char *fmt;		/* format of message */
+	input const char *fmt;		/* format of message */
 	va_dcl				/* arguments for printf */
 #endif
 {
@@ -567,7 +567,7 @@ print_data(fmt, va_alist)
 /*
  * this macro helps us avoid a function call if doprint is false...
  */
-#define doprintf(x)	(doprint) ? print_data x : 0
+#define doprintf(x)	(doprint) ? print_data x : (void) 0
 
 
 /*
