@@ -10,7 +10,7 @@
 #
 # Ongoing maintenance by Greg A. Woods <woods@planix.com>
 #
-#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.1 2002-01-11 22:28:47 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.2 2003-03-21 19:11:02 -0800 woods Exp $"
 #
 # Lookup a dotted quad IP address, or hostname in one of many
 # Reverse/Realtime Blackhole Lists
@@ -40,7 +40,11 @@
 #
 # TODO:
 #
-#	- support name-based DNS Black Lists (eg. rfc-ignorant.org)
+#	- support name-based DNS Black Lists (RHSBL) (eg. rfc-ignorant.org)
+#
+#	- move all the DNSBLs to a configuration file, perhaps tagging
+#	  each as either default or optional, selecting all with a
+#	  command line flag, otherwise just query the default entries.
 
 # ----------------------------------------------------------------------
 # Setup environment.
@@ -48,7 +52,8 @@
 
 # This is where the ``host'' executable lives.
 #
-BINDIR=@DESTBIN@
+BINDIR=@BINDIR@
+CONFDIR=@CONFIDR@
 
 PATH=${BINDIR}:/bin:/usr/bin ; export PATH
 
@@ -71,7 +76,9 @@ reversed=""
 #
 #	http://www.declude.com/junkmail/support/ip4r.htm
 #
-#	http://www.iki.fi/era/rbl/rbl.html	# very dated 2001/11/17
+#	http://www.iki.fi/era/rbl/rbl.html	# very dated 2001/12/02
+#
+#	http://relays.osirusoft.com/cgi-bin/rbcheck.cgi
 #
 # some published stats by one user of many DNS Black Lists.
 #
@@ -139,8 +146,16 @@ ALL_RBLS="${RSS_ROOT} ${ALL_RBLS}"
 # ORBS NZ - second son of ORBS
 # <URL:http://www.orbz.org/>
 #
-ORBZ_ROOT="inputs.orbz.org outputs.orbz.org"
-ALL_RBLS="${ORBZ_ROOT} ${ALL_RBLS}"
+# Died March 18, 2002.  Replaced by DSBL.
+#
+#ORBZ_ROOT="inputs.orbz.org outputs.orbz.org"
+#ALL_RBLS="${ORBZ_ROOT} ${ALL_RBLS}"
+
+# DSBL - Distributed Sender Boycott List
+# <URL:http://www.dsbl.org/>
+#
+DSBL_ROOT="list.dsbl.org unconfirmed.dsbl.org multihop.dsbl.org"
+ALL_RBLS="${DSBL_ROOT} ${ALL_RBLS}"
 
 # ORDB - third son of ORBS
 # <URL:http://www.ordb.org/>
@@ -148,73 +163,149 @@ ALL_RBLS="${ORBZ_ROOT} ${ALL_RBLS}"
 ORDB_ROOT="relays.ordb.org "
 ALL_RBLS="${ORDB_ROOT} ${ALL_RBLS}"
 
+# DNSRBL - 
+# <URL:http://www.dnsrbl.com/>
+#
+# 127.0.0.2	verified open relay
+# 127.0.0.3	dialup spam source
+# 127.0.0.4	confirmed spam source
+# 127.0.0.5	smart host
+# 127.0.0.6	a spamware software developer or spamvertized site
+# 127.0.0.7	a list server that opts in without confirmation
+# 127.0.0.8	an insecure formmail.cgi script
+# 127.0.0.9	open proxy servers
+#
+DNSRBL_ROOT="dun.dnsrbl.net spam.dnsrbl.net"
+ALL_RBLS="${DNSRBL_ROOT} ${ALL_RBLS}"
+
 # DORKSLAYERS - the second edition
 # <URL:http://www.dorkslayers.com/>
 #
-DORKSLAYERS_ROOT="orbs.dorkslayers.com ztl.dorkslayers.com"
+DORKSLAYERS_ROOT="relays.dorkslayers.com orbs.dorkslayers.com ztl.dorkslayers.com"
 ALL_RBLS="${DORKSLAYERS_ROOT} ${ALL_RBLS}"
 
 # Osirusoft Open Relay Spam Stopper
 # <URL:http://relays.osirusoft.com/>
 #
-#   127.0.0.2		Verified Open Relay
-#   A verified open relay in most cases is handled by other rbl servers, and
-#   imported into the Zone file.
+#     * 127.0.0.2 Verified Open Relay                                            
+#     * 127.0.0.3 Dialup Spam Source                                             
+#       Dialup Spam Sources are imported into the Zone file from other sources   
+#       and some known sources are manually added to the local include file.     
+#     * 127.0.0.4 Confirmed Spam Source                                          
+#       A site has been identified as a constant source of spam, and is          
+#       manually added. Submissions for this type of spam require multiple       
+#       nominations from multiple sites. Test Blockers also find themselves in   
+#       this catagory.                                                           
+#     * 127.0.0.5 Smart Host (In progress)                                       
+#       A Smart host is a site determined to be secure, but relays for those     
+#       who are not, defeating one level of security. When this is ready, it     
+#       will be labeled outputs.osirusoft.com. NOTE: I strongly discourage       
+#       using outputs due to it being way too effective to be useful.            
+#     * 127.0.0.6 A Spamware software developer or spamvertized site. This       
+#       information is maintained by spamsites.org and spamhaus.org.             
+#     * 127.0.0.7 A list server that automatically opts users in without         
+#       confirmation                                                             
+#     * 127.0.0.8 An insecure formmail.cgi script. (Planned)                     
+#     * 127.0.0.9 Open proxy servers                                             
 #
-#   127.0.0.3		Dialup Spam Source
-#   Dialup Spam Sources are imported into the Zone file from other sources and
-#   some known sources are manually added to the local include file.
-#
-#   127.0.0.4		Confirmed Spam Source
-#   A site has been identified as a constant source of spam, and is manually
-#   added.  Submissions for this type of spam require multiple nominations
-#   from multiple sites.
-#
-#   127.0.0.5		Smart Host (In progress)
-#   A Smart host is a site determined to be secure, but relays for those who
-#   are not, defeating one level of security.  When this is ready, it will be
-#   labeled outputs.osirusoft.com.
-#
-#   127.0.0.6		A Spamware software developer or spamvertized site.
-#   This information will automatically be maintained by www.spamsites.org
-#   shortly.  A Spamware software developer.
-#
-#   127.0.0.7		A list server that automatically subscribes without confirmation
-#
-#   127.0.0.8		An insecure formmail.cgi script. (Planned)
-#
-#   127.0.0.9		Open proxy servers
-#
-#     o Relays.OsiruSoft.com contains all zones, except for outputs and
-#       blocktest.  Effectively, it's the master list containing the minimum
-#       casualties subzones.
-#
-#     o Dialups.relays.OsiruSoft.com contains only sources of direct-to-mx
-#       spam which are obviously in dynamic IP pools.
-#
-#     o Spamsites.relays.OsiruSoft.com contains only sites from spamsites.org.
-#
-#     o Spamhaus.relays.OsiruSoft.com contains only sites from spamhaus.org.
-#
-#     o Spews.relays.OsiruSoft.com contains only sites from spews.org.
-#
-#     o Blocktest.relays.osirusoft.com is a stand-alone zone.  It's meant to
-#       block testers from testing a site or netblock for many different
-#       reasons and has no practical value.  It's not to be interpreted any
-#       other way than to prevent test software from testing other sites.
-#
-#     o Outputs.relays.osirusoft.com will also be a stand-alone zone, and even
-#       though it will be created, it should only be used to warn the servers
-#       listed.
+#     * Relays.OsiruSoft.com contains all zones, except for outputs and          
+#       blocktest. Effectively, it*s the master list containing the minimum      
+#       casualties subzones.                                                     
+#     * Inputs.relays.OsiruSoft.com contains only insecure mail servers.         
+#     * Dialups.relays.OsiruSoft.com contains only sources of direct-to-mx       
+#       spam which are obviously in dynamic IP pools.                            
+#     * Spamsites.relays.OsiruSoft.com contains only sites from spamsites.org.   
+#     * Spamhaus.relays.OsiruSoft.com contains only sites from spamhaus.org.     
+#     * Spews.relays.OsiruSoft.com contains only sites from spews.org.           
+#     * Blocktest.relays.osirusoft.com is a stand-alone zone. It's meant to      
+#       block testers from testing a site or netblock for many different         
+#       reasons and has no practical value. It*s not to be interpreted any       
+#       other way than to prevent test software from testing other sites.        
+#     * Outputs.relays.osirusoft.com will also be a stand-alone zone, and even   
+#       though it will be created, it should only be used to warn the servers    
+#       listed.                                                                  
 #
 OSIRUSOFT_ROOT="relays.osirusoft.com"
-ALL_RBLS="${OSIRUSOFT_ROOT} ${ALL_RBLS}"
+BLOCKTEST_OSIRUSOFT_ROOT="blocktest.${OSIRUSOFT_ROOT}"
+OUTPUTS_OSIRUSOFT_ROOT="outputs.${OSIRUSOFT_ROOT}"
+OSIRUSOFT_ALL="${OSIRUSOFT_ROOT} ${BLOCKTEST_OSIRUSOFT_ROOT} ${OUTPUTS_OSIRUSOFT_ROOT}"
+ALL_RBLS="${OSIRUSOFT_ALL} ${ALL_RBLS}"
+
+# spam.exsilla.net blackholes
+# <URL:http://www.exsilia.net/>
+#
+# Lists spam sites that we seen by the exsilia.net systems.  Will block
+# IP ranges and upstream providers.
+#
+# 127.0.0.2: Spamming;
+# 127.0.0.3: Sends viruses;
+# 127.0.0.5: Abuse or postmaster bounces.
+#
+# Has TXT records.
+#
+SPAM_EXSILLA_ROOT="spam.exsilia.net"
+ALL_RBLS="${SPAM_EXSILLA_ROOT} ${ALL_RBLS}"
+
+# spamsources.fabel.dk blackholes
+# <URL:http://www.fabel.dk/relay/>
+#
+# They only do the most basic relay test with plain envelope addresses.
+#
+# 127.0.0.2	Lists direct spam sources.
+#
+SPAMSOURCES_FABEL_ROOT="spamsources.fabel.dk"
+ALL_RBLS="${SPAMSOURCES_FABEL_ROOT} ${ALL_RBLS}"
 
 # five-ten-sg.com blackholes
 # <URL:http://www.five-ten-sg.com/blackhole.php>
 #
+# 127.0.0.2	Lists direct spam sources.
+# 127.0.0.3	Lists spam sites before they get into DUL
+# 127.0.0.4	Lists bulk mailers that don't use confirmed opt-in
+# 127.0.0.5	Lists multi-stage open relays
+# 127.0.0.6	Lists single-stage open relays
+# 127.0.0.7	Lists IP ranges of companies that ignore spam complaints
+# 127.0.0.8	Lists servers running vulnerable web scripts that can send spam
+# 127.0.0.9	Lists servers with "other issues."
+#
 FIVETENSG_ROOT="blackholes.five-ten-sg.com"
 ALL_RBLS="${FIVETENSG_ROOT} ${ALL_RBLS}"
+
+# SpamGuard by Howard Leadmon
+# <URL:http://www.leadmon.net/spamguard/>
+#
+# 127.0.0.2	Dial-Up IP Addresses
+# 127.0.0.3	Individual SPAM Sources
+# 127.0.0.4	Bulk mailers
+# 127.0.0.5	Single-Stage Open Relays
+# 127.0.0.6	Multi-Stage Open Relays
+# 127.0.0.7	SpamBlock Sites (have sent us direct SPAM)
+#
+# 127.0.0.1 will always return a negative (not found) result, and can
+# be used to verify no response. As such a 127.0.0.2 will return a
+# positive on the dialup section, and 127.0.0.3 will return a positive
+# on the spam section.  And so on....  (except for '7' 2002/03/21)
+#
+SPAMGUARD_ROOT="spamguard.leadmon.net"
+ALL_RBLS="${SPAMGUARD_ROOT} ${ALL_RBLS}"
+
+# Spam Filtering @ Monkeys.com
+# <URL:http://www.monkeys.com/anti-spam/filtering/formmail.html>
+# <URL:http://www.monkeys.com/anti-spam/filtering/proxies.html>
+#
+MONKEYSFORMMAIL_ROOT="formmail.relays.monkeys.com"
+ALL_RBLS="${MONKEYSFORMMAIL_ROOT} ${ALL_RBLS}"
+MONKEYSPROXIES_ROOT="proxies.relays.monkeys.com"
+ALL_RBLS="${MONKEYSPROXIES_ROOT} ${ALL_RBLS}"
+
+# Not Just Another Black List
+# <URL:http://njabl.org/>
+#
+# 127.0.0.2	lists open relays and known spam sources
+# 127.0.0.3	lists dial-up addresses
+#
+NJABL_ROOT="dnsbl.njabl.org"
+ALL_RBLS="${NJABL_ROOT} ${ALL_RBLS}"
 
 # SpamCop Blocking List
 # <URL:http://spamcop.net/bl.shtml>
@@ -253,6 +344,20 @@ ALL_RBLS="${XBL_ROOT} ${ALL_RBLS}"
 #
 SPAMBAG_ROOT="blacklist.spambag.org"
 ALL_RBLS="${SPAMBAG_ROOT} ${ALL_RBLS}"
+
+# SPAMHAUS
+# <URL:http://www.spamhaus.org/sbl/index.lasso>
+#
+SPAMHAUS_ROOT="sbl.spamhaus.org"
+ALL_RBLS="${SPAMHAUS_ROOT} ${ALL_RBLS}"
+
+# SUMMIT
+# <URL:http://www.2mbit.com/sbl.php>
+#
+# Dead as of about May 21, 2002
+#
+#SUMMIT_ROOT="blackholes.s2mbit.com"
+#ALL_RBLS="${SUMMIT_ROOT} ${ALL_RBLS}"
 
 # WireHub.nl lists
 # <URL:http://basic.wirehub.nl/spamstats.html>
