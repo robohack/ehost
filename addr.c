@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.5 2003-04-04 21:44:21 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.6 2003-05-17 00:57:32 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)addr.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -63,7 +63,7 @@ check_addr(name)
 	 *
 	 * XXX also need to deal properly with IPv6 too....
 	 */
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_GETIPNODEBYNAME)
 	if (!(hp = getipnodebyname(name, AF_INET, AI_ALL | AI_V4MAPPED, &my_h_errno))) {
 		set_h_errno(my_h_errno);
 		ns_error(name, T_A, C_IN, server);
@@ -163,7 +163,7 @@ check_addr_name(inaddr, name)
 	 *
 	 * XXX also need to deal properly with IPv6 too....
 	 */
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_GETIPNODEBYADDR)
 	if (!(hp = getipnodebyaddr((void *) &inaddr, sizeof(inaddr), AF_INET, &my_h_errno))) {
 		set_h_errno(my_h_errno);
 		ns_error(name, T_PTR, C_IN, server);

@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.9 2003-04-05 03:31:38 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.10 2003-05-17 00:57:23 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)geth.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -49,11 +49,11 @@ geth_byname(name)
 	querybuf_t answer;
 	struct hostent *hp;
 	register int n;
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_GETIPNODEBYNAME)
 	int my_h_errno;
 #endif
 
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_GETIPNODEBYNAME)
 	if (!(hp = getipnodebyname(name, AF_INET, AI_ALL | AI_V4MAPPED, &my_h_errno)))
 		set_h_errno(my_h_errno);
 #else
@@ -74,7 +74,7 @@ geth_byname(name)
 	if ((verbose > print_level + 1) && (print_level < 1))
 		(void) print_info(&answer, n, name, T_A, C_IN, FALSE);
 
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_GETIPNODEBYNAME)
 	if (!(hp = getipnodebyname(name, AF_INET, AI_ALL | AI_V4MAPPED, &my_h_errno)))
 		set_h_errno(my_h_errno);
 #else
@@ -108,11 +108,11 @@ geth_byaddr(addr, size, family)
 	querybuf_t answer;
 	struct hostent *hp;
 	register int n;
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_GETIPNODEBYADDR)
 	int my_h_errno;
 #endif
 
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_GETIPNODEBYADDR)
 	if (!(hp = getipnodebyaddr((const void *) addr, size, family, &my_h_errno)))
 		set_h_errno(my_h_errno);
 #else
@@ -139,7 +139,7 @@ geth_byaddr(addr, size, family)
 	if ((verbose > print_level + 1) && (print_level < 1))
 		(void) print_info(&answer, n, name, T_PTR, C_IN, FALSE);
 
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_GETIPNODEBYADDR)
 	if (!(hp = getipnodebyaddr((const void *) addr, size, family, &my_h_errno)))
 		set_h_errno(my_h_errno);
 #else
@@ -154,11 +154,12 @@ geth_byaddr(addr, size, family)
 ** -------------------------------------------
 */
 
+/* ARGSUSED */
 void
 geth_freehostent(hp)
-	struct hostent *hp;
+	struct hostent *hp;			/* UNUSED if !HAVE_FREEHOSTENT */
 {
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_FREEHOSTENT)
 	freehostent(hp);
 #endif
 }
