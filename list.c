@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.5 2003-03-28 22:19:57 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.6 2003-03-29 02:52:16 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -923,9 +923,10 @@ get_nsinfo(answerbuf, answerlen, name, qtype, qclass)
 			return (FALSE);
 		eor = cp + dlen;
 #ifdef DEBUG
-		if (verbose)
+		if (verbose) {
 			printf("%-20s\t%d\t%s\t%s\n",
-				rname, ttl, pr_class(class), pr_type(type));
+			       rname, ttl, pr_class(class), pr_type(type));
+		}
 #endif
 		if ((type == T_NS) && sameword(rname, name)) {
 			if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
@@ -2265,7 +2266,7 @@ get_soainfo(answerbuf, answerlen, name, qtype, qclass)
 		if (check_size(rname, type, cp, msg, eom, dlen) < 0)
 			return (FALSE);
 		eor = cp + dlen;
-#ifdef lint
+#ifdef DEBUG
 		if (verbose) {
 			printf("%-20s\t%d\t%s\t%s\n",
 			       rname, ttl, pr_class(class), pr_type(type));
@@ -2558,11 +2559,11 @@ check_dupl(addr)
 }
 
 /*
-** CHECK_TTL -- Check list of records for different ttl values
+** CHECK_TTL -- Check list of records for different TTL values
 ** -----------------------------------------------------------
 **
 **	Returns:
-**		TRUE if the ttl value matches the first record
+**		TRUE if the TTL value matches the first record
 **		already listed with the same name/type/class.
 **		FALSE only when the first discrepancy is found.
 **
@@ -2576,7 +2577,7 @@ typedef struct ttl_tab {
 	int type;			/* resource record type */
 	int class;			/* resource record class */
 	int ttl;			/* time_to_live value */
-	int count;			/* count of different ttl values */
+	int count;			/* count of different TTL values */
 } ttl_tab_t;
 
 ttl_tab_t *ttltab[HASHSIZE];		/* hash list of record info */
@@ -2626,7 +2627,7 @@ check_ttl(name, type, class, ttl)
 	}
 
 	/*
-	 * Check whether the ttl value matches the first recorded one.
+	 * Check whether the TTL value matches the first recorded one.
 	 * If not, signal only the first discrepancy encountered, so
 	 * only one warning message will be printed.
 	 */
@@ -2639,7 +2640,7 @@ check_ttl(name, type, class, ttl)
 }
 
 /*
-** CLEAR_TTLTAB -- Clear resource record list for ttl checking
+** CLEAR_TTLTAB -- Clear resource record list for TTL checking
 ** -----------------------------------------------------------
 **
 **	Returns:
