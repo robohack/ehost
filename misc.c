@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: misc.c,v 1.7 2003-03-31 21:58:16 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: misc.c,v 1.8 2003-04-04 04:00:10 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)misc.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -124,7 +124,7 @@ stoa(cp, size, escape)
 	input int size;			/* number of bytes to extract */
 	input bool_t escape;		/* escape special characters if set */
 {
-	static char buf[2*MAXDLEN+1];
+	static char buf[(2 * MAXDLEN) + 1]; /* allow one backslash per char, plus NUL */
 	register char *p;
 	register char c;
 	register int i;
