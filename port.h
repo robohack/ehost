@@ -3,7 +3,7 @@
 **
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.14 2003-04-06 03:19:55 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.15 2003-05-17 01:02:49 -0800 woods Exp $"
 /*
  * from: @(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
  */
@@ -73,6 +73,18 @@
 */
 
 /*
+ * GNU LibC has a horrible mis-mash of half-baked header files and mangled
+ * resolver subroutines, at least as of 2.3.x.  E.g. there's a __NAMESER define
+ * in <netdb.h> indicating it to be BIND-8 compatible, but there's no
+ * getipnodebyname() in sight.  If we remove the __NAMESER definition then
+ * we'll just fall back to assuming BIND-4 compatability, and that does, for
+ * now, seem to be true enough.
+ */
+#if defined(__NAMESER) && defined(__GLIBC__)
+# undef __NAMESER		/* bloody lying bastards! */
+#endif
+
+/*
  * Every other conceivable version of the BIND-based resolvers should have one
  * or both of __BIND and/or __NAMESER defined to define their API version.
  */
@@ -124,11 +136,25 @@ typedef int		bool_t;		/* boolean type */
 #endif
 
 #if !defined(HAVE_INET_ATON) && \
-    ((defined(__BIND) && (__BIND - 0) > 19950621) || \
-     (defined(__NAMESER) && (__NAMESER - 0) > 19961001) || \
+    ((defined(__BIND) && (__BIND - 0) >= 19950621) || \
+     (defined(__NAMESER) && (__NAMESER - 0) >= 19961001) || \
      (defined(BSD4_3) && !defined(BSD4_4)) || \
      (defined(BSD) && (BSD >= 199103)))
-# define HAVE_INET_ATON
+# define HAVE_INET_ATON	1
+#endif
+
+/*
+ * getipnodeby*() and freehostent() were added in BIND-8.2.2
+ *
+ * FreeBSD added getipnodeby*() separately, obtaining them from KAME, but
+ * without adjusting their resolver API version number (leaving it at the
+ * BIND-8.1.2 level)
+ */
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006 || \
+                           defined(__FreeBSD__) && (__NAMESER - 0) >= 19961001)
+# define HAVE_GETIPNODEBYNAME	1
+# define HAVE_GETIPNODEBYADDR	1
+# define HAVE_FREEHOSTENT	1
 #endif
 
 /*
@@ -139,13 +165,10 @@ typedef int		bool_t;		/* boolean type */
  * will be run on uses such foreign schemes -- host is intended to be used only
  * with the DNS)
  */
-#if !defined(HOST_RES_SEND) && !defined(BIND_RES_SEND)
-# if (defined(__BIND) && (__BIND - 0) > 19950621) || \
-     (defined(__NAMESER) && (__NAMESER - 0) > 19961001)
-#  define BIND_RES_SEND		/* use the default BIND res_send() */
-# else
-#  define HOST_RES_SEND		/* use the special host res_send() */
-# endif
+#if !defined(HOST_RES_SEND) && \
+    (!defined(__BIND) || (__BIND - 0) < 19950621) && \
+    (!defined(__NAMESER) || (__NAMESER - 0) < 19961001)
+#  define HOST_RES_SEND	1	/* use the special host res_send() */
 #endif
 
 /*
@@ -172,29 +195,29 @@ typedef struct __res_state	res_state_t;
 #if defined(BIND_4_8)
 typedef struct rrec	rrec_t;
 #else
-# if (defined(__BIND) && (__BIND - 0) > 19950621) || \
-     (defined(__NAMESER) && (__NAMESER - 0) > 19961001)
+# if (defined(__BIND) && (__BIND - 0) >= 19950621) || \
+     (defined(__NAMESER) && (__NAMESER - 0) >= 19961001)
 typedef u_char		rrec_t;
 # else
 typedef char		rrec_t;
 # endif
 #endif
 
-#if (defined(__BIND) && (__BIND - 0) > 19950621) || \
-    (defined(__NAMESER) && (__NAMESER - 0) > 19961001)
+#if (defined(__BIND) && (__BIND - 0) >= 19950621) || \
+    (defined(__NAMESER) && (__NAMESER - 0) >= 19961001)
 typedef u_char		qbuf_t;
 #else
 typedef char		qbuf_t;
 #endif
 
-#if (defined(__BIND) && (__BIND - 0) > 19950621) || \
-    (defined(__NAMESER) && (__NAMESER - 0) > 19961001)
+#if (defined(__BIND) && (__BIND - 0) >= 19950621) || \
+    (defined(__NAMESER) && (__NAMESER - 0) >= 19961001)
 typedef char		nbuf_t;
 #else
 typedef u_char		nbuf_t;
 #endif
 
-#if !defined(__NAMESER)
+#if !defined(__NAMESER) && !defined(__GLIBC__)
 # define ns_get16(src)		_getshort(src)
 # define ns_get32(src)		_getlong(src)
 # define ns_put16(src, dst)	__putshort((unsigned short) src, dst)
@@ -212,9 +235,10 @@ typedef unsigned long	ipaddr_t;
 
 /*
  * FreeBSD (and Darwin in its image) is a bit brain-dead in the way they do
- * this -- they use the fact that _BSD_SOCKLEN_T_ is NOT defined in order to
- * typedef socklen_t at the earliest point it's needed.  However they leave no
- * means for applications to know if the typedef has already been done.
+ * this and still follow the ancient 4.4BSD style of using the fact that
+ * _BSD_SOCKLEN_T_ is NOT defined in order to typedef socklen_t at the earliest
+ * point it's needed.  However they leave no means for applications to know if
+ * the typedef has already been done.
  *
  * FYI: In NetBSD socklen_t came into use just before 1.3J:
  *
@@ -240,9 +264,14 @@ typedef __socklen_t	socklen_t;
  * BSD Socket API buffer length type.
  *
  * Deal with the other parts of the P1003.1g API change which the POSIX
- * committee didn't seem to address....
+ * committee didn't seem to address.  I.e. use this for the "buflen" or "len"
+ * parameters of functions such as send(2), sendto(2), recv(2), recvfrom(2),
+ * etc.  (not the address length, which should be a socklen_t, just the buffer
+ * length).
  *
- * (using the NetBSD template for __socklen_t and socklen_t).
+ * Unfortunately this doesn't deal with the problem that the passed in length
+ * is now a size_t width integer, but the returned type is only a ssize_t width
+ * integer....  Standards.  Sigh.
  *
  * Perhaps the defined(__sun__) shouldn't be there on the _SOCKLEN_T line....
  */
