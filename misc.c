@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: misc.c,v 1.4 2003-03-28 22:19:57 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: misc.c,v 1.5 2003-03-30 17:31:47 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)misc.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -330,7 +330,8 @@ pr_time(value, brief)
 {
 	static char buf[256];
 	register char *p = buf;
-	int week, days, hour, mins, secs;
+	int week = 0;
+	int days, hour, mins, secs;
 
 	/* special cases */
 	if (value < 0)
@@ -602,11 +603,11 @@ convtime(string, defunits)
 
 	while (*p) {
 		/* must start with numeric value */
-		if (!is_digit(*p))
+		if (!is_digit((int) *p))
 			return (-1);
 
 		/* assemble numeric value */
-		for (value = 0; is_digit(*p); p++)
+		for (value = 0; is_digit((int) *p); p++)
 			value = (value * 10) + (*p - '0');
 
 		/* fetch units -- use default when omitted */
@@ -615,7 +616,7 @@ convtime(string, defunits)
 		else
 			units = defunits;
 
-		switch (lowercase(units)) {
+		switch (lowercase((int) units)) {
 		case 'w':		/* weeks */
 			value *= 7;
 			/*FALLTHROUGH*/
