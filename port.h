@@ -4,7 +4,7 @@
 **	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.3 2003-03-28 21:57:23 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.4 2003-03-29 02:54:47 -0800 woods Exp $"
 
 #if defined(__SVR4) || defined(__svr4__)
 # define SVR4
@@ -62,13 +62,13 @@
 */
 
 #if defined(RES_PRF_STATS)
-# define BIND_49
+# define BIND_4_9
 #else
-# define BIND_48
+# define BIND_4_8
 #endif
 
-#if defined(BIND_49) && defined(__BIND)
-# define BIND_493
+#if defined(__BIND)		/* ((__BIND - 0) > 19950621) */
+# define BIND_4_9_3
 #endif
 
 /*
@@ -98,36 +98,36 @@ typedef int		bool_t;		/* boolean type */
 #define TRUE		1
 #define FALSE		0
 
-#if defined(BIND_48) || defined(OLD_RES_STATE)
+#if defined(BIND_4_8) || defined(OLD_RES_STATE)
 typedef struct state		res_state_t;
 #else
 typedef struct __res_state	res_state_t;
 #endif
 
-#if defined(BIND_48)
+#if defined(BIND_4_8)
 typedef struct rrec	rrec_t;
 #else
-#if defined(BIND_493)
+# if ((__BIND - 0) > 19950621)			/* 4.9.3 */
 typedef u_char		rrec_t;
-#else
+# else
 typedef char		rrec_t;
-#endif
+# endif
 #endif
 
-#if defined(BIND_493)
+#if ((__BIND - 0) > 19950621)			/* 4.9.3 */
 typedef u_char	qbuf_t;
 #else
 typedef char	qbuf_t;
 #endif
 
-#if defined(BIND_493)
+#if ((__BIND - 0) > 19950621)			/* 4.9.3 */
 typedef char	nbuf_t;
 #else
 typedef u_char	nbuf_t;
 #endif
 
 #ifndef _IPADDR_T
-# if defined(__alpha) || defined(BIND_49)
+# if defined(__alpha) || defined(BIND_4_9)
 typedef u_int	ipaddr_t;
 # else
 typedef u_long	ipaddr_t;

@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.4 2003-03-28 21:57:23 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.5 2003-03-29 02:54:47 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -187,7 +187,7 @@ char *inet_ntoa		__P((struct in_addr));
 
 #endif
 
-#if defined(BIND_48)
+#if defined(BIND_4_8)
 char *hostalias		__P((const char *));
 #endif
 

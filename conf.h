@@ -4,7 +4,7 @@
 **	@(#)conf.h              e07@nikhef.nl (Eric Wassenaar) 961013
 */
 
-#ident "@(#)host:$Name:  $:$Id: conf.h,v 1.3 2003-03-28 21:57:23 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: conf.h,v 1.4 2003-03-29 02:54:47 -0800 woods Exp $"
 
 /*
  * A special version of res_send() is included, which returns additional
@@ -12,13 +12,11 @@
  */
 
 #if !defined(HOST_RES_SEND) && !defined(BIND_RES_SEND)
-
-#if defined(BIND_49)
-# define BIND_RES_SEND		/* use the default BIND res_send() */
-#else
-# define HOST_RES_SEND		/* use the special host res_send() */
-#endif
-
+# if defined(BIND_4_9) || ((__BIND - 0) > 19950621)
+#  define BIND_RES_SEND		/* use the default BIND res_send() */
+# else
+#  define HOST_RES_SEND		/* use the special host res_send() */
+# endif
 #endif
 
 /*
@@ -94,7 +92,7 @@
  * Prefix for messages on stdout in debug mode.
  */
 
-#if defined(BIND_49)
+#if !defined(BIND_4_8)
 # define DBPREFIX	";; "
 #else
 # define DBPREFIX	""
