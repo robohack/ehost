@@ -4,13 +4,15 @@
 **	@(#)glob.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: glob.h,v 1.4 2003-03-28 21:57:23 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: glob.h,v 1.5 2003-04-03 23:16:33 -0800 woods Exp $"
 
 #ifdef _DEFINE
 # define GLOBAL
 #else
 # define GLOBAL		extern
 #endif
+
+extern char *argv0;		/* name that host was called with (main.c) */
 
 extern char *dbprefix;		/* prefix for debug messages (send.c) */
 extern char *version;		/* program version number (vers.c) */
