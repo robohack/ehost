@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: file.c,v 1.6 2003-03-30 20:48:45 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: file.c,v 1.7 2003-03-31 21:07:26 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)file.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -323,7 +323,7 @@ cache_read(buf, bufsize)
 	u_short len;
 	char *buffer;
 	size_t buflen;
-	int reslen;
+	size_t reslen;
 	register int n;
 
 	/* we must have a valid file */
@@ -363,7 +363,7 @@ cache_read(buf, bufsize)
 	 * Do not chop the returned length in case of buffer overflow.
 	 */
 	reslen = 0;
-	if ((int) len > bufsize) {
+	if ((size_t) len > bufsize) {
 		reslen = len - bufsize;
 #if 0
 		len = bufsize;

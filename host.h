@@ -4,7 +4,7 @@
 ** from: @(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: host.h,v 1.8 2003-03-30 20:50:26 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.9 2003-03-31 21:07:51 -0800 woods Exp $"
 
 #if defined(apollo) && defined(lint)
 # define __attribute(x)		/* XXX ??? */
@@ -175,7 +175,7 @@ extern res_state_t _res;	/* defined in res_init.c */
 #define nulladdr(a)	(((a) == 0) || ((a) == BROADCAST_ADDR))
 #define fakeaddr(a)	(nulladdr(a) || ((a) == htonl(LOCALHOST_ADDR)))
 #define incopy(a)	*((const struct in_addr *) (a))
-#define querysize(n)	(((n) > sizeof(querybuf_t)) ? ((int) sizeof(querybuf_t)) : (n))
+#define querysize(n)	(((size_t ) (n) > sizeof(querybuf_t)) ? ((int) sizeof(querybuf_t)) : (n))
 
 #define newlist(a, n, t) (t *) xalloc((ptr_t *) (a), (size_t) ((n) * sizeof(t)))
 #define newstruct(t)	(t *) xalloc((ptr_t *) NULL, (size_t) (sizeof(t)))
