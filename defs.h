@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.13 2003-04-04 04:01:25 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.14 2003-04-04 21:40:53 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -75,9 +75,7 @@ int check_canon		__P((char *));
 	/* addr.c */
 
 bool_t check_addr	__P((char *));
-bool_t check_addr_name	__P((struct in_addr, char *));
 bool_t check_name	__P((ipaddr_t));
-bool_t check_name_addr	__P((char *, ipaddr_t));
 
 	/* geth.c */
 
