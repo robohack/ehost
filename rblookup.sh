@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.9 2003-12-01 20:58:46 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.10 2004-08-10 20:27:54 -0800 woods Exp $"
 #
 # rblookup - Lookup a dotted quad IP address, or hostname in one of many
 #		Reverse/Realtime DNS-based Lists
@@ -135,12 +135,6 @@ ALL_RBLS="${DEVNULL_ROOT} ${ALL_RBLS}"
 DNSRBL_ROOT="dun.dnsrbl.net spam.dnsrbl.net"
 ALL_RBLS="${DNSRBL_ROOT} ${ALL_RBLS}"
 
-# DORKSLAYERS - the second edition
-# <URL:http://www.dorkslayers.com/>
-#
-DORKSLAYERS_ROOT="relays.dorkslayers.com orbs.dorkslayers.com ztl.dorkslayers.com"
-ALL_RBLS="${DORKSLAYERS_ROOT} ${ALL_RBLS}"
-
 # DSBL - Distributed Sender Boycott List
 # <URL:http://www.dsbl.org/>
 #
@@ -151,36 +145,7 @@ ALL_RBLS="${DSBL_ROOT} ${ALL_RBLS}"
 # <URL:http://www.abuseat.org/>
 #
 ABUSEAT_ROOT="cbl.abuseat.org"
-ALL_RBLS="${DSBL_ROOT} ${ALL_RBLS}"
-
-# Easynet.nl (formerly WireHub.nl) lists
-# <URL:http://abuse.easynet.nl/blackholes.html>
-# AUP at <URL:http://www.nl.easynet.net/pub/av/en/>
-#
-# NOTICE:  These zones will apparently be empty as of December 1, 2003 
-#
-#     * Easynet DynaBlocker (dynamic IP ranges; a lot of
-#       spam comes straight from dial-up users)
-#
-#	<URL:http://dynablock.easynet.nl/>
-#
-EASYNET_DYNABLOCK_ROOT="dynablock.easynet.nl"
-ALL_RBLS="${EASYNET_DYNABLOCK_ROOT} ${ALL_RBLS}"
-#
-#     * Easynet DNSBL (IPs of persistent spammers, open
-#       relay scanners & abusers, spamvertized websites)
-#
-#	<URL:http://blackholes.easynet.nl/>
-#
-EASYNET_BLACKHOLES_ROOT="blackholes.easynet.nl"
-ALL_RBLS="${EASYNET_BLACKHOLES_ROOT} ${ALL_RBLS}"
-#
-#     * Easynet Proxies (IPs of open proxies)
-#
-#	<URL:http://proxies.blackholes.easynet.nl/>
-#
-EASYNET_PROXIES_ROOT="proxies.blackholes.easynet.nl"
-ALL_RBLS="${EASYNET_PROXIES_ROOT} ${ALL_RBLS}"
+ALL_RBLS="${ABUSEAT_ROOT} ${ALL_RBLS}"
 
 # five-ten-sg.com blackholes
 # <URL:http://www.five-ten-sg.com/blackhole.php>
@@ -232,17 +197,9 @@ MAPS_DUL_ROOT="dialups.mail-abuse.org"
 MAPS_RSS_ROOT="relays.mail-abuse.org"
 #ALL_RBLS="${RSS_ROOT} ${ALL_RBLS}"
 
-# Spam Filtering @ Monkeys.com
-# <URL:http://www.monkeys.com/anti-spam/filtering/formmail.html>
-# <URL:http://www.monkeys.com/anti-spam/filtering/proxies.html>
-#
-MONKEYSFORMMAIL_ROOT="formmail.relays.monkeys.com"
-ALL_RBLS="${MONKEYSFORMMAIL_ROOT} ${ALL_RBLS}"
-MONKEYSPROXIES_ROOT="proxies.relays.monkeys.com"
-ALL_RBLS="${MONKEYSPROXIES_ROOT} ${ALL_RBLS}"
-
 # Not Just Another Black List
 # <URL:http://njabl.org/>
+# <URL:http://njabl.org/dynablock.html>
 #
 # 127.0.0.2	lists open relays and known spam sources
 # 127.0.0.3	lists dial-up addresses
@@ -251,40 +208,8 @@ ALL_RBLS="${MONKEYSPROXIES_ROOT} ${ALL_RBLS}"
 # 127.0.0.8	lists servers with insecure formmail scripts
 # 127.0.0.9	lists open proxy sources
 #
-NJABL_ROOT="dnsbl.njabl.org"
+NJABL_ROOT="dnsbl.njabl.org dynablock.njabl.org"
 ALL_RBLS="${NJABL_ROOT} ${ALL_RBLS}"
-
-# ORBL: Open Relay Black List
-# <URL:http://www.orbl.org/>
-#
-# ORBL is apparently dead as of 2001/10/30....
-# 
-# ORBL is an auto adjusting spam filter.
-# 
-# ORBL watches current incoming Internet email traffic for spam
-# signatures and adapts to block spam coming from open mail relays.
-# 
-#ORBL_ROOT="or.orbl.org"
-#ALL_RBLS="${ORBL_ROOT} ${ALL_RBLS}"
-
-# ORBZ UK - first son of ORBS
-# <URL:http://orbz.gst-group.co.uk/>
-#
-# Died in Dec. 2001
-#
-# -returns 127.0.0.2 for outputs
-# -returns 127.0.0.3 for inuts
-#
-#ORBZUK_ROOT="orbz.gst-group.co.uk"
-#ALL_RBLS="${ORBZUK_ROOT} ${ALL_RBLS}"
-
-# ORBS NZ - second son of ORBS
-# <URL:http://www.orbz.org/>
-#
-# Died March 18, 2002.  Replaced by DSBL.
-#
-#ORBZ_ROOT="inputs.orbz.org outputs.orbz.org"
-#ALL_RBLS="${ORBZ_ROOT} ${ALL_RBLS}"
 
 # ORDB - third son of ORBS
 # <URL:http://www.ordb.org/>
@@ -292,61 +217,15 @@ ALL_RBLS="${NJABL_ROOT} ${ALL_RBLS}"
 ORDB_ROOT="relays.ordb.org "
 ALL_RBLS="${ORDB_ROOT} ${ALL_RBLS}"
 
-# Osirusoft Open Relay Spam Stopper
-# <URL:http://relays.osirusoft.com/>
-#
-# OFF THE AIR:  2003/08/26
-#
-#     * 127.0.0.2 Verified Open Relay
-#     * 127.0.0.3 Dialup Spam Source
-#       Dialup Spam Sources are imported into the Zone file from other sources
-#       and some known sources are manually added to the local include file.
-#     * 127.0.0.4 Confirmed Spam Source
-#       A site has been identified as a constant source of spam, and is
-#       manually added. Submissions for this type of spam require multiple
-#       nominations from multiple sites. Test Blockers also find themselves in
-#       this catagory.
-#     * 127.0.0.5 Smart Host (In progress)
-#       A Smart host is a site determined to be secure, but relays for those
-#       who are not, defeating one level of security. When this is ready, it
-#       will be labeled outputs.osirusoft.com. NOTE: I strongly discourage
-#       using outputs due to it being way too effective to be useful.
-#     * 127.0.0.6 A Spamware software developer or spamvertized site. This
-#       information is maintained by spamsites.org and spamhaus.org.
-#     * 127.0.0.7 A list server that automatically opts users in without
-#       confirmation
-#     * 127.0.0.8 An insecure formmail.cgi script. (Planned)
-#     * 127.0.0.9 Open proxy servers
-#
-#     * Relays.OsiruSoft.com contains all zones, except for outputs and
-#       blocktest. Effectively, it*s the master list containing the minimum
-#       casualties subzones.
-#     * Inputs.relays.OsiruSoft.com contains only insecure mail servers.
-#     * Dialups.relays.OsiruSoft.com contains only sources of direct-to-mx
-#       spam which are obviously in dynamic IP pools.
-#     * Spamsites.relays.OsiruSoft.com contains only sites from spamsites.org.
-#     * Spamhaus.relays.OsiruSoft.com contains only sites from spamhaus.org.
-#     * Spews.relays.OsiruSoft.com contains only sites from spews.org.
-#     * Blocktest.relays.osirusoft.com is a stand-alone zone.  It's meant to
-#       block testers from testing a site or netblock for many different
-#       reasons and has no practical value. It*s not to be interpreted any
-#       other way than to prevent test software from testing other sites.
-#     * Outputs.relays.osirusoft.com will also be a stand-alone zone, and even
-#       though it will be created, it should only be used to warn the servers
-#       listed.
-#
-#OSIRUSOFT_ROOT="relays.osirusoft.com"
-#BLOCKTEST_OSIRUSOFT_ROOT="blocktest.${OSIRUSOFT_ROOT}"
-#OUTPUTS_OSIRUSOFT_ROOT="outputs.${OSIRUSOFT_ROOT}"
-#OSIRUSOFT_ALL="${OSIRUSOFT_ROOT} ${BLOCKTEST_OSIRUSOFT_ROOT} ${OUTPUTS_OSIRUSOFT_ROOT}"
-#ALL_RBLS="${OSIRUSOFT_ALL} ${ALL_RBLS}"
-
 # reynolds boycott list
-# <URL:http://bl.reynolds.net.au/>
+# <URL:http://dnsbl.net.au/>
+#
+# Note this is strictly a pay-for subscription service and must not be
+# used for production without a subscription.
 #
 # ``comprises everything of "type 1", which is everything''
 #
-REYNOLDS_T1_BL_ROOT="t1.bl.reynolds.net.au"
+REYNOLDS_T1_BL_ROOT="t1.dnsbl.net.au"
 ALL_RBLS="${REYNOLDS_T1_BL_ROOT} ${ALL_RBLS}"
 
 # rfc-ignorant IP-based whois List
@@ -411,8 +290,13 @@ ALL_RBLS="${SPAMGUARD_ROOT} ${ALL_RBLS}"
 #
 # verified spam sources
 #
-SPAMHAUS_BL_ROOT="sbl.spamhaus.org"
-ALL_RBLS="${SPAMHAUS_BL_ROOT} ${ALL_RBLS}"
+SPAMHAUS_SBL_ROOT="sbl.spamhaus.org"
+ALL_RBLS="${SPAMHAUS_SBL_ROOT} ${ALL_RBLS}"
+#
+# open proxies, trojans, and other 3rd-party exploits
+#
+SPAMHAUS_XBL_ROOT="xbl.spamhaus.org"
+ALL_RBLS="${SPAMHAUS_XBL_ROOT} ${ALL_RBLS}"
 
 # spamsources.fabel.dk blackholes
 # <URL:http://www.fabel.dk/relay/>
@@ -438,14 +322,6 @@ ALL_RBLS="${SPAMSOURCES_FABEL_ROOT} ${ALL_RBLS}"
 SORBS_ROOT="dnsbl.sorbs.net"
 ALL_RBLS="${SORBS_ROOT} ${ALL_RBLS}"
 
-# SUMMIT
-# <URL:http://www.2mbit.com/sbl.php>
-#
-# Dead as of about May 21, 2002
-#
-#SUMMIT_ROOT="blackholes.s2mbit.com"
-#ALL_RBLS="${SUMMIT_ROOT} ${ALL_RBLS}"
-
 # VISI.com Relay Stop List
 # <URL:http://relays.visi.com/>
 #
@@ -453,12 +329,20 @@ ALL_RBLS="${SORBS_ROOT} ${ALL_RBLS}"
 # automatically de-list after 90 days.  Apparently they'll gladly
 # remove any listing on request too.
 #
-# Not functional since since 2002/12/16.  They are apparently planning
-# to re-write their software and database and start up again sometime
-# in the future.
+VISI_ROOT="relays.visi.com"
+ALL_RBLS="${VISI_ROOT} ${ALL_RBLS}"
+
+# ANTISPAM-UFRJ
+# <URL:http://www.aupads.org/>
 #
-#VISI_ROOT="relays.visi.com"
-#ALL_RBLS="${VISI_ROOT} ${ALL_RBLS}"
+# no TXT RRs, not testable.
+#
+UFRJ_RSBL_ROOT="rsbl.aupads.org"
+ALL_RBLS="${UFRJ_RSBL_ROOT} ${ALL_RBLS}"
+ORVEDB_RSBL_ROOT="orvedb.aupads.org"
+ALL_RBLS="${ORVEDB_RSBL_ROOT} ${ALL_RBLS}"
+DUINV_RSBL_ROOT="duinv.aupads.org"
+ALL_RBLS="${DUINV_RSBL_ROOT} ${ALL_RBLS}"
 
 # ----------------------------------------------------------------------
 # Exit codes from <sysexits.h>, just in case we are called from a mailer
