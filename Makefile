@@ -1,5 +1,5 @@
 #
-#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.10 2003-03-31 21:16:24 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.11 2003-03-31 21:59:02 -0800 woods Exp $"
 #
 # from:	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 991515
 
@@ -346,11 +346,10 @@ links:
 # Rules for maintenance.
 # ----------------------------------------------------------------------
 
+# this is intended for xlint, specifially the version in NetBSD....
+#
 lint:
 	lint -aa -c -h -p -r -s $(DEFS) $(SRCS)
-
-llint:
-	lint -aa -c -h -p -r -s $(DEFS) $(SRCS) -lresolv
 
 # ----------------------------------------------------------------------
 # Dependencies.
