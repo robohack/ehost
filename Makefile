@@ -1,4 +1,4 @@
-#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 961012
+#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 970830
 
 # ----------------------------------------------------------------------
 # Adapt the installation directories to your local standards.
@@ -144,14 +144,14 @@ SHELL = /bin/sh
 # ----------------------------------------------------------------------
 
 PROG = host
-HDRS = port.h conf.h exit.h type.h rrec.h defs.h
+HDRS = port.h conf.h exit.h type.h rrec.h defs.h host.h
 SRCS = host.c send.c vers.c
 OBJS = host.o send.o vers.o
 MANS = host.1
 DOCS = RELEASE_NOTES
 
 UTILS = nslookup mxlookup
-MISCS = malloc.c
+MISCS = malloc.c README_NT
 
 FILES = Makefile $(DOCS) $(HDRS) $(SRCS) $(MANS) $(UTILS) $(MISCS)
 
@@ -164,6 +164,11 @@ CLEANUP = $(PROG) $(OBJS) $(TARFILE) $(TARFILE).Z
 # Rules for installation.
 # ----------------------------------------------------------------------
 
+OWNER = root
+GROUP = staff
+MODE  = 755
+STRIP = -s
+
 all: $(PROG)
 
 $(OBJS): $(SRCS) $(HDRS)
@@ -172,7 +177,7 @@ $(PROG): $(OBJS)
 	$(CC) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBRARIES)
 
 install: $(PROG)
-	$(INSTALL) -m 755 -s $(PROG) $(BINDIR)
+	$(INSTALL) -m $(MODE) -o $(OWNER) -g $(GROUP) $(STRIP) $(PROG) $(BINDIR)
 
 man: $(MANS)
 	$(INSTALL) -m 444 host.1 $(MANDIR)

@@ -18,62 +18,23 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 961013";
+static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 970908";
 #endif
 
-#if defined(apollo) && defined(lint)
-#define __attribute(x)
-#endif
-
-#include <stdio.h>
-#include <errno.h>
-#include <setjmp.h>
-#include <signal.h>
-#include <sys/time.h>
-
-#include <sys/types.h>		/* not always automatically included */
-#include <sys/param.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-
-#undef NOERROR			/* in <sys/streams.h> on solaris 2.x */
-#include <arpa/nameser.h>
-#include <resolv.h>
-
-#include "port.h"		/* various portability definitions */
-#include "conf.h"		/* various configuration definitions */
-
-#define input			/* read-only input parameter */
-#define output			/* modified output parameter */
-
-#define bitset(a,b)	(((a) & (b)) != 0)
-#define setalarm(n)	(void) alarm((unsigned int)(n))
-
-extern int errno;
-extern res_state_t _res;	/* defined in res_init.c */
+#include "host.h"
 
 char *dbprefix = DBPREFIX;	/* prefix for debug messages to stdout */
 
 static int timeout;		/* connection read timeout */
+
+#if !defined(NO_CONNECTED_DGRAM)
+static bool connected = TRUE;	/* we can use connected datagram sockets */
+#else
+static bool connected = FALSE;	/* connected datagram sockets unavailable */
+#endif
+
 static struct sockaddr_in from;	/* address of inbound packet */
 static struct sockaddr *from_sa = (struct sockaddr *)&from;
-
-char *inet_ntoa		PROTO((struct in_addr));
-unsigned int alarm	PROTO((unsigned int));
-
-#ifdef HOST_RES_SEND
-int res_send		PROTO((CONST qbuf_t *, int, qbuf_t *, int));
-void _res_close		PROTO((void));
-static int check_from	PROTO((void));
-static int send_stream	PROTO((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
-static int send_dgram	PROTO((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
-#endif /*HOST_RES_SEND*/
-static sigtype_t timer	PROTO((int));
-int _res_connect	PROTO((int, struct sockaddr_in *, int));
-int _res_write		PROTO((int, struct sockaddr_in *, char *, char *, int));
-int _res_read		PROTO((int, struct sockaddr_in *, char *, char *, int));
-static int recv_sock	PROTO((int, char *, int));
-void _res_perror	PROTO((struct sockaddr_in *, char *, char *));
 
 #ifdef HOST_RES_SEND
 
@@ -209,7 +170,7 @@ retry:
 		}
 
 		/* we have an answer; clear possible error condition */
-		errno = 0;
+		seterrno(0);
 		return(n);
 	    }
 	}
@@ -241,7 +202,7 @@ _res_close()
 	}
 
 	/* restore state */
-	errno = save_errno;
+	seterrno(save_errno);
 }
 
 /*
@@ -253,7 +214,7 @@ _res_close()
 **		Zero otherwise.
 */
 
-static int
+static bool
 check_from()
 {
 	struct sockaddr_in *addr;
@@ -272,14 +233,14 @@ check_from()
 
 		/* this allows a reply from any responding server */
 		if (addr->sin_addr.s_addr == INADDR_ANY)
-			return(1);
+			return(TRUE);
 
 		if (from.sin_addr.s_addr == addr->sin_addr.s_addr)
-			return(1);
+			return(TRUE);
 	}
 
 	/* matches none of the known addresses */
-	return(0);
+	return(FALSE);
 }
 
 /*
@@ -394,8 +355,7 @@ wait:
 **	This method usually works only if BSD >= 43.
 **
 **	Note that send() and recvfrom() are now the calls that are allowed
-**	to fail under normal circumstances. All other failures generate
-**	an unconditional error message.
+**	to fail under normal circumstances.
 */
 
 static int
@@ -412,7 +372,7 @@ input int anslen;			/* maximum size of answer buffer */
 	register int n;
 
 /*
- * Setup a connected datagram socket.
+ * Setup a connected (if possible) datagram socket.
  */
 	srvsock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (srvsock < 0)
@@ -421,7 +381,7 @@ input int anslen;			/* maximum size of answer buffer */
 		return(-1);
 	}
 
-	if (connect(srvsock, (struct sockaddr *)addr, sizeof(*addr)) < 0)
+	if (connected && connect(srvsock, (struct sockaddr *)addr, sizeof(*addr)) < 0)
 	{
 		_res_perror(addr, host, "connect");
 		_res_close();
@@ -431,7 +391,12 @@ input int anslen;			/* maximum size of answer buffer */
 /*
  * Send the query buffer.
  */
-	if (send(srvsock, (char *)query, querylen, 0) != querylen)
+	if (connected)
+		n = send(srvsock, (char *)query, querylen, 0);
+	else
+		n = sendto(srvsock, (char *)query, querylen, 0,
+			(struct sockaddr *)addr, sizeof(*addr));
+	if (n != querylen)
 	{
 		if (bitset(RES_DEBUG, _res.options))
 			_res_perror(addr, host, "send");
@@ -519,18 +484,18 @@ input int addrlen;
 {
 	if (setjmp(timer_buf) != 0)
 	{
-		errno = ETIMEDOUT;
+		seterrno(ETIMEDOUT);
 		setalarm(0);
 		return(-1);
 	}
 
-	(void) signal(SIGALRM, timer);
+	setsignal(SIGALRM, timer);
 	setalarm(_res.retrans);
 
 	if (connect(sock, (struct sockaddr *)addr, addrlen) < 0)
 	{
 		if (errno == EINTR)
-			errno = ETIMEDOUT;
+			seterrno(ETIMEDOUT);
 		setalarm(0);
 		return(-1);
 	}
@@ -564,10 +529,10 @@ input int bufsize;			/* length of query buffer */
 /*
  * Write the length of the query buffer.
  */
-	/* len = htons(bufsize); */
+	/* len = htons((u_short)bufsize); */
 	putshort((u_short)bufsize, (u_char *)&len);
 
-	if (write(sock, (char *)&len, INT16SZ) != INT16SZ)
+	if (send(sock, (char *)&len, INT16SZ, 0) != INT16SZ)
 	{
 		_res_perror(addr, host, "write query length");
 		return(-1);
@@ -576,7 +541,7 @@ input int bufsize;			/* length of query buffer */
 /*
  * Write the query buffer itself.
  */
-	if (write(sock, buf, bufsize) != bufsize)
+	if (send(sock, buf, bufsize, 0) != bufsize)
 	{
 		_res_perror(addr, host, "write query");
 		return(-1);
@@ -749,7 +714,7 @@ rewait:
 		if (n < 0 && errno == EINTR)
 			goto rewait;
 		if (n == 0)
-			errno = ETIMEDOUT;
+			seterrno(ETIMEDOUT);
 		return(-1);
 	}
 reread:
@@ -759,7 +724,7 @@ reread:
 	if (n < 0 && errno == EINTR)
 		goto reread;
 	if (n == 0)
-		errno = ECONNRESET;
+		seterrno(ECONNRESET);
 	return(n);
 }
 
@@ -787,12 +752,12 @@ input int buflen;			/* remaining buffer size */
 
 	if (setjmp(timer_buf) != 0)
 	{
-		errno = ETIMEDOUT;
+		seterrno(ETIMEDOUT);
 		setalarm(0);
 		return(-1);
 	}
 
-	(void) signal(SIGALRM, timer);
+	setsignal(SIGALRM, timer);
 	setalarm(timeout);
 reread:
 	/* fake an error if nothing was actually read */
@@ -801,7 +766,7 @@ reread:
 	if (n < 0 && errno == EINTR)
 		goto reread;
 	if (n == 0)
-		errno = ECONNRESET;
+		seterrno(ECONNRESET);
 	setalarm(0);
 	return(n);
 }
@@ -831,9 +796,9 @@ input char *message;			/* perror message string */
 		(void) fprintf(stderr, "(%s) ", host);
 
 	/* issue actual message */
-	errno = save_errno;
+	seterrno(save_errno);
 	perror(message);
 
 	/* restore state */
-	errno = save_errno;
+	seterrno(save_errno);
 }

@@ -36,16 +36,10 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)host.c	e07@nikhef.nl (Eric Wassenaar) 970521";
+static char Version[] = "@(#)host.c	e07@nikhef.nl (Eric Wassenaar) 970908";
 #endif
 
-#if defined(apollo) && defined(lint)
-#define __attribute(x)
-#endif
-
-#define justfun			/* this is only for fun */
-#undef  obsolete		/* old code left as a reminder */
-#undef  notyet			/* new code for possible future use */
+#include "host.h"
 
 /*
  *			New features
@@ -269,88 +263,6 @@ Other options:   [-c class] [-e] [-m] [-o] [-r] [-R] [-s secs] [-u] [-w]\n\
 Extended usage:  [-x [name ...]] [-X server [name ...]]\
 ";
 
-#include <stdio.h>
-#include <ctype.h>
-#include <errno.h>
-#include <netdb.h>
-#include <time.h>
-
-#include <sys/types.h>		/* not always automatically included */
-#include <sys/param.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-
-#undef NOERROR			/* in <sys/streams.h> on solaris 2.x */
-#include <arpa/nameser.h>
-#include <resolv.h>
-
-#include "port.h"		/* various portability definitions */
-#include "conf.h"		/* various configuration definitions */
-#include "type.h"		/* types should be in <arpa/nameser.h> */
-#include "exit.h"		/* exit codes come from <sysexits.h> */
-
-typedef int	bool;		/* boolean type */
-#define TRUE	1
-#define FALSE	0
-
-#ifndef NO_DATA
-#define NO_DATA	NO_ADDRESS	/* used here only in case authoritative */
-#endif
-
-#define NO_RREC	(NO_DATA + 1)	/* used for non-authoritative NO_DATA */
-#define NO_HOST	(NO_DATA + 2)	/* used for non-authoritative HOST_NOT_FOUND */
-
-#define QUERY_REFUSED  (NO_DATA + 3)	/* query was refused by server */
-#define SERVER_FAILURE (NO_DATA + 4)	/* instead of TRY_AGAIN upon SERVFAIL */
-#define HOST_NOT_CANON (NO_DATA + 5)	/* host name is not canonical */
-
-#define T_NONE	0		/* yet unspecified resource record type */
-#define T_FIRST	T_A		/* first possible type in resource record */
-#define T_LAST	(T_IXFR - 1)	/* last  possible type in resource record */
-
-#ifndef NOCHANGE
-#define NOCHANGE 0xf		/* compatibility with older BIND versions */
-#endif
-
-#define NOT_DOTTED_QUAD	((ipaddr_t)-1)
-#define BROADCAST_ADDR	((ipaddr_t)0xffffffff)
-#define LOCALHOST_ADDR	((ipaddr_t)0x7f000001)
-
-#if PACKETSZ > 8192
-#define MAXPACKET PACKETSZ	/* PACKETSZ should be the max udp size (512) */
-#else
-#define MAXPACKET 8192		/* but tcp packets can be considerably larger */
-#endif
-
-typedef union {
-	HEADER header;
-	u_char packet[MAXPACKET];
-} querybuf;
-
-#ifndef HFIXEDSZ
-#define HFIXEDSZ 12		/* actually sizeof(HEADER) */
-#endif
-
-#define MAXDLEN (MAXPACKET - HFIXEDSZ)	/* upper bound for dlen */
-
-#include "rrec.h"		/* resource record structures */
-
-#define input			/* read-only input parameter */
-#define output			/* modified output parameter */
-
-#define STDIN	0
-#define STDOUT	1
-#define STDERR	2
-
-#ifdef lint
-#define EXTERN
-#else
-#define EXTERN extern
-#endif
-
-EXTERN int errno;
-EXTERN int h_errno;		/* defined in the resolver library */
-EXTERN res_state_t _res;	/* defined in res_init.c */
 extern char *dbprefix;		/* prefix for debug messages (send.c) */
 extern char *version;		/* program version number (vers.c) */
 
@@ -430,56 +342,6 @@ bool recurskip = FALSE;		/* skip certain checks during recursion */
 bool statistics = FALSE;	/* print resource record statistics */
 bool bindcompat = FALSE;	/* enforce full BIND DNSRCH compatibility */
 bool classprint = FALSE;	/* print class value in non-verbose mode */
-
-#include "defs.h"		/* declaration of functions */
-
-#define is_xdigit(c)	(isascii(c) && isxdigit(c))
-#define is_space(c)	(isascii(c) && isspace(c))
-#define is_alnum(c)	(isascii(c) && isalnum(c))
-#define is_upper(c)	(isascii(c) && isupper(c))
-
-#define lowercase(c)	(is_upper(c) ? tolower(c) : (c))
-#define lower(c)	(((c) >= 'A' && (c) <= 'Z') ? (c) + 'a' - 'A' : (c))
-#define hexdigit(n)	(((n) < 10) ? '0' + (n) : 'A' + (n) - 10);
-
-#define bitset(a,b)	(((a) & (b)) != 0)
-#define sameword(a,b)	(strcasecmp(a,b) == 0)
-#define samepart(a,b)	(strncasecmp(a,b,strlen(b)) == 0)
-#define samehead(a,b)	(strncasecmp(a,b,sizeof(b)-1) == 0)
-
-#define fakename(a)	(samehead(a,"localhost.") || samehead(a,"loopback."))
-#define nulladdr(a)	(((a) == 0) || ((a) == BROADCAST_ADDR))
-#define fakeaddr(a)	(nulladdr(a) || ((a) == htonl(LOCALHOST_ADDR)))
-#define incopy(a)	*((struct in_addr *)(a))
-#define querysize(n)	(((n) > sizeof(querybuf)) ? sizeof(querybuf) : (n))
-
-#define newlist(a,n,t)	(t *)xalloc((ptr_t *)(a), (siz_t)((n)*sizeof(t)))
-#define newstruct(t)	(t *)xalloc((ptr_t *)NULL, (siz_t)(sizeof(t)))
-#define newstring(s)	(char *)xalloc((ptr_t *)NULL, (siz_t)(strlen(s)+1))
-#define newstr(s)	strcpy(newstring(s), s)
-#define xfree(a)	(void) free((ptr_t *)(a))
-
-#define strlength(s)	(int)strlen(s)
-#define in_string(s,c)	(index(s,c) != NULL)
-#define is_quoted(a,b)	(((a) > (b)) && ((a)[-1] == '\\'))
-
-#define plural(n)	(((n) == 1) ? "" : "s")
-#define plurale(n)	(((n) == 1) ? "" : "es")
-
-#ifdef DEBUG
-#define assert(condition)\
-{\
-	if (!(condition))\
-	{\
-		(void) fprintf(stderr, "assertion botch: ");\
-		(void) fprintf(stderr, "%s(%d): ", __FILE__, __LINE__);\
-		(void) fprintf(stderr, "%s\n", "condition");\
-		exit(EX_SOFTWARE);\
-	}\
-}
-#else
-#define assert(condition)
-#endif
 
 /*
 ** MAIN -- Start of program host
@@ -871,7 +733,7 @@ input char *argv[];
 /*
  * Report result status of action taken.
  */
-	exit(result);
+	return(result);
 	/*NOTREACHED*/
 }
 
@@ -907,7 +769,7 @@ input char *argv[];			/* original command line arguments */
 /*
  * Construct argument list from option string.
  */
-	for (q = "", p = newstr(option); *p != '\0'; p = q)
+	for (q = newstr(option), p = q; *p != '\0'; p = q)
 	{
 		while (is_space(*p))
 			p++;
@@ -997,7 +859,7 @@ input FILE *fp;				/* input file with query names */
 			*p = '\0';
 
 		/* extract names separated by whitespace */
-		for (q = "", p = buf; *p != '\0'; p = q)
+		for (q = buf, p = q; *p != '\0'; p = q)
 		{
 			while (is_space(*p))
 				p++;
@@ -1293,13 +1155,13 @@ input ipaddr_t addr;			/* explicit address of query */
 	inaddr.s_addr = addr;
 
 	result = FALSE;
-	h_errno = TRY_AGAIN;
+	seth_errno(TRY_AGAIN);
 
 	/* retry until positive result or permanent failure */
 	while (result == FALSE && h_errno == TRY_AGAIN)
 	{
 		/* reset before each query to avoid stale data */
-		errno = 0;
+		seterrno(0);
 		realname = NULL;
 
 		if (addr == NOT_DOTTED_QUAD)
@@ -1325,7 +1187,7 @@ input ipaddr_t addr;			/* explicit address of query */
 				}
 
 				result = FALSE;
-				h_errno = TRY_AGAIN;
+				seth_errno(TRY_AGAIN);
 				continue;
 			}
 		}
@@ -1642,7 +1504,7 @@ input bool qualified;			/* assume fully qualified if set */
  * Check for aliases of single name.
  * Note that the alias is supposed to be fully qualified.
  */
-	if (dot == 0 && (cp = hostalias(name)) != NULL)
+	if (dot == 0 && (cp = (char *)hostalias(name)) != NULL)
 	{
 		if (verbose)
 			printf("Aliased %s to %s\n", name, cp);
@@ -1718,12 +1580,12 @@ input bool qualified;			/* assume fully qualified if set */
 		if (bindcompat && nodata)
 		{
 			realname = strcpy(realnamebuf, oldname);
-			h_errno = nodata;
+			seth_errno(nodata);
 		}
 
 		/* set status in case we never queried */
 		if (!bitset(RES_DEFNAMES, _res.options))
-			h_errno = HOST_NOT_FOUND;
+			seth_errno(HOST_NOT_FOUND);
 
 		return(FALSE);
 	}
@@ -1737,7 +1599,7 @@ input bool qualified;			/* assume fully qualified if set */
 	if (!result && bindcompat && nodata)
 	{
 		realname = strcpy(realnamebuf, oldname);
-		h_errno = nodata;
+		seth_errno(nodata);
 	}
 
 	return(result);
@@ -1857,7 +1719,7 @@ input int class;			/* specific resource record class */
  * in case it has used datagrams. Our private version of res_send() will leave
  * also other error statuses, and will clear errno if an answer was obtained.
  */
-	errno = 0;	/* reset before querying nameserver */
+	seterrno(0);	/* reset before querying nameserver */
 
 	n = res_mkquery(QUERY, name, class, type, (qbuf_t *)NULL, 0,
 			(rrec_t *)NULL, (qbuf_t *)&query, sizeof(querybuf));
@@ -1865,7 +1727,7 @@ input int class;			/* specific resource record class */
 	{
 		if (debug)
 			printf("%sres_mkquery failed\n", dbprefix);
-		h_errno = NO_RECOVERY;
+		seth_errno(NO_RECOVERY);
 		return(-1);
 	}
 
@@ -1874,17 +1736,17 @@ input int class;			/* specific resource record class */
 	{
 		if (debug)
 			printf("%sres_send failed\n", dbprefix);
-		h_errno = TRY_AGAIN;
+		seth_errno(TRY_AGAIN);
 		return(-1);
 	}
 
-	errno = 0;	/* reset after we got an answer */
+	seterrno(0);	/* reset after we got an answer */
 
 	if (n < HFIXEDSZ)
 	{
 		pr_error("answer length %s too short after %s query for %s",
-			itoa(n), pr_type(type), name);
-		h_errno = NO_RECOVERY;
+			dtoa(n), pr_type(type), name);
+		seth_errno(NO_RECOVERY);
 		return(-1);
 	}
 
@@ -1895,7 +1757,7 @@ input int class;			/* specific resource record class */
 		print_status(answerbuf, n);
 
 	bp = (HEADER *)answerbuf;
-	ancount = ntohs(bp->ancount);
+	ancount = ntohs((u_short)bp->ancount);
 
 	if (bp->rcode != NOERROR || ancount == 0)
 	{
@@ -1903,31 +1765,31 @@ input int class;			/* specific resource record class */
 		{
 		    case NXDOMAIN:
 			/* distinguish between authoritative or not */
-			h_errno = bp->aa ? HOST_NOT_FOUND : NO_HOST;
+			seth_errno(bp->aa ? HOST_NOT_FOUND : NO_HOST);
 			break;
 
 		    case NOERROR:
 			/* distinguish between authoritative or not */
-			h_errno = bp->aa ? NO_DATA : NO_RREC;
+			seth_errno(bp->aa ? NO_DATA : NO_RREC);
 			break;
 
 		    case SERVFAIL:
-			h_errno = SERVER_FAILURE; /* instead of TRY_AGAIN */
+			seth_errno(SERVER_FAILURE); /* instead of TRY_AGAIN */
 			break;
 
 		    case REFUSED:
-			h_errno = QUERY_REFUSED; /* instead of NO_RECOVERY */
+			seth_errno(QUERY_REFUSED); /* instead of NO_RECOVERY */
 			break;
 
 		    default:
-			h_errno = NO_RECOVERY; /* FORMERR NOTIMP NOCHANGE */
+			seth_errno(NO_RECOVERY); /* FORMERR NOTIMP NOCHANGE */
 			break;
 		}
 		return(-1);
 	}
 
 	/* valid answer received, avoid buffer overrun */
-	h_errno = 0;
+	seth_errno(0);
 	return(querysize(n));
 }
 
@@ -1959,10 +1821,10 @@ input bool regular;			/* set if this is a regular lookup */
 	register u_char *cp;
 
 	bp = (HEADER *)answerbuf;
-	qdcount = ntohs(bp->qdcount);
-	ancount = ntohs(bp->ancount);
-	nscount = ntohs(bp->nscount);
-	arcount = ntohs(bp->arcount);
+	qdcount = ntohs((u_short)bp->qdcount);
+	ancount = ntohs((u_short)bp->ancount);
+	nscount = ntohs((u_short)bp->nscount);
+	arcount = ntohs((u_short)bp->arcount);
 
 	msg = (u_char *)answerbuf;
 	eom = (u_char *)answerbuf + answerlen;
@@ -1985,7 +1847,7 @@ input bool regular;			/* set if this is a regular lookup */
 		{
 			pr_error("invalid qdcount after %s query for %s",
 				pr_type(type), name);
-			h_errno = NO_RECOVERY;
+			seth_errno(NO_RECOVERY);
 			return(FALSE);
 		}
 	}
@@ -2028,7 +1890,7 @@ input bool regular;			/* set if this is a regular lookup */
 		{
 			pr_error("invalid ancount after %s query for %s",
 				pr_type(type), name);
-			h_errno = NO_RECOVERY;
+			seth_errno(NO_RECOVERY);
 			return(FALSE);
 		}
 	}
@@ -2058,7 +1920,7 @@ input bool regular;			/* set if this is a regular lookup */
 		{
 			pr_error("invalid nscount after %s query for %s",
 				pr_type(type), name);
-			h_errno = NO_RECOVERY;
+			seth_errno(NO_RECOVERY);
 			return(FALSE);
 		}
 	}
@@ -2081,7 +1943,7 @@ input bool regular;			/* set if this is a regular lookup */
 		{
 			pr_error("invalid arcount after %s query for %s",
 				pr_type(type), name);
-			h_errno = NO_RECOVERY;
+			seth_errno(NO_RECOVERY);
 			return(FALSE);
 		}
 	}
@@ -2242,7 +2104,7 @@ input bool regular;			/* set if this is a regular lookup */
 	doprintf(("%-20s", pr_name(rname)))
 
 	if (verbose || ttlprint)
-		doprintf(("\t%s", itoa(ttl)))
+		doprintf(("\t%s", dtoa(ttl)))
 
 	if (verbose || classprint || (class != qclass))
 		doprintf(("\t%s", pr_class(class)))
@@ -2298,10 +2160,10 @@ input bool regular;			/* set if this is a regular lookup */
 				cp += INADDRSZ;
 
 				n = *cp++;
-				doprintf((" ; proto = %s", itoa(n)))
+				doprintf((" ; proto = %s", dtoa(n)))
 
 				n = _getshort(cp);
-				doprintf((", port = %s", itoa(n)))
+				doprintf((", port = %s", dtoa(n)))
 				cp += INT16SZ;
 				break;
 			}
@@ -2317,7 +2179,7 @@ input bool regular;			/* set if this is a regular lookup */
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf(("\t%s", itoa(n)))
+		doprintf(("\t%s", dtoa(n)))
 		cp += INT16SZ;
 
 		n = expand_name(rname, type, cp, msg, eom, dname);
@@ -2375,22 +2237,22 @@ input bool regular;			/* set if this is a regular lookup */
 		cp += INT32SZ;
 
 		n = _getlong(cp);
-		doprintf(("\n\t\t\t%s", itoa(n)))
+		doprintf(("\n\t\t\t%s", dtoa(n)))
 		doprintf(("\t;refresh period (%s)", pr_time(n, FALSE)))
 		cp += INT32SZ;
 
 		n = _getlong(cp);
-		doprintf(("\n\t\t\t%s", itoa(n)))
+		doprintf(("\n\t\t\t%s", dtoa(n)))
 		doprintf(("\t;retry interval (%s)", pr_time(n, FALSE)))
 		cp += INT32SZ;
 
 		n = _getlong(cp);
-		doprintf(("\n\t\t\t%s", itoa(n)))
+		doprintf(("\n\t\t\t%s", dtoa(n)))
 		doprintf(("\t;expire time (%s)", pr_time(n, FALSE)))
 		cp += INT32SZ;
 
 		n = _getlong(cp);
-		doprintf(("\n\t\t\t%s", itoa(n)))
+		doprintf(("\n\t\t\t%s", dtoa(n)))
 		doprintf(("\t;default ttl (%s)", pr_time(n, FALSE)))
 		cp += INT32SZ;
 
@@ -2412,7 +2274,7 @@ input bool regular;			/* set if this is a regular lookup */
 		if (protocol != NULL)
 			doprintf((" %s", protocol->p_name))
 		else
-			doprintf((" %s", itoa(n)))
+			doprintf((" %s", dtoa(n)))
 
 		doprintf((" ("))
 		n = 0;
@@ -2425,7 +2287,7 @@ input bool regular;			/* set if this is a regular lookup */
 			{
 			    int port;
 
-			    port = htons(n);
+			    port = htons((u_short)n);
 			    if (protocol != NULL)
 				    service = getservbyport(port, protocol->p_name);
 			    else
@@ -2434,7 +2296,7 @@ input bool regular;			/* set if this is a regular lookup */
 			    if (service != NULL)
 				    doprintf((" %s", service->s_name))
 			    else
-				    doprintf((" %s", itoa(n)))
+				    doprintf((" %s", dtoa(n)))
 			}
  			c <<= 1;
 		    } while (++n & 07);
@@ -2500,7 +2362,7 @@ input bool regular;			/* set if this is a regular lookup */
 		if (dlen == INT32SZ)
 		{
 			n = _getlong(cp);
-			doprintf(("\t%s", itoa(n)))
+			doprintf(("\t%s", dtoa(n)))
 			cp += INT32SZ;
 		}
 		break;
@@ -2528,7 +2390,7 @@ input bool regular;			/* set if this is a regular lookup */
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf(("\t%s", itoa(n)))
+		doprintf(("\t%s", dtoa(n)))
 		cp += INT16SZ;
 
 		n = expand_name(rname, type, cp, msg, eom, dname);
@@ -2542,7 +2404,7 @@ input bool regular;			/* set if this is a regular lookup */
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf(("\t%s", itoa(n)))
+		doprintf(("\t%s", dtoa(n)))
 		cp += INT16SZ;
 
 		n = expand_name(rname, type, cp, msg, eom, dname);
@@ -2594,7 +2456,7 @@ input bool regular;			/* set if this is a regular lookup */
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf(("\t%s", itoa(n)))
+		doprintf(("\t%s", dtoa(n)))
 		cp += INT16SZ;
 
 		n = expand_name(rname, type, cp, msg, eom, dname);
@@ -2634,7 +2496,7 @@ input bool regular;			/* set if this is a regular lookup */
 		if ((n = *cp) != T_LOC_VERSION)
 		{
 			pr_error("invalid version %s in %s record for %s",
-				itoa(n), pr_type(type), rname);
+				dtoa(n), pr_type(type), rname);
 			cp += dlen;
 			break;
 		}
@@ -2685,7 +2547,7 @@ input bool regular;			/* set if this is a regular lookup */
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf((" %s", itoa(n)))
+		doprintf((" %s", dtoa(n)))
 
 		n = 1 + 3*INT32SZ + INT16SZ;
 		if (check_size(rname, type, cp, msg, eor, n) < 0)
@@ -2693,11 +2555,11 @@ input bool regular;			/* set if this is a regular lookup */
 		doprintf((" ("))
 
 		n = *cp++;
-		doprintf(("\n\t\t\t; %s", itoa(n)))
+		doprintf(("\n\t\t\t; %s", dtoa(n)))
 		doprintf(("\t\t;labels"))
 
 		n = _getlong(cp);
-		doprintf(("\n\t\t\t%s", itoa(n)))
+		doprintf(("\n\t\t\t%s", dtoa(n)))
 		doprintf(("\t\t;original ttl"))
 		cp += INT32SZ;
 
@@ -2712,7 +2574,7 @@ input bool regular;			/* set if this is a regular lookup */
 		cp += INT32SZ;
 
 		n = _getshort(cp);
-		doprintf(("\n\t\t\t%s", itoa(n)))
+		doprintf(("\n\t\t\t%s", dtoa(n)))
 		doprintf(("\t\t;key footprint"))
 		cp += INT16SZ;
 
@@ -2752,12 +2614,12 @@ input bool regular;			/* set if this is a regular lookup */
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf((" %s", itoa(n)))
+		doprintf((" %s", dtoa(n)))
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf((" %s", itoa(n)))
+		doprintf((" %s", dtoa(n)))
 
 		if (cp < eor)
 		{
@@ -2805,19 +2667,19 @@ input bool regular;			/* set if this is a regular lookup */
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf(("\t%s", itoa(n)))
+		doprintf(("\t%s", dtoa(n)))
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf((" %s", itoa(n)))
+		doprintf((" %s", dtoa(n)))
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf((" %s", itoa(n)))
+		doprintf((" %s", dtoa(n)))
 		cp += INT16SZ;
 
 		n = expand_name(rname, type, cp, msg, eom, dname);
@@ -2838,13 +2700,13 @@ input bool regular;			/* set if this is a regular lookup */
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf(("\t%s", itoa(n)))
+		doprintf(("\t%s", dtoa(n)))
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf((" %s", itoa(n)))
+		doprintf((" %s", dtoa(n)))
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
@@ -2909,7 +2771,7 @@ input bool regular;			/* set if this is a regular lookup */
 	if (cp != eor)
 	{
 		pr_error("size error in %s record for %s, off by %s",
-			pr_type(type), rname, itoa(cp - eor));
+			pr_type(type), rname, dtoa(cp - eor));
 
 		/* we believe value of dlen; should perhaps return(NULL) */
 		return(eor);
@@ -3116,8 +2978,8 @@ input char **name;			/* name to query about */
 	result = get_hostinfo(newname, TRUE);
 	level--;
 
-	errno = save_errno;
-	h_errno = save_herrno;
+	seterrno(save_errno);
+	seth_errno(save_herrno);
 
 	return(result);
 }
@@ -3816,10 +3678,10 @@ input char *name;			/* name of zone to find servers for */
 	nservers = 0;			/* count of nameservers */
 
 	bp = (HEADER *)answerbuf;
-	qdcount = ntohs(bp->qdcount);
-	ancount = ntohs(bp->ancount);
-	nscount = ntohs(bp->nscount);
-	arcount = ntohs(bp->arcount);
+	qdcount = ntohs((u_short)bp->qdcount);
+	ancount = ntohs((u_short)bp->ancount);
+	nscount = ntohs((u_short)bp->nscount);
+	arcount = ntohs((u_short)bp->arcount);
 
 	msg = (u_char *)answerbuf;
 	eom = (u_char *)answerbuf + answerlen;
@@ -3837,7 +3699,7 @@ input char *name;			/* name of zone to find servers for */
 	{
 		pr_error("invalid qdcount after %s query for %s",
 			pr_type(T_NS), name);
-		h_errno = NO_RECOVERY;
+		seth_errno(NO_RECOVERY);
 		return(FALSE);
 	}
 
@@ -3926,8 +3788,8 @@ input char *name;			/* name of zone to find servers for */
 		if (cp != eor)
 		{
 			pr_error("size error in %s record for %s, off by %s",
-				pr_type(type), rname, itoa(cp - eor));
-			h_errno = NO_RECOVERY;
+				pr_type(type), rname, dtoa(cp - eor));
+			seth_errno(NO_RECOVERY);
 			return(FALSE);
 		}
 
@@ -3938,12 +3800,12 @@ input char *name;			/* name of zone to find servers for */
 	{
 		pr_error("invalid rrcount after %s query for %s",
 			pr_type(T_NS), name);
-		h_errno = NO_RECOVERY;
+		seth_errno(NO_RECOVERY);
 		return(FALSE);
 	}
 
 	/* set proper status if no answers found */
-	h_errno = (nservers > 0) ? 0 : TRY_AGAIN;
+	seth_errno((nservers > 0) ? 0 : TRY_AGAIN);
 	return(TRUE);
 }
 
@@ -3984,7 +3846,7 @@ sort_servers()
  * Compare against a list of comma-separated preferred server domains.
  * Use the maximum value of all comparisons.
  */
-	for (q = NULL, p = prefserver; p != NULL; p = q)
+	for (q = prefserver, p = q; p != NULL; p = q)
 	{
 		q = index(p, ',');
 		if (q != NULL)
@@ -4052,7 +3914,7 @@ input char *name;			/* name of zone to process */
 	register char *p, *q;
 	bool skip = FALSE;
 
-	for (q = NULL, p = skipzone; p != NULL; p = q)
+	for (q = skipzone, p = q; p != NULL; p = q)
 	{
 		q = index(p, ',');
 		if (q != NULL)
@@ -4274,7 +4136,7 @@ input char *name;			/* name of zone to do zone xfer for */
 		if (h_errno == QUERY_REFUSED)
 		{
 			do_soa(name, ipaddr[n][i], nsname[n]);
-			h_errno = QUERY_REFUSED;
+			seth_errno(QUERY_REFUSED);
 			break;
 		}
 
@@ -4423,7 +4285,7 @@ input char *host;			/* name of server to be queried */
 /*
  * Construct query, and connect to the given server.
  */
-	errno = 0;	/* reset before querying nameserver */
+	seterrno(0);	/* reset before querying nameserver */
 
 	n = res_mkquery(QUERY, name, queryclass, T_AXFR, (qbuf_t *)NULL, 0,
 			(rrec_t *)NULL, (qbuf_t *)&query, sizeof(querybuf));
@@ -4431,7 +4293,7 @@ input char *host;			/* name of server to be queried */
 	{
 		if (debug)
 			printf("%sres_mkquery failed\n", dbprefix);
-		h_errno = NO_RECOVERY;
+		seth_errno(NO_RECOVERY);
 		return(FALSE);
 	}
 
@@ -4452,7 +4314,7 @@ input char *host;			/* name of server to be queried */
 	if (sock < 0)
 	{
 		_res_perror(&sin, host, "socket");
-		h_errno = TRY_AGAIN;
+		seth_errno(TRY_AGAIN);
 		return(FALSE);
 	}
 
@@ -4461,7 +4323,7 @@ input char *host;			/* name of server to be queried */
 		if (verbose || debug)
 			_res_perror(&sin, host, "connect");
 		(void) close(sock);
-		h_errno = TRY_AGAIN;
+		seth_errno(TRY_AGAIN);
 		return(FALSE);
 	}
 
@@ -4474,7 +4336,7 @@ input char *host;			/* name of server to be queried */
 	if (_res_write(sock, &sin, host, (char *)&query, n) < 0)
 	{
 		(void) close(sock);
-		h_errno = TRY_AGAIN;
+		seth_errno(TRY_AGAIN);
 		return(FALSE);
 	}
 
@@ -4486,18 +4348,18 @@ input char *host;			/* name of server to be queried */
 		if (n < 0)
 		{
 			(void) close(sock);
-			h_errno = TRY_AGAIN;
+			seth_errno(TRY_AGAIN);
 			return(FALSE);
 		}
 
-		errno = 0;	/* reset after we got an answer */
+		seterrno(0);	/* reset after we got an answer */
 
 		if (n < HFIXEDSZ)
 		{
 			pr_error("answer length %s too short during %s for %s from %s",
-				itoa(n), pr_type(T_AXFR), name, host);
+				dtoa(n), pr_type(T_AXFR), name, host);
 			(void) close(sock);
-			h_errno = TRY_AGAIN;
+			seth_errno(TRY_AGAIN);
 			return(FALSE);
 		}
 
@@ -4514,7 +4376,7 @@ input char *host;			/* name of server to be queried */
 	 * Note the special error status codes for specific failures.
 	 */
 		bp = (HEADER *)&answer;
-		ancount = ntohs(bp->ancount);
+		ancount = ntohs((u_short)bp->ancount);
 
 		if (bp->rcode != NOERROR || ancount == 0)
 		{
@@ -4525,27 +4387,27 @@ input char *host;			/* name of server to be queried */
 			{
 			    case NXDOMAIN:
 				/* distinguish between authoritative or not */
-				h_errno = bp->aa ? HOST_NOT_FOUND : NO_HOST;
+				seth_errno(bp->aa ? HOST_NOT_FOUND : NO_HOST);
 				break;
 
 			    case NOERROR:
 				/* distinguish between authoritative or not */
-				h_errno = bp->aa ? NO_DATA : NO_RREC;
+				seth_errno(bp->aa ? NO_DATA : NO_RREC);
 				break;
 
 			    case REFUSED:
 				/* special status if zone transfer refused */
-				h_errno = QUERY_REFUSED;
+				seth_errno(QUERY_REFUSED);
 				break;
 
 			    case SERVFAIL:
 				/* special status upon explicit failure */
-				h_errno = SERVER_FAILURE;
+				seth_errno(SERVER_FAILURE);
 				break;
 
 			    default:
 				/* all other errors will cause a retry */
-				h_errno = TRY_AGAIN;
+				seth_errno(TRY_AGAIN);
 				break;
 			}
 
@@ -4558,7 +4420,7 @@ input char *host;			/* name of server to be queried */
 		}
 
 		/* valid answer received, avoid buffer overrun */
-		h_errno = 0;
+		seth_errno(0);
 		n = querysize(n);
 
 	/*
@@ -4570,11 +4432,11 @@ input char *host;			/* name of server to be queried */
 			pr_error("multiple answers during %s for %s from %s",
 				pr_type(T_AXFR), name, host);
 #endif
-		if (ntohs(bp->nscount) != 0)
+		if (ntohs((u_short)bp->nscount) != 0)
 			pr_error("nonzero nscount during %s for %s from %s",
 				pr_type(T_AXFR), name, host);
 
-		if (ntohs(bp->arcount) != 0)
+		if (ntohs((u_short)bp->arcount) != 0)
 			pr_error("nonzero arcount during %s for %s from %s",
 				pr_type(T_AXFR), name, host);
 
@@ -4611,7 +4473,7 @@ input char *host;			/* name of server to be queried */
 	{
 		pr_error("empty zone transfer for %s from %s",
 			name, host);
-		h_errno = NO_RREC;
+		seth_errno(NO_RREC);
 		return(FALSE);
 	}
 
@@ -4877,8 +4739,8 @@ input char *name;			/* name of zone to get soa for */
 	register u_char *cp;
 
 	bp = (HEADER *)answerbuf;
-	qdcount = ntohs(bp->qdcount);
-	ancount = ntohs(bp->ancount);
+	qdcount = ntohs((u_short)bp->qdcount);
+	ancount = ntohs((u_short)bp->ancount);
 
 	msg = (u_char *)answerbuf;
 	eom = (u_char *)answerbuf + answerlen;
@@ -4896,7 +4758,7 @@ input char *name;			/* name of zone to get soa for */
 	{
 		pr_error("invalid qdcount after %s query for %s",
 			pr_type(T_SOA), name);
-		h_errno = NO_RECOVERY;
+		seth_errno(NO_RECOVERY);
 		return(FALSE);
 	}
 
@@ -4979,8 +4841,8 @@ input char *name;			/* name of zone to get soa for */
 		if (cp != eor)
 		{
 			pr_error("size error in %s record for %s, off by %s",
-				pr_type(type), rname, itoa(cp - eor));
-			h_errno = NO_RECOVERY;
+				pr_type(type), rname, dtoa(cp - eor));
+			seth_errno(NO_RECOVERY);
 			return(FALSE);
 		}
 
@@ -4991,12 +4853,12 @@ input char *name;			/* name of zone to get soa for */
 	{
 		pr_error("invalid ancount after %s query for %s",
 			pr_type(T_SOA), name);
-		h_errno = NO_RECOVERY;
+		seth_errno(NO_RECOVERY);
 		return(FALSE);
 	}
 
 	/* set proper status if no answers found */
-	h_errno = (soaname != NULL) ? 0 : TRY_AGAIN;
+	seth_errno((soaname != NULL) ? 0 : TRY_AGAIN);
 	return(TRUE);
 }
 
@@ -6657,7 +6519,7 @@ input int answerlen;			/* length of answer buffer */
 	bool failed;
 
 	bp = (HEADER *)answerbuf;
-	ancount = ntohs(bp->ancount);
+	ancount = ntohs((u_short)bp->ancount);
 	failed = (bp->rcode != NOERROR || ancount == 0);
 
 	printf("%s", verbose ? "" : dbprefix);
@@ -7223,8 +7085,8 @@ output char *namebuf;			/* location of buf to expand name in */
 	if (n < 0)
 	{
 		pr_error("expand error in %s record for %s, offset %s",
-			pr_type(type), name, itoa(cp - msg));
-		h_errno = NO_RECOVERY;
+			pr_type(type), name, dtoa(cp - msg));
+		seth_errno(NO_RECOVERY);
 		return(-1);
 	}
 
@@ -7267,11 +7129,11 @@ input int size;				/* required record size remaining */
 	{
 		if (type != T_HINFO)
 			pr_error("incomplete %s record for %s, offset %s",
-				pr_type(type), name, itoa(cp - msg));
+				pr_type(type), name, dtoa(cp - msg));
 		else
 			pr_warning("incomplete %s record for %s",
 				pr_type(type), name);
-		h_errno = NO_RECOVERY;
+		seth_errno(NO_RECOVERY);
 		return(-1);
 	}
 
@@ -7404,8 +7266,8 @@ input char *name;			/* the domain name to check */
 	hp = geth_byname(name);
 	status = h_errno;
 
-	errno = save_errno;
-	h_errno = save_herrno;
+	seterrno(save_errno);
+	seth_errno(save_herrno);
 
 /*
  * Indicate negative result only after definitive lookup failures.
@@ -7460,8 +7322,8 @@ input struct in_addr inaddr;		/* address of A record to check */
 	hp = geth_byaddr((char *)&inaddr, INADDRSZ, AF_INET);
 	status = h_errno;
 
-	errno = save_errno;
-	h_errno = save_herrno;
+	seterrno(save_errno);
+	seth_errno(save_herrno);
 
 /*
  * Indicate negative result only after definitive lookup failures.
@@ -7496,7 +7358,7 @@ input struct in_addr inaddr;		/* address of A record to check */
 /*
  * The reverse mapping did not yield the given name.
  */
-	return(hp->h_name);
+	return((char *)hp->h_name);
 }
 
 /* 
@@ -7544,7 +7406,7 @@ input siz_t size;			/* number of bytes to allocate */
 }
 
 /*
-** ITOA -- Convert value to decimal integer ascii string
+** DTOA -- Convert value to decimal integer ascii string
 ** -----------------------------------------------------
 **
 **	Returns:
@@ -7552,7 +7414,7 @@ input siz_t size;			/* number of bytes to allocate */
 */
 
 char *
-itoa(n)
+dtoa(n)
 input int n;				/* value to convert */
 {
 	static char buf[30];		/* sufficient for 64-bit values */
