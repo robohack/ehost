@@ -4,7 +4,7 @@
 ** from: @(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.11 2003-03-31 21:14:58 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.12 2003-03-31 21:58:44 -0800 woods Exp $"
 
 #if (defined(__SVR4) || defined(__svr4) || defined(SVR4) || defined(svr4)) && !defined(__svr4__)
 # define __svr4__	1
@@ -166,10 +166,10 @@ typedef u_char		nbuf_t;
 #endif
 
 #ifndef _IPADDR_T
-# if defined(__alpha) || defined(BIND_4_9)
-typedef u_int		ipaddr_t;
+# if defined(__alpha) || defined(__arch64__)
+typedef unsigned int	ipaddr_t;
 # else
-typedef u_long		ipaddr_t;
+typedef unsigned long	ipaddr_t;
 # endif
 # define _IPADDR_T	ipaddr_t
 #endif
