@@ -5,7 +5,7 @@
 #
 #	make -f Makefile.BSD __NetBSD__=1 __GNUC__=2 __GNULD__=2
 #
-#ident	"@(#)host:$Name:  $:$Id: Makefile.BSD,v 1.9 2003-11-01 01:24:30 -0800 woods Exp $"
+#ident	"@(#)host:$Name:  $:$Id: Makefile.BSD,v 1.10 2003-11-17 05:28:42 -0800 woods Exp $"
 #
 
 # are we running in the full NetBSD build environment?
@@ -180,3 +180,38 @@ SOELIM = soelim
 .if !target(clobber)
 clobber: .NOTMAIN cleandir
 .endif
+
+BSDSRCDIR ?=	/usr/src
+
+ALL_SOURCES =	RELEASE_NOTES			\
+		ToDo				\
+		addr.c				\
+		conf.h				\
+		defs.h				\
+		exit.h				\
+		file.c				\
+		geth.c				\
+		glob.h				\
+		host.1				\
+		host.h				\
+		info.c				\
+		list.c				\
+		main.c				\
+		malloc.c			\
+		misc.c				\
+		mxlookup.sh			\
+		nscheck.sh			\
+		nslookup.sh			\
+		port.h				\
+		rblookup.sh			\
+		rrec.h				\
+		send.c				\
+		test.c				\
+		type.h				\
+		util.c				\
+		vers.c
+
+
+host2netbsd:
+	cp Makefile.BSD $(BSDSRCDIR)/usr.bin/host/Makefile
+	cp $(ALL_SOURCES) $(BSDSRCDIR)/usr.bin/host
