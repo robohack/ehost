@@ -1,5 +1,5 @@
 .\"
-.\"#ident "@(#)host:$Name:  $:$Id: host.1,v 1.6 2003-04-04 19:02:57 -0800 woods Exp $"
+.\"#ident "@(#)host:$Name:  $:$Id: host.1,v 1.7 2003-04-06 03:45:36 -0800 woods Exp $"
 .\"
 .\" from: @(#)host.1              e07@nikhef.nl (Eric Wassenaar) 991527
 .\"
@@ -25,23 +25,22 @@ host \- query nameserver about domain names and zones
 \fBhost\fP [\fIoptions\fP] \fB\-X\fP \fIserver\fP [\fIname\fP ...]
 .\"
 .SH "OPTION SYNTAX"
-Besides the traditional short options (one letter with single dash,
-and an optional value as separate argument), there are now also
-long options in the format \fB\-\-keyword\fP[=\fIvalue\fP].
-Many (but not all) short options have a long equivalent.
-There are several long options without a short equivalent.
-The long options are not yet documented in this manual page,
-but a summary of the existing long options, and the mapping to
-their short alternative, is available via the command
-\fBhost\ \-\-help\fP.
+Besides the traditional short options (one letter with single dash, and
+an optional value as separate argument), there are now also long options
+in the format \fB\-\-keyword\fP[=\fIvalue\fP].  Many (but not all) short
+options have a long equivalent.  There are several long options without
+a short equivalent.  The long options are not yet documented in this
+manual page, but a summary of the existing long options, and the mapping
+to their short alternative, is available by using the \fB\-\-help\fP
+option.
 .\"
 .SH "DESCRIPTION "
 .I host
 looks for information about Internet hosts and domain names.
 It gets this information from a set of interconnected servers
 that are spread across the world.  The information is stored
-in the form of "resource records" belonging to hierarchically
-organized "zones".
+in the form of ``resource records'' belonging to hierarchically
+organized ``zones.''
 .PP
 By default, the program simply converts between host names and Internet
 addresses.  However, with the \fB\-t\fP, \fB\-a\fP and \fB\-v\fP
@@ -54,7 +53,7 @@ The arguments can be either host names (domain names) or numeric
 Internet addresses.
 .PP
 A numeric Internet address consists of four decimal numbers
-separated by dots, e.g. \fB192.16.199.1\fP, representing the
+separated by dots, e.g. \fB192.168.199.1\fP, representing the
 four bytes of the 32-bit address.
 .br
 The default action is to look up the associated host name.
@@ -66,11 +65,11 @@ The default action is to look up all of its Internet addresses.
 .PP
 For single names without a trailing dot, the local domain is
 automatically tacked on the end.
-Thus a user in domain "nikhef.nl" can say "host nikhapo",
-and it will actually look up "nikhapo.nikhef.nl".
+Thus a user in domain ``nikhef.nl'' can say ``host nikhapo'',
+and it will actually look up ``nikhapo.nikhef.nl''.
 In all other cases, the name is tried unchanged.
 Single names with trailing dot are considered top-level domain
-specifications, e.g. "nl."
+specifications, e.g. ``nl.''
 .PP
 Note that the usual lookup convention for any name that does not end
 with a trailing dot is to try first with the local domain appended,
@@ -88,7 +87,7 @@ See below for a description of how to customize the host name lookup.
 The first argument is normally the host name (domain name) for which
 you want to look up the requested information.
 If the first argument is an Internet address, a query is done on the
-special "reverse mapping" domain to look up its associated host name.
+special ``reverse mapping'' domain to look up its associated host name.
 .PP
 If the \fB\-l\fP option is given, the first argument is a domain zone
 name for which a complete listing is given.  The program enters a
@@ -97,19 +96,21 @@ special zone listing mode which has several variants (see below).
 The second argument is optional.  It allows you to specify a particular
 server to query.  If you don't specify this argument, default servers
 are used, as defined by the \fB/etc/resolv.conf\fP file.
+.\"
 .SS "EXTENDED SYNTAX"
 If the \fB\-x\fP option is given, it extends the syntax in the sense
 that multiple arguments are allowed on the command line.  An optional
 explicit server must now be specified using the \fB\-X\fP option as it
 cannot be given as an ordinary argument any more.  The \fB\-X\fP
 option implies \fB\-x\fP.
-.sp
+.PP
 The extended syntax allows no arguments at all, in which case the
 arguments will be read from standard input.  This can be a pipe,
 redirection from a file, or an interactive terminal.  Note that
 these arguments are the names to be queried, and not command options.
 Everything that appears after a '#' or ';' on an input line will be
 skipped.  Multiple arguments per line are allowed.
+.\"
 .SS "OPTIONS"
 There are a number of options that can be used before the specified
 arguments.  Some of these options are meaningful only to the people
@@ -117,15 +118,15 @@ who maintain the domain database zones.
 The first options are the regularly used ones.
 .TP 4
 .B \-v
-causes printout to be in a "verbose" format.
+causes printout to be in a ``verbose'' format.
 All resource record fields are printed.
 Without this option, the TTL and class fields are not shown.
-Also the contents of the "additional information" and "authority
-information" sections in the answer from the nameserver are printed,
+Also the contents of the ``additional information'' and ``authority
+information'' sections in the answer from the nameserver are printed,
 if present.  Normally these sections are not shown.
 In addition, the verbose option prints extra information about the
 various actions that are taken by the program.
-Note that \fB\-vv\fP is "very verbose".  This generates a lot of output.
+Note that \fB\-vv\fP is ``very verbose''.  This generates a lot of output.
 .TP
 .BI \-t " querytype"
 allows you to specify a particular type of resource record information
@@ -137,45 +138,46 @@ and \fBA\fP, \fBNS\fP, and \fBPTR\fP for zone listings.
 .TP
 .B \-a
 is equivalent to \fB\-t ANY\fP.
-Note that this gives you "anything available" (currently cached) and
-not "all defined data" if a non-authoritative server is queried.
+Note that this gives you ``anything available'' (currently cached) and
+not ``all defined data'' if a non-authoritative server is queried.
+.\"
 .SS "SPECIAL MODES"
 The following options put the program in a special mode.
 .TP 4
 .BI \-l " zone"
 generates the listing of an entire zone.
-.sp
+.IP
 E.g. the command
 .br
 	\fBhost \-l nikhef.nl\fP
 .br
-will give a listing of all hosts in the "nikhef.nl" zone.
+will give a listing of all hosts in the ``nikhef.nl'' zone.
 The \fB\-t\fP option is used to filter what information is
 extracted, as you would expect.  The default is address
 information from A records, supplemented with data from PTR
 and NS records.
-.sp
+.IP
 The command
 .br
 	\fBhost \-Z \-a \-l nikhef.nl\fP
 .br
-will give a complete download of the zone data for "nikhef.nl",
+will give a complete download of the zone data for ``nikhef.nl'',
 in the official master file format.
 .TP 4
 .B \-H
 can be specified instead of the \fB\-l\fP option.  It will print
 the count of the unique hostnames (names with an A record)
 encountered within the zone.
-It will not count pseudo names like "localhost", nor addresses
+It will not count pseudo names like ``localhost'', nor addresses
 associated with the zone name itself.  Neither are counted the
-"glue records" that are necessary to define nameservers for
+``glue records'' that are necessary to define nameservers for
 the zone and its delegated zones.
-.sp
+.IP
 By default, this option will not print any resource records.
-.sp
+.IP
 Combined with the \fB\-S\fP option, it will give a complete
 statistics survey of the zone.
-.sp
+.IP
 The host count may be affected by duplicate hosts (see below).
 To compute the most realistic value, subtract the duplicate
 host count from the total host count.
@@ -187,8 +189,8 @@ Gateway hosts are not checked for duplicate addresses.
 .TP
 .B \-E
 implies \fB\-H\fP, but lists the names of extrazone hosts.
-An extrazone host in zone "foo.bar" is of the form
-"host.xxx.foo.bar" where "xxx.foo.bar" is not defined as
+An extrazone host in zone ``foo.bar'' is of the form
+``host.xxx.foo.bar'' where ``xxx.foo.bar'' is not defined as
 a delegated zone with an NS record.
 This may be intentional, but also may be an error.
 .TP
@@ -212,21 +214,22 @@ are performed.
 .TP
 .B \-A
 enters a special address check mode.
-.sp
+.IP
 If the first argument is a host name, its addresses will be retrieved,
 and for each of the addresses it will be checked whether they map back
 to the given host.
-.sp
+.IP
 If the first argument is a dotted quad Internet address, its name will
 be retrieved, and it will be checked whether the given address is listed
 among the known addresses belonging to that host.
-.sp
+.IP
 If the \fB\-A\fP flag is specified along with any zone listing option,
 a reverse lookup of the address in each encountered A record is performed,
 and it is checked whether it is registered and maps back to the name of
 the A record.
 This applies to forward zones.  For reverse in-addr.arpa zones, it is
 checked whether the target in PTR records maps to a canonical host name.
+.\"
 .SS "LISTING OPTIONS"
 The following options apply only to the special zone listing modes.
 .TP 4
@@ -256,19 +259,20 @@ This can be used for testing purposes in case the zone has not been
 registered yet.
 .TP
 .BI \-P " prefserver"
-gives priority for zone transfers to preferred servers residing in
-domains given by the comma-separated list \fIprefserver\fP.  The more
-domain component labels match, the higher the priority.
-If this option is not present, priority is given to servers within
-your own domain or parent domains.
-The order in which NS records are issued may be unfavorable if they
-are subject to BIND 4.9 round-robin reshuffling.
+gives priority for zone transfers to nameservers residing in/at domains
+given by the comma-separated list \fIprefserver\fP.  The more domain
+component labels match, the higher the priority.  If this option is not
+present, priority is given to servers within your own domain or parent
+domains under the assumption that such servers will either be closer in
+the network topology or more likely to allow transfers, or both, since
+the order in which NS records are found in an NS answer may be random.
 .TP
 .BI \-N " skipzone"
 prohibits zone transfers for the zones given by the comma-separated
 list \fIskipzone\fP.  This may be used during recursive zone listings
 when certain zones are known to contain bogus information which
 should be excluded from further processing.
+.\"
 .SS "COMMON OPTIONS"
 The following options can be used in both normal mode and domain
 listing mode.
@@ -293,20 +297,20 @@ invalid characters, by specifying such characters in the string
 \fIchars\fP.  The underscore is a good candidate.
 .TP
 .B \-i
-constructs a query for the "reverse mapping" \fBin-addr.arpa\fP
+constructs a query for the ``reverse mapping'' \fBin-addr.arpa\fP
 domain in case a numeric (dotted quad) address was specified.
 Useful primarily for zone listing mode, since for numeric regular
 lookups such query is done anyway (but with \-i you see the actual
 PTR resource record outcome).
 .TP
 .B \-n
-constructs a query for the "reverse mapping" \fBnsap.int\fP
+constructs a query for the ``reverse mapping'' \fBnsap.int\fP
 domain in case an nsap address was specified.
 This can be used to look up the names associated with nsap addresses,
 or to list reverse nsap zones.
 An nsap address consists of an even number of hexadecimal digits,
 with a maximum of 40, optionally separated by interspersed dots.
-An optional prefix "0x" is skipped.
+An optional prefix ``0x'' is skipped.
 If this option is used, all reverse nsap.int names are by default
 printed in forward notation, only to improve readability.
 The \fB\-Z\fP option forces the output to be in the official zone
@@ -314,8 +318,8 @@ file format.
 .TP
 .B \-q
 be quiet and suppress various warning messages (the ones preceded
-by " !!! ").
-Serious error messages (preceded by " *** ") are never suppressed.
+by `` !!! '').
+Serious error messages (preceded by `` *** '') are never suppressed.
 .TP
 .B \-Q
 selects quick mode, in which several potentially time consuming
@@ -329,6 +333,7 @@ By default the TTL is shown only in verbose mode.
 .B \-Z
 prints the selected resource record output in full zone file format,
 including trailing dot in domain names, plus TTL value and class name.
+.\"
 .SS "OTHER OPTIONS"
 The following options are used only in special circumstances.
 .TP 4
@@ -342,8 +347,8 @@ The default class is \fBIN\fP.
 .B \-e
 excludes information about names that are not residing within
 the given zone during zone listings, such as some glue records.
-For regular queries, it suppresses the printing of the "additional
-information" and "authority information" sections in the answer
+For regular queries, it suppresses the printing of the ``additional
+information'' and ``authority information'' sections in the answer
 from the nameserver.
 .TP
 .B \-m
@@ -401,6 +406,7 @@ nameserver address tried.
 .TP
 .B \-V
 prints just the version number of the \fBhost\fP program, and exits.
+.\"
 .SS "SPECIAL OPTIONS"
 The following options are used only in special circumstances.
 .TP 4
@@ -419,6 +425,7 @@ that filters random port numbers on incoming traffic.
 If only one of \fB\-j\fP or \fB\-J\fP is given, a single explicit port
 number is defined.  This is ok for UDP queries, but may not be sufficient
 for TCP queries.
+.\"
 .SS "DEFAULT OPTIONS"
 Default options and parameters can be preset in an environment
 variable \fBHOST_DEFAULTS\fP using the same syntax as on the command
@@ -609,9 +616,9 @@ A very good summary and validation of an entire zone can be obtained
 with the following command:
 .sp
 	\fBhost \-G \-S \-C \-A \-L 1\fP \fIzone\fP
-.sp
 .\"
 .SH "DIAGNOSTICS"
+.\"
 .SS "FAILURE MESSAGES"
 The following messages are printed to show the reason
 of failure for a particular query.  The name of an explicit
@@ -683,13 +690,14 @@ addresses for any of them.
 No nameservers for \fIzone\fP responded
 When trying all nameservers in succession to do a zone transfer,
 none of them were able or willing to provide it.
+.\"
 .SS "WARNING AND ERROR MESSAGES"
 Miscellaneous warning messages may be generated.
-They are preceded by " !!! " and indicate some non-fatal condition,
+They are preceded by `` !!! '' and indicate some non-fatal condition,
 usually during the interpretation of the retrieved data.
 These messages can be suppressed with the \-q command line option.
-.sp
-Error messages are preceded by " *** " and indicate a serious problem,
+.PP
+Error messages are preceded by `` *** '' and indicate a serious problem,
 such as format errors in the answers to queries, but also major
 violations of the specifications.
 Those messages cannot be suppressed.
@@ -879,6 +887,7 @@ checks were performed without any serious error.
 Otherwise it returns a non-zero exit status.
 .\"
 .SH "ENVIRONMENT"
+.\"
 .SS "CUSTOMIZING HOST NAME LOOKUP"
 In general, if the name supplied by the user does not have any dots
 in it, a default domain is appended to the end.  This domain is usually
@@ -899,13 +908,13 @@ specified in the environment variable \fIHOSTALIASES\fP.
 .SH "SPECIAL CONSIDERATIONS"
 The complete set of resource record information for a domain name
 is available from an authoritative nameserver only.  Therefore,
-if you query another server with the "-a" option, only a subset
+if you query another server with the \fB\-a\fP option, only a subset
 of the data may be presented, since this option asks for any data
 that the latter server currently knows about, not all data that
-may possibly exist.  Note that the "-v" option shows whether an
+may possibly exist.  Note that the \fB\-v\fP option shows whether an
 answer is authoritative or not.
 .PP
-When listing a zone with the "-l" option, information will be fetched
+When listing a zone with the \fB\-l\fP option, information will be fetched
 from authoritative nameservers for that zone.  This is implemented by
 doing a complete zone transfer and then filtering out the information
 that you have asked for.
@@ -913,6 +922,9 @@ Note that direct contact with such nameservers must be possible for
 this option to work.
 This option should be used with caution.  Servers may be configured
 to refuse zone transfers if they are flooded with requests.
+.\"
+.SH "SEE ALSO"
+named(8), resolv.conf(5), resolver(3), hostname(7)
 .\"
 .SH "RELATED DOCUMENTATION"
 rfc819, Domain naming convention for internet applications
@@ -1098,12 +1110,23 @@ rfc3467, Role of the Domain Name System
 .\".br
 .\"rfc3492, Punycode: A Bootstring encoding of Unicode for Internationalized Domain Names in Applications (IDNA)
 .\"
-.SH "AUTHOR"
+.SH "HISTORY"
 This program is originally from Rutgers University.
 .br
 Rewritten by Eric Wassenaar, NIKHEF, <e07@nikhef.nl>
 .br
 Now maintained by Greg A. Woods, <woods-host@planix.com>
 .\"
-.SH "SEE ALSO"
-named(8), resolv.conf(5), resolver(3), hostname(7)
+.SH "BUGS"
+The default sorting of nameservers when \fB\-P\fP is not given is is
+probably a waste of time.  The only thing that really makes sense here
+is to prefer NS target host addresses that are on the same network as
+some interface address and to leave the rest the way they came.
+.PP
+The use of \fB\-A\fP when listing a reverse in-addr.arpa zone may
+generate spurious warnings about PTR records that identify network names
+as suggested by RFC 1101.
+.PP
+GNU getopt_long(3) ``long'' option syntax is supported but not
+documented in this manual page.  Some options are only available as long
+options.  Try \fB\-\-help\fP for more clues.
