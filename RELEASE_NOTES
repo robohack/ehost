@@ -3,6 +3,12 @@
 	URL	ftp://ftp.nikhef.nl/pub/network/host.tar.Z
 	URL	http://www.nikhef.nl/user/e07
 
+	#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.2 2002-01-12 08:07:49 -0800 woods Exp $"
+
+	URL	ftp://ftp.weird.com/pub/local/host.tar.gz
+
+Contents:
+
 yymmdd		Description of changes per release
 TODO		Things that still need to be done
 WISHLIST	Wishes expressed by various people
@@ -1206,6 +1212,8 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 # ----------------------------------------------------------------------
 # TODO
 # ----------------------------------------------------------------------
+
+	Don't strip trailing dot from PTR targets that have only one label.
 
 	Enhance reverse mapping.
 		The new BIND 4.9.* gethostbyaddr() can be configured
