@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.6 2003-05-17 00:57:32 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.7 2003-06-04 06:29:25 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)addr.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -50,7 +50,7 @@ check_addr(name)
 	unsigned int matched = 0;
 	char *hname;
 	char hnamebuf[MAXDNAME + 1];
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_GETIPNODEBYNAME)
 	int my_h_errno;
 #endif
 
@@ -145,7 +145,7 @@ check_addr_name(inaddr, name)
 	register unsigned int i;
 	char *iname, inamebuf[MAXDNAME + 1];
 	unsigned int matched = 0;
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_GETIPNODEBYADDR)
 	int my_h_errno;
 #endif
 
