@@ -1,11 +1,10 @@
 	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 991529
 
-	URL	ftp://ftp.nikhef.nl/pub/network/host.tar.Z
-	URL	http://www.nikhef.nl/user/e07
+	#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.3 2003-03-21 01:58:03 -0800 woods Exp $"
 
-	#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.2 2002-01-12 08:07:49 -0800 woods Exp $"
+	URL		ftp://ftp.weird.com/pub/local/host.tar.gz
 
-	URL	ftp://ftp.weird.com/pub/local/host.tar.gz
+	Originally	ftp://ftp.nikhef.nl/pub/network/host.tar.Z
 
 Contents:
 
@@ -1216,19 +1215,20 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 	Don't strip trailing dot from PTR targets that have only one label.
 
 	Enhance reverse mapping.
-		The new BIND 4.9.* gethostbyaddr() can be configured
-		to return host aliases in case multiple PTR records
-		were encountered during the reverse lookup.
-		It is unclear what the official host name should be.
-		Should perhaps abandon the idea of official host name.
-		However, the PTR records are still exempt from the new
-		round-robin scheduling, and are returned in the order
-		in which they are defined in the zone file.
+
+		The new BIND 4.9.* gethostbyaddr() and newer can be
+		configured to return host aliases in case multiple PTR
+		records were encountered during the reverse lookup.  We
+		must abandon the idea of an official host name.  All
+		PTRs must point to valid hostnames, each of which
+		resolve to at least an A record which has an IP address
+		which will resolve to the given PTR.
 
 	Enhance error reporting.
+
 		After a negative return from gethostbyname/gethostbyaddr
 		we want to know whether the answer was authoritative or
-		not. In a few places we are able to find out, but this
+		not.  In a few places we are able to find out, but this
 		is a kludge and needs to be reimplemented.
 
 # ----------------------------------------------------------------------
@@ -1236,9 +1236,11 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 # ----------------------------------------------------------------------
 
 	Skip printing of second SOA in zone listing.
+
 		Asked by Peter Koch <pk@TechFak.Uni-Bielefeld.DE>.
 
 	Check for both A and AAAA records.
+
 		The check for canonical hostnames in NS and MX records
 		should be extended to include also AAAA records.
 		Asked by Matti Aarnio <matti.aarnio@sonera.fi>
@@ -1248,6 +1250,7 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 # ----------------------------------------------------------------------
 
 	Include files and resolver library.
+
 		If you are linking this utility with an explicit resolver
 		library, make sure you will be compiling with the same
 		include files that were used to build the resolver library.
@@ -1257,6 +1260,7 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 		with the 4.8 include files, and vice versa.
 
 	Old resolver libraries.
+
 		The res_mkquery() routine in the SUN-supplied resolver
 		library on SunOS <= 4.1.3 adds the default domain to given
 		single names if REF_DEFNAMES is set. This is not correct and
@@ -1268,6 +1272,7 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 		Problem noted by Peter Koch <pk@TechFak.Uni-Bielefeld.DE>.
 
 	Vendor-specific resolver libraries.
+
 		Some vendors supply resolver libraries with configurable
 		lookup strategies for gethostbyname/gethostbyaddr, e.g. to
 		consult DNS, NIS, /etc/hosts, or other databases, in specific
@@ -1275,6 +1280,7 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 		It is meant to query the DNS and DNS only.
 
 	SUN's resolver library on solaris 2.x
+
 		If you are on solaris 2.x and you don't have a proper BIND
 		resolver library to link with, but have to use the broken
 		default library, you can define NO_YP_LOOKUP in the Makefile
@@ -1282,6 +1288,7 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 		SUN will probably implement BIND 4.9.3 after its release.
 
 	Multiple answers during zone listing.
+
 		During zone transfers BIND 4 encapsulates every resource
 		record in a seperate reply buffer containing a HEADER
 		and an answer section (ancount == 1). The authority and
@@ -1292,6 +1299,7 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 		that (ancount > 1).
 
 	Buffer size restrictions.
+
 		BIND uses internal query/answer buffers of relatively
 		small size, and puts an upper limit on the size of the
 		individual resource record data length. Such restrictions
@@ -1308,6 +1316,7 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 # ----------------------------------------------------------------------
 
 	Port to DEC/Alpha with OSF/1.
+
 		Requested by various people.
 		This requires basically two adaptations:
 		- sizeof(u_long) is 64 bits instead of 32 bits.
@@ -1319,6 +1328,7 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 		and David Cherkus <cherkus@zk3.dec.com>.
 
 	Compatibility with BIND 4.9.
+
 		Don't use the u_long types any more.
 		The 'struct state' is now 'struct __res_state'.
 		New resolver library has various hooks for 'dig'.
@@ -1330,6 +1340,7 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 		BIND 4.9 prints TXT strings within double quotes.
 
 	New features of BIND 4.9.3.
+
 		Don't use sizeof() for u_int, u_short, struct in_addr, and
 		HEADER, but use predefined constants for entities that have
 		a fixed field width.
