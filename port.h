@@ -4,7 +4,7 @@
 **	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.5 2003-03-29 03:13:36 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.6 2003-03-29 19:50:50 -0800 woods Exp $"
 
 #if defined(__SVR4) || defined(__svr4__)
 # define SVR4
@@ -100,6 +100,14 @@ typedef int		bool_t;		/* boolean type */
 #undef FALSE				/* SunOS-5 defines this in <rpc/types.h> */
 #define FALSE		0
 
+#if !defined(HAVE_INET_ATON) && \
+    (((__BIND - 0) > 19950621) || \
+     ((__NAMESER - 0) > 19961001) || \
+     defined(BSD4_3) || \
+     (defined(BSD) && (BSD >= 199103)))
+# define HAVE_INET_ATON
+#endif
+
 #if defined(BIND_4_8) || defined(OLD_RES_STATE)
 typedef struct state		res_state_t;
 #else
@@ -109,20 +117,20 @@ typedef struct __res_state	res_state_t;
 #if defined(BIND_4_8)
 typedef struct rrec	rrec_t;
 #else
-# if ((__BIND - 0) > 19950621)			/* 4.9.3 */
+# if ((__BIND - 0) > 19950621) || ((__NAMESER - 0) > 19961001)
 typedef u_char		rrec_t;
 # else
 typedef char		rrec_t;
 # endif
 #endif
 
-#if ((__BIND - 0) > 19950621)			/* 4.9.3 */
+#if ((__BIND - 0) > 19950621) || ((__NAMESER - 0) > 19961001)
 typedef u_char	qbuf_t;
 #else
 typedef char	qbuf_t;
 #endif
 
-#if ((__BIND - 0) > 19950621)			/* 4.9.3 */
+#if ((__BIND - 0) > 19950621) || ((__NAMESER - 0) > 19961001)
 typedef char	nbuf_t;
 #else
 typedef u_char	nbuf_t;
