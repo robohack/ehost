@@ -1,14 +1,14 @@
-#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 950923
+#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 960417
 
 # ----------------------------------------------------------------------
 # Adapt the installation directories to your local standards.
 # ----------------------------------------------------------------------
 
 # This is where the host executable will go.
-DESTBIN = /local/bin
+DESTBIN = /usr/local/bin
 
 # This is where the host manual page will go.
-DESTMAN = /local/share/man
+DESTMAN = /usr/local/man
 
 BINDIR = $(DESTBIN)
 MANDIR = $(DESTMAN)/man1
@@ -20,6 +20,10 @@ MANDIR = $(DESTMAN)/man1
 
 #if defined(_AIX)
 SYSDEFS = -D_BSD -D_BSD_INCLUDES -U__STR__ -DBIT_ZERO_ON_LEFT
+#endif
+ 
+#if defined(SCO) && You have either OpenDeskTop 3 or OpenServer 5
+SYSDEFS = -DSYSV
 #endif
  
 #if defined(ultrix) && You are using the default ultrix <resolv.h>
@@ -50,13 +54,27 @@ CONFIGDEFS = -DHOST_RES_SEND
 #endif
 
 # This is the default in either case if you compile stand-alone.
-CONFIGDEFS = -DHOST_RES_SEND
+CONFIGDEFS = -DBIND_RES_SEND
+
+# ----------------------------------------------------------------------
+# Include file directories.
+# This program must be compiled with the same include files that
+# were used to build the resolver library you are linking with.
+# ----------------------------------------------------------------------
+
+INCL = ../../include
+INCL = .
+
+COMPINCL = ../../compat/include
+COMPINCL = .
+
+INCLUDES = -I$(INCL) -I$(COMPINCL)
 
 # ----------------------------------------------------------------------
 # Compilation definitions.
 # ----------------------------------------------------------------------
 
-DEFS = $(CONFIGDEFS) $(SYSDEFS)
+DEFS = $(CONFIGDEFS) $(SYSDEFS) $(INCLUDES)
 
 COPTS =
 COPTS = -O
@@ -64,27 +82,31 @@ COPTS = -O
 CFLAGS = $(COPTS) $(DEFS)
 
 # Select your favorite compiler.
-CC = cc
 CC = /usr/ucb/cc			#if defined(solaris) && BSD
 CC = /bin/cc -arch m68k -arch i386	#if defined(next)
 CC = /bin/cc
-CC = /usr/5bin/cc
+CC = cc
 
 # ----------------------------------------------------------------------
 # Linking definitions.
 # libresolv.a should contain the resolver library of BIND 4.8.2 or later.
 # Link it in only if your default library is different.
+# SCO keeps its own default resolver library inside libsocket.a
+#
 # lib44bsd.a contains various utility routines, and comes with BIND 4.9.*
 # You may need it if you link with the 4.9.* resolver library.
+#
 # libnet.a contains the getnet...() getserv...() getproto...() calls.
 # It is safe to leave it out and use your default library.
+# With BIND 4.9.3 the getnet...() calls are in the resolver library.
 # ----------------------------------------------------------------------
 
-RES = ../res/libresolv.a
+RES = -lsocket				#if defined(SCO) && default
+RES =
+RES = ../../res/libresolv.a
 RES = -lresolv
 
-COMPLIB =
-COMPLIB = ../compat/lib/lib44bsd.a
+COMPLIB = ../../compat/lib/lib44bsd.a
 COMPLIB = -lnet
 COMPLIB =
 
@@ -100,13 +122,8 @@ LDFLAGS =
 # ----------------------------------------------------------------------
 
 # redefined by bind
-INCL = .
-COMPINCL = .
-INCS = -I$(INCL) -I$(COMPINCL)
-
-# redefined by bind
 CDEBUG = $(COPTS) $(CONFIGDEFS)
-CDEFS = $(SYSDEFS) $(INCS)
+CDEFS = $(SYSDEFS) $(INCLUDES)
 CFLAGS = $(CDEBUG) $(CDEFS)
 
 # ----------------------------------------------------------------------
@@ -136,11 +153,18 @@ UTILS = nslookup mxlookup
 
 FILES = Makefile $(DOCS) $(HDRS) $(SRCS) $(MANS) $(UTILS)
 
+PACKAGE = host
+TARFILE = $(PACKAGE).tar
+
+CLEANUP = $(PROG) $(OBJS) $(TARFILE) $(TARFILE).Z
+
 # ----------------------------------------------------------------------
 # Rules for installation.
 # ----------------------------------------------------------------------
 
 all: $(PROG)
+
+$(OBJS): $(SRCS) $(HDRS)
 
 $(PROG): $(OBJS)
 	$(CC) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBRARIES)
@@ -152,7 +176,7 @@ man: $(MANS)
 	$(INSTALL) -m 444 host.1 $(MANDIR)
 
 clean:
-	rm -f $(PROG) $(OBJS) *.o a.out core host.tar host.tar.Z
+	rm -f $(CLEANUP) *.o a.out core
 
 # ----------------------------------------------------------------------
 # host may be called with alternative names, querytype names and "zone".
@@ -163,6 +187,7 @@ ABBREVIATIONS = a ns cname soa wks ptr hinfo mx txt	# standard
 ABBREVIATIONS = mb mg mr minfo				# deprecated
 ABBREVIATIONS = md mf null				# obsolete
 ABBREVIATIONS = rp afsdb x25 isdn rt nsap nsap-ptr	# new
+ABBREVIATIONS = sig key px gpos aaaa loc		# very new
 ABBREVIATIONS = uinfo uid gid unspec			# nonstandard
 ABBREVIATIONS = maila mailb any				# filters
 
@@ -184,21 +209,11 @@ llint:
 	lint $(DEFS) $(SRCS) -lresolv
 
 print:
-	lpr -J $(PROG) -p Makefile $(DOCS) $(HDRS) $(SRCS)
+	lpr -J $(PACKAGE) -p Makefile $(DOCS) $(HDRS) $(SRCS)
 
 dist:
-	tar cf host.tar $(FILES)
-	compress host.tar
-
-newversion:
-	cp -p host.c.dist host.c.old
-	cp -p send.c.dist send.c.old
-	cp -p host.c      host.c.dist
-	cp -p send.c      send.c.dist
-	@(echo "enter version" ; read x ; echo $$x >version)
-	touch patch.`cat version`
-	-diff -c host.c.old host.c >>patch.`cat version`
-	-diff -c send.c.old send.c >>patch.`cat version`
+	tar cf $(TARFILE) $(FILES)
+	compress $(TARFILE)
 
 depend:
 	mkdep $(DEFS) $(SRCS)
