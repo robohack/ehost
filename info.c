@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.5 2003-03-28 22:19:58 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.6 2003-03-29 02:51:33 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -827,7 +827,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 
 		n = _getlong(cp);
 		doprintf(("\n\t\t\t%s", dtoa(n)));
-		doprintf(("\t;negative response ttl (%s)", pr_time(n, FALSE)));
+		doprintf(("\t;negative response TTL (%s)", pr_time(n, FALSE)));
 		cp += INT32SZ;
 
 		doprintf(("\n\t\t\t)"));
@@ -1430,13 +1430,14 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 		return (cp);
 
 	/*
-	 * Check for resource records with a zero ttl value. They are not
+	 * Check for resource records with a zero TTL value. They are not
 	 * cached.  This may lead to problems, e.g. when retrieving MX records
 	 * and there exists only a zero-ttl CNAME record pointing to a zero-ttl
-	 * A record.  Certain resource records always have a zero ttl value.
+	 * A record.  Certain resource records always have a zero TTL value,
+	 * e.g. the class-CH "version.bind" record.
 	 */
-	if ((ttl == 0) && (type != T_SIG)) {
-		pr_warning("%s %s record has zero ttl",
+	if ((ttl == 0) && (class == C_IN) && (type != T_SIG)) {
+		pr_warning("%s %s record has zero TTL",
 			   rname, pr_type(type));
 	}
 
@@ -1446,7 +1447,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	 * info.  This is done on a per-zone basis.
 	 */
 	if (listing && !check_ttl(rname, type, class, ttl)) {
-		pr_warning("%s %s records have different ttl within %s from %s",
+		pr_warning("%s %s records have different TTL within %s from %s",
 			   rname, pr_type(type), name, host);
 	}
 
