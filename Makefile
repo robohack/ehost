@@ -1,5 +1,5 @@
 #
-#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.13 2003-05-17 01:04:30 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.14 2003-05-27 19:38:36 -0800 woods Exp $"
 #
 # from:	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 991515
 
@@ -87,7 +87,7 @@ DESTCONF = ${DESTDIR}/${CONFDIR}
 # to avoid this, or enable the HOST_RES_SEND option.
 #
 #if defined(BIND_4_9) || newer && You still want to use the special host res_send()
-CONFIGDEFS = -DHOST_RES_SEND
+#CONFIGDEFS = -DHOST_RES_SEND
 #endif
 
 # ----------------------------------------------------------------------
@@ -199,16 +199,17 @@ CFLAGS = $(COPTS) $(CDEBUG) $(COPTIM) $(GCCWARNFLAGS) $(GCC2WARNFLAGS) $(GCC3WAR
 # This program _must_ be linked with the resolver library associated
 # with the header files you compiled with.
 #
-# GNU LibC has a horrible mis-mash of half-baked header files and
-# mangled resolver subroutines, at least as of 2.3.x.  E.g. there's a
-# __NAMESER define in <netdb.h> indicating it to be BIND-8 compatible,
-# but there's no getipnodebyname() in sight.
+# GNU LibC (i.e. all variants of GNU/Linux) has a horrible mis-mash of
+# half-baked header files and mangled resolver subroutines, at least
+# as of 2.3.x.  E.g. there's a __NAMESER define in <netdb.h>
+# indicating it to be BIND-8 compatible, but there is no implementation
+# of getipnodebyname() in sight.
 # ----------------------------------------------------------------------
 
 #if defined(SCO) && default
 #RES_LIB = -lsocket
 #endif
-#if defined(NEED_LIBRESOLV) || (sunos5.x) || defined(__GLIBC__)
+#if defined(NEED_LIBRESOLV) || (sunos5.x) || defined(__LINUX__) || defined(__GLIBC__)
 #RES_LIB = -lresolv
 #endif
 #if defined(LOCAL_LIBBIND) || (sunos5.x < 5.9)
