@@ -1,6 +1,6 @@
 #	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 991515
 
-#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.8 2002-01-12 08:07:25 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.9 2003-03-21 19:12:04 -0800 woods Exp $"
 
 # ----------------------------------------------------------------------
 # Adapt the installation directories to your local standards.
@@ -8,14 +8,23 @@
 
 PREFIX = /usr/local
 
-# This is where the host executable will go.
-DESTBIN = ${PREFIX}/bin
+# This is where the 'host' executable will be referenced.
+BINDIR = ${PREFIX}/bin
 
-# This is where the host manual page will go.
-DESTMAN = ${PREFIX}/man
+# This is where manual pages will be referenced.
+MANDIR = ${PREFIX}/man/man1
 
-BINDIR = $(DESTBIN)
-MANDIR = $(DESTMAN)/man1
+# This is where the rblookup, etc. config file(s) will be referenced.
+CONFDIR= ${PREFIX}/etc
+
+# This is where the 'host' executable will be installed.
+DESTBIN = ${DESTDIR}/${BINDIR}
+
+# This is where the 'host' manual page will be installed.
+DESTMAN = ${DESTDIR}/${MANDIR}
+
+# This is where the config files will be installed.
+DESTCONF = ${DESTDIR}/${CONFDIR}
 
 # ----------------------------------------------------------------------
 # Special compilation options may be needed only on a few platforms.
@@ -25,28 +34,28 @@ MANDIR = $(DESTMAN)/man1
 #if defined(_AIX)
 SYSDEFS = -D_BSD -D_BSD_INCLUDES -U__STR__ -DBIT_ZERO_ON_LEFT -DHAVE_INET_ATON
 #endif
- 
+
 #if defined(SCO) && You have either OpenDeskTop 3 or OpenServer 5
 SYSDEFS = -DSYSV
 #endif
- 
+
 #if defined(ultrix) && You are using the default ultrix <resolv.h>
 SYSDEFS = -DULTRIX_RESOLV
 #endif
- 
+
 #if defined(solaris) && You do not want to use BSD compatibility mode
 SYSDEFS = -DSYSV -DHAVE_INET_ATON
 #endif
- 
+
 #if defined(solaris) && You are using its default broken resolver library
 SYSDEFS = -DNO_YP_LOOKUP
 #endif
 
-#if you have a sane, modern, system
-SYSDEFS = -DHAVE_INET_ATON
-
 #if defined(NetBSD) && you have not removed support for $HOSTALIASES
 SYSDEFS = ${ALLOW_HOSTALIASES}
+
+#if you have a sane, modern, system
+SYSDEFS = -DHAVE_INET_ATON
 
 # ----------------------------------------------------------------------
 # Configuration definitions.
@@ -89,13 +98,20 @@ INCLUDES = -I$(INCL) -I$(COMPINCL)
 # Compilation definitions.
 # ----------------------------------------------------------------------
 
-DEFS = $(CONFIGDEFS) $(SYSDEFS) $(INCLUDES)
+DEBUGDEFS= -DDEBUG
 
-COPTS =
-COPTS = -O -DDEBUG
-COPTS = -O
+DEFS = $(CONFIGDEFS) $(DEBUGDEFS) $(SYSDEFS) $(INCLUDES)
 
-CFLAGS = $(COPTS) $(DEFS)
+COPTS = -pipe
+
+COPTIM= -O2
+COPTIM= -O
+
+CDEBUG= -g
+
+CWARN= -Wall -Wshadow -Wswitch -Wreturn-type -Wpointer-arith -Wconversion -Wimplicit -Wmissing-declarations -Wmissing-prototypes -Wstrict-prototypes
+
+CFLAGS = $(COPTS) $(CDEBUG) $(COPTIM) $(CWARN) $(DEFS)
 
 # Select your favorite compiler.
 CC = /usr/ucb/cc			#if defined(solaris) && BSD
@@ -133,16 +149,7 @@ LIBS =
 
 LIBRARIES = $(RES) $(COMPLIB) $(LIBS)
 
-LDFLAGS =
-
-# ----------------------------------------------------------------------
-# Compatibility for compilation via the BIND master Makefile.
-# ----------------------------------------------------------------------
-
-# redefined by bind
-CDEBUG = $(COPTS) $(CONFIGDEFS)
-CDEFS = $(SYSDEFS) $(INCLUDES)
-CFLAGS = $(CDEBUG) $(CDEFS)
+LDFLAGS = -static
 
 # ----------------------------------------------------------------------
 # Miscellaneous definitions.
@@ -202,13 +209,13 @@ $(PROG): $(OBJS)
 	$(CC) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBRARIES)
 
 install: $(PROG)
-	$(INSTALL) -m $(BINMODE) -o $(BINOWN) -g $(BINGRP) $(STRIPFLAG) $(PROG) $(BINDIR)
+	$(INSTALL) -m $(BINMODE) -o $(BINOWN) -g $(BINGRP) $(STRIPFLAG) $(PROG) $(DESTBIN)
 
 install-utils: $(UTIL_PROGS)
-	$(INSTALL) -m $(BINMODE) -o $(BINOWN) -g $(BINGRP) $(UTIL_PROGS) $(BINDIR)
+	$(INSTALL) -m $(BINMODE) -o $(BINOWN) -g $(BINGRP) $(UTIL_PROGS) $(DESTBIN)
 
 install-man: $(MANS)
-	$(INSTALL) -m 444 host.1 $(MANDIR)
+	$(INSTALL) -m 444 host.1 $(DESTMAN)
 
 clean:
 	rm -f $(CLEANUP) *.o a.out core
@@ -220,7 +227,7 @@ clobber: clean
 
 .sh:
 	@rm -f $@
-	sed 's,@DESTBIN@,$(DESTBIN),g' < $@.sh > $@
+	sed -e 's,@BINDIR@,$(BINDIR),g' -e 's,@CONFDIR@,$(CONFDIR),g' < $@.sh > $@
 	chmod +x $@
 
 # ----------------------------------------------------------------------
@@ -241,7 +248,7 @@ ABBREVIATIONS = mx ns soa zone
 
 links:
 	for i in $(ABBREVIATIONS) ; do \
-		(cd $(BINDIR) ; ln -s $(PROG) $$i) ; \
+		(cd $(DESTBIN) ; ln -s $(PROG) $$i) ; \
 	done
 
 # ----------------------------------------------------------------------
