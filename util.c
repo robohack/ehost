@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.13 2003-04-05 03:30:35 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.14 2003-04-06 03:20:17 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -804,7 +804,7 @@ print_answer(answerbuf, answerlen, type)
 		  (type != T_NS && ancount == 0) ||
 		  (type == T_NS && (nscount == 0 && ancount == 0)));
 
-	printf("%s", verbose ? "" : dbprefix);
+	printf("%s", verbose ? "" : debug_prefix);
 
 	printf("Query for %s records %s", pr_type(type), failed ? "failed" : "done");
 
@@ -973,6 +973,39 @@ sys_error(fmt, va_alist)
 	(void) fputs("\n", stderr);
 
 	return;
+}
+
+/*
+** ERRMSG -- Issue error message to error output
+** ---------------------------------------------
+**
+**	Returns:
+**		None.
+**
+**	Side effects:
+**		Increments the global error count.
+*/
+
+/*VARARGS1*/
+#ifdef __STDC__
+void
+errmsg(const char *fmt, ...)
+#else
+void
+errmsg(fmt, va_alist)
+	input const char *fmt;		/* format of message */
+	va_dcl				/* arguments for printf */
+#endif
+{
+	va_list ap;
+
+	VA_START(ap, fmt);
+	(void) vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	(void) fprintf(stderr, "\n");
+
+	/* flag an error */
+	errorcount++;
 }
 
 /*
