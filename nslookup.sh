@@ -1,4 +1,4 @@
-#! /bin/sh -
+#! /bin/sh
 #
 #	@(#)nslookup            e07@nikhef.nl (Eric Wassenaar) 940919
 #
@@ -6,23 +6,13 @@
 # Version:	19-SEP-1994
 # Revision:
 #
-#ident "@(#)host:$Name:  $:$Id: nslookup.sh,v 1.1 2002-01-11 22:28:47 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: nslookup.sh,v 1.2 2003-06-04 06:30:36 -0800 woods Exp $"
 #
 # This utility emulates nslookup as a wrapper to host.
 # It performs most, but not all, functions.
 
 exec=echo
 exec=
-
-# ----------------------------------------------------------------------
-# Setup environment.
-# ----------------------------------------------------------------------
-
-# This is where the ``host'' executable lives.
-#
-BINDIR=@DESTBIN@
-
-PATH=${BINDIR}:/bin:/usr/bin:/usr/ucb ; export PATH
 
 cmd=`basename $0`
 

@@ -1,4 +1,4 @@
-#!/bin/sh -
+#! /bin/sh
 #
 #	@(#)mxlookup            e07@nikhef.nl (Eric Wassenaar) 950108
 #
@@ -6,7 +6,7 @@
 # Version:	09-OCT-1994
 # Revision:	08-JAN-1995, Make sure servers come from NS records
 #
-#ident "@(#)host:$Name:  $:$Id: mxlookup.sh,v 1.1 2002-01-11 22:28:47 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: mxlookup.sh,v 1.2 2003-06-04 06:30:27 -0800 woods Exp $"
 #
 # This utility looks up the MX and A records for a given domain name
 # at each of the authoritative servers for the zone it belongs to.
@@ -20,19 +20,6 @@
 # at each of the servers. The -v option shows the SOA record and the
 # NS records of the zone to which the given domain name belongs.
 # The -r option disables nameserver recursion at the contacted servers.
-
-exec=echo
-exec=
-
-# ----------------------------------------------------------------------
-# Setup environment.
-# ----------------------------------------------------------------------
-
-# This is where the ``host'' executable lives.
-# 
-BINDIR=@DESTBIN@
-
-PATH=${BINDIR}:/bin:/usr/bin ; export PATH
 
 # ----------------------------------------------------------------------
 # Internal vriables.
@@ -58,6 +45,7 @@ EX_UNAVAILABLE=69
 type=""
 recurse=
 verbose=
+exec=
 
 skip=
 for i

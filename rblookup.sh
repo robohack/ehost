@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.5 2003-05-21 21:35:58 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.6 2003-06-04 06:30:47 -0800 woods Exp $"
 #
 # rblookup - Lookup a dotted quad IP address, or hostname in one of many
 #		Reverse/Realtime DNS-based Lists
@@ -57,12 +57,7 @@
 # Setup environment.
 # ----------------------------------------------------------------------
 
-# This is where the ``host'' executable lives.
-#
-BINDIR=@BINDIR@
 CONFDIR=@CONFIDR@
-
-PATH=${BINDIR}:/bin:/usr/bin ; export PATH
 
 # ----------------------------------------------------------------------
 # Internal vriables.
