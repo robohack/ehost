@@ -1,7 +1,7 @@
 /*
 ** Declaration of functions.
 **
-**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 971107
+**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 980903
 */
 
 /*
@@ -12,6 +12,7 @@
 
 int main		PROTO((int, char **));
 void set_defaults	PROTO((char *, int, char **));
+int getval		PROTO((char *, char *, int, int));
 int process_argv	PROTO((int, char **));
 int process_file	PROTO((FILE *));
 int process_name	PROTO((char *));

@@ -1,7 +1,7 @@
 .\"
-.\"	@(#)host.1              e07@nikhef.nl (Eric Wassenaar) 980531
+.\"	@(#)host.1              e07@nikhef.nl (Eric Wassenaar) 980903
 .\"
-.TH host 1 "980531"
+.TH host 1 "980903"
 .SH NAME
 host \- query nameserver about domain names and zones
 .SH SYNOPSIS 
@@ -209,7 +209,7 @@ If the \fB\-A\fP flag is specified along with any zone listing option,
 a reverse lookup of the address in each encountered A record is performed,
 and it is checked whether it is registered and maps back to the name of
 the A record.
-.SS "SPECIAL OPTIONS"
+.SS "LISTING OPTIONS"
 The following options apply only to the special zone listing modes.
 .TP 4
 .BI \-L " level"
@@ -373,6 +373,19 @@ nameserver address tried.
 .TP
 .B \-V
 prints just the version number of the \fBhost\fP program, and exits.
+.SS "SPECIAL OPTIONS"
+The following options are used only in special circumstances.
+.TP 4
+\fB\-j\fP \fIminport\fP \fB\-J\fP \fImaxport\fP
+Define a range of explicit port numbers to be assigned to the source
+IP address of the client socket for sending the nameserver queries and
+receiving the replies. Normally the kernel chooses a random free port
+number. This may be an inappropriate number if you are behind a firewall
+that filters random port numbers on incoming traffic.
+.br
+If only one of \fB\-j\fP or \fB\-J\fP is given, a single explicit port
+number is defined. This is ok for UDP queries, but may not be sufficient
+for TCP queries.
 .SS "DEFAULT OPTIONS"
 Default options and parameters can be preset in an environment
 variable \fBHOST_DEFAULTS\fP using the same syntax as on the command

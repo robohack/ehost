@@ -18,12 +18,15 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 971108";
+static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 980903";
 #endif
 
 #include "host.h"
 
 char *dbprefix = DBPREFIX;	/* prefix for debug messages to stdout */
+
+int minport = 0;		/* first source port in explicit range */
+int maxport = 0;		/* last  source port in explicit range */
 
 static int timeout;		/* connection read timeout */
 
@@ -459,6 +462,16 @@ wait:
 **	Returns:
 **		socket descriptor if successfully obtained.
 **		-1 in case of failure.
+**
+**	In special circumstances it may be necessary to assign
+**	an explicit port number to the client communication socket,
+**	e.g. when we are behind a packet filtering firewall that
+**	only allows incoming traffic with port numbers in a certain
+**	specific range.
+**
+**	In the case of a stream (tcp) socket, we could have set
+**	the SO_REUSEADDR socket option, but this has side-effects.
+**	Therefore a single explicit tcp port cannot be used.
 */
 
 int
@@ -467,6 +480,8 @@ input int family;
 input int type;
 input int protocol;
 {
+	struct sockaddr_in sin;
+	register int port;
 	int sock;
 
 	/* try to obtain the desired socket */
@@ -474,7 +489,40 @@ input int protocol;
 	if (sock < 0)
 		return(-1);
 
-	/* all done */
+	/* set an explicit source port if so requested */
+	for (port = minport; port > 0 && port <= maxport; port++)
+	{
+		/* setup source address */
+		bzero((char *)&sin, sizeof(sin));
+
+		sin.sin_family = family;
+		sin.sin_addr.s_addr = INADDR_ANY;
+		sin.sin_port = htons((u_short)port);
+
+		if (bind(sock, (struct sockaddr *)&sin, sizeof(sin)) < 0)
+		{
+			int save_errno = errno;
+			if (errno == EADDRINUSE)
+			{
+				/* save_errno = EAGAIN; */
+				if (port < maxport)
+					continue;
+			}
+
+			/* no free port numbers available */
+			(void) close(sock);
+			seterrno(save_errno);
+			return(-1);
+		}
+
+		if (bitset(RES_DEBUG, _res.options))
+			printf("%susing source port %d\n", dbprefix, port);
+
+		/* socket with well-defined source port */
+		return(sock);
+	}
+
+	/* socket with random source port */
 	return(sock);
 }
 

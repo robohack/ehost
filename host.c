@@ -36,7 +36,7 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)host.c	e07@nikhef.nl (Eric Wassenaar) 980531";
+static char Version[] = "@(#)host.c	e07@nikhef.nl (Eric Wassenaar) 980903";
 #endif
 
 #include "host.h"
@@ -240,15 +240,21 @@ static char Version[] = "@(#)host.c	e07@nikhef.nl (Eric Wassenaar) 980531";
  * -u		use virtual circuit instead of datagram for queries
  * -w		wait until nameserver becomes available
  *
+ * Special options.
+ * ---------------
+ *
+ * -j minport	first source address port in explicit range
+ * -J maxport	last  source address port in explicit range
+ *
  * Undocumented options. (Experimental, subject to change)
  * --------------------
  *
- * -g length	only select names that are at least this long
  * -B		enforce full BIND behavior during DNSRCH
+ * -g length	only select names that are at least this long
  * -M		special mode to list mailable delegated zones of zone
  * -W		special mode to list wildcard records in a zone
- * -z		special mode to list delegated zones in a zone
  * -Y		dump data of resource record after regular printout
+ * -z		special mode to list delegated zones in a zone
  */
 
 static char Usage[] =
@@ -261,11 +267,15 @@ Addrcheck:  host [-v] [options] -A host\n\
 Listing options: [-L level] [-S] [-A] [-p] [-P prefserver] [-N skipzone]\n\
 Common options:  [-d] [-f|-F filename] [-I chars] [-i|-n] [-q] [-T] [-Z]\n\
 Other options:   [-c class] [-e] [-m] [-o] [-r] [-R] [-s secs] [-u] [-w]\n\
+Special options: [-j minport] [-J maxport]\n\
 Extended usage:  [-x [name ...]] [-X server [name ...]]\
 ";
 
 extern char *dbprefix;		/* prefix for debug messages (send.c) */
 extern char *version;		/* program version number (vers.c) */
+
+extern int minport;		/* first source port in range (send.c) */
+extern int maxport;		/* last  source port in range (send.c) */
 
 char **optargv = NULL;		/* argument list including default options */
 int optargc = 0;		/* number of arguments in new argument list */
@@ -449,13 +459,25 @@ input char *argv[];
 			break;
 
 		    case 's' :
-			if (argv[2] == NULL || argv[2][0] == '-')
-				fatal("Missing timeout value");
 			new_res.retry = DEF_RETRIES;
-			new_res.retrans = atoi(argv[2]);
-			if (new_res.retrans <= 0)
-				fatal("Invalid timeout value %s", argv[2]);
+			new_res.retrans = getval(argv[2], "timeout value", 1, 0);
 			argv++; argc--;
+			break;
+
+		    case 'j':
+			minport = getval(argv[2], "first port number",
+				1, (maxport > 0) ? maxport : MAXINT16);
+			if (maxport == 0)
+				maxport = minport;
+			argc--, argv++;
+			break;
+
+		    case 'J':
+			maxport = getval(argv[2], "last port number",
+				(minport > 0) ? minport : 1, MAXINT16);
+			if (minport == 0)
+				minport = maxport;
+			argc--, argv++;
 			break;
 
 		    case 'r' :
@@ -570,11 +592,7 @@ input char *argv[];
 			break;
 
 		    case 'L' :
-			if (argv[2] == NULL || argv[2][0] == '-')
-				fatal("Missing recursion level");
-			recursive = atoi(argv[2]);
-			if (recursive <= 0)
-				fatal("Invalid recursion level %s", argv[2]);
+			recursive = getval(argv[2], "recursion level", 1, 0);
 			argv++; argc--;
 			/*FALLTHROUGH*/
 
@@ -653,11 +671,7 @@ input char *argv[];
 			break;
 #ifdef justfun
 		    case 'g' :
-			if (argv[2] == NULL || argv[2][0] == '-')
-				fatal("Missing minimum length");
-			namelen = atoi(argv[2]);
-			if (namelen <= 0)
-				fatal("Invalid minimum length %s", argv[2]);
+			namelen = getval(argv[2], "minimum length", 1, MAXDNAME);
 			argv++; argc--;
 			break;
 #endif
@@ -806,6 +820,41 @@ input char *argv[];			/* original command line arguments */
 
 	/* and terminate */
 	optargv[optargc] = NULL;
+}
+
+/*
+** GETVAL -- Decode parameter value and perform range check
+** --------------------------------------------------------
+**
+**	Returns:
+**		Parameter value if successfully decoded.
+**		Aborts in case of syntax or range errors.
+*/
+
+int
+getval(optstring, optname, minvalue, maxvalue)
+input char *optstring;			/* parameter from command line */
+input char *optname;			/* descriptive name of option */
+input int minvalue;			/* minimum value for option */
+input int maxvalue;			/* maximum value for option */
+{
+	register int optvalue;
+
+	if (optstring == NULL || optstring[0] == '-')
+		fatal("Missing %s", optname);
+
+	optvalue = atoi(optstring);
+
+	if (optvalue == 0 && optstring[0] != '0')
+		fatal("Invalid %s %s", optname, optstring);
+
+	if (optvalue < minvalue)
+		fatal("Minimum %s %s", optname, dtoa(minvalue));
+
+	if (maxvalue > 0 && optvalue > maxvalue)
+		fatal("Maximum %s %s", optname, dtoa(maxvalue));
+
+	return(optvalue);
 }
 
 /*
