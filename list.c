@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.14 2003-04-03 23:21:29 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.15 2003-04-04 03:59:48 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1508,6 +1508,9 @@ get_zone(name, inaddr, host)
 	 * When loading the zone from the local cache, the cache file must exist.
 	 */
 	if (loading) {
+		/*
+		 * open the cache file for reading....
+		 */
 		if (cache_open(name, FALSE) < 0) {
 			seth_errno(NO_RREC);
 			return (FALSE);
@@ -1515,15 +1518,6 @@ get_zone(name, inaddr, host)
 
 		if (verbose)
 			printf("Loading zone from cache for %s ...\n", name);
-
-		len = cache_getfilesize();
-		if (!(answer = malloc(len))) {
-			sys_error("unable to allocate %s byte buffer to hold zone for %s from cache",
-				 dtoa(len), name);
-			seth_errno(TRY_AGAIN);
-			return (FALSE);
-		}
-		n = cache_read(answer, (size_t) len);
 	} else {
 		/*
 		 * Construct query, and connect to the given server.
