@@ -17,6 +17,8 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.2 2002-01-11 22:35:11 -0800 woods Exp $"
+
 #ifndef lint
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
 #endif
@@ -85,6 +87,7 @@ input bool qualified;			/* assume fully qualified if set */
 		if (*cp == '.')
 			dot++;
 
+#ifdef ALLOW_HOSTALIASES
 /*
  * Check for aliases of single name.
  * Note that the alias is supposed to be fully qualified.
@@ -97,6 +100,7 @@ input bool qualified;			/* assume fully qualified if set */
 		result = get_domaininfo(cp, (char *)NULL);
 		return(result);
 	}
+#endif
 
 /*
  * Trailing dot means absolute (fully qualified) address.
@@ -298,6 +302,7 @@ input int class;			/* specific resource record class */
 	querybuf query;
 	HEADER *bp;
 	int ancount;
+	int nscount;
 	register int n;
 
 /*
@@ -343,12 +348,13 @@ input int class;			/* specific resource record class */
  * Analyze the status of the answer from the nameserver.
  */
 	if ((verbose > print_level) || debug)
-		print_answer(answerbuf, n);
+		print_answer(answerbuf, n, type);
 
 	bp = (HEADER *)answerbuf;
 	ancount = ntohs((u_short)bp->ancount);
+	nscount = ntohs((u_short)bp->nscount);
 
-	if (bp->rcode != NOERROR || ancount == 0)
+	if (bp->rcode != NOERROR || (type != T_NS && ancount == 0) || (type == T_NS && (nscount == 0 && ancount == 0)))
 	{
 		switch (bp->rcode)
 		{
@@ -490,12 +496,13 @@ input bool regular;			/* set if this is a regular lookup */
  * The nameserver and additional info section are normally not processed.
  * Both sections shouldn't exist in zone transfers.
  */
-	if (!verbose || exclusive)
+	if (type != T_NS && (!verbose || exclusive))
 		return(TRUE);
 
 	if (nscount)
 	{
-		printf("Authority information:\n");
+		if (type != T_NS)
+			printf("Authority information:\n");
 
 		while (nscount > 0 && cp < eom)
 		{
@@ -515,6 +522,9 @@ input bool regular;			/* set if this is a regular lookup */
 			return(FALSE);
 		}
 	}
+
+	if (!verbose || exclusive)
+		return(TRUE);
 
 	if (arcount)
 	{
@@ -832,27 +842,27 @@ input bool regular;			/* set if this is a regular lookup */
 
 		n = _getlong(cp);
 		doprintf(("\n\t\t\t%s", utoa(n)))
-		doprintf(("\t;serial (version)"))
+		doprintf(("\t;serial number (version)"))
 		cp += INT32SZ;
 
 		n = _getlong(cp);
 		doprintf(("\n\t\t\t%s", dtoa(n)))
-		doprintf(("\t;refresh period (%s)", pr_time(n, FALSE)))
+		doprintf(("\t;slave refresh period (%s)", pr_time(n, FALSE)))
 		cp += INT32SZ;
 
 		n = _getlong(cp);
 		doprintf(("\n\t\t\t%s", dtoa(n)))
-		doprintf(("\t;retry interval (%s)", pr_time(n, FALSE)))
+		doprintf(("\t;slave retry interval (%s)", pr_time(n, FALSE)))
 		cp += INT32SZ;
 
 		n = _getlong(cp);
 		doprintf(("\n\t\t\t%s", dtoa(n)))
-		doprintf(("\t;expire time (%s)", pr_time(n, FALSE)))
+		doprintf(("\t;slave expire time (%s)", pr_time(n, FALSE)))
 		cp += INT32SZ;
 
 		n = _getlong(cp);
 		doprintf(("\n\t\t\t%s", dtoa(n)))
-		doprintf(("\t;default ttl (%s)", pr_time(n, FALSE)))
+		doprintf(("\t;negative response ttl (%s)", pr_time(n, FALSE)))
 		cp += INT32SZ;
 
 		doprintf(("\n\t\t\t)"))
