@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.9 2003-03-31 21:12:17 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.10 2003-03-31 21:56:46 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -134,7 +134,7 @@ char *pr_date		__P((int));
 char *pr_time		__P((int, bool_t));
 char *pr_spherical	__P((int, char *, char *));
 char *pr_vertical	__P((int, char *, char *));
-char *pr_precision	__P((int));
+char *pr_precision	__P((unsigned int));
 int convtime		__P((char *, int));
 
 	/* test.c */
@@ -148,6 +148,7 @@ int cache_open		__P((char *, bool_t));
 int cache_close		__P((bool_t));
 int cache_write		__P((char *, size_t));
 int cache_read		__P((char *, size_t));
+off_t cache_getfilesize	__P((void));
 void cache_perror	__P((char *, char *));
 
 	/* send.c */
