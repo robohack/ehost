@@ -1,8 +1,12 @@
 /*
 ** Various portability definitions.
 **
-**	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 970908
+**	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 971112
 */
+
+#if defined(__SVR4) || defined(__svr4__)
+#define SVR4
+#endif
 
 #if defined(SYSV) || defined(SVR4)
 #define SYSV_MALLOC
@@ -62,7 +66,9 @@
 #define	INADDRSZ	4	/* for sizeof(struct inaddr) != 4 */
 #endif
 
+#ifndef	IPNGSIZE
 #define	IPNGSIZE	16	/* 128 bit ip v6 address size */
+#endif
 
 /*
 ** The following should depend on existing definitions.
@@ -72,10 +78,10 @@ typedef int	bool;		/* boolean type */
 #define TRUE	1
 #define FALSE	0
 
-#if defined(BIND_49)
-typedef struct __res_state	res_state_t;
-#else
+#if defined(BIND_48) || defined(OLD_RES_STATE)
 typedef struct state		res_state_t;
+#else
+typedef struct __res_state	res_state_t;
 #endif
 
 #if defined(BIND_48)
@@ -155,6 +161,12 @@ typedef int	free_t;
 #define gethostbyaddr	(struct hostent *)res_gethostbyaddr
 #endif
 
+#if defined(SVR4)
+#define jmp_buf		sigjmp_buf
+#define setjmp(e)	sigsetjmp(e,1)
+#define longjmp(e,n)	siglongjmp(e,n)
+#endif
+
 /*
 ** Very specific definitions for certain platforms.
 */
@@ -205,6 +217,8 @@ typedef int	free_t;
 #if defined(WINNT)
 #undef  EINTR
 #define EINTR		WSAEINTR
+#undef  EWOULDBLOCK
+#define EWOULDBLOCK	WSAEWOULDBLOCK
 #undef  ETIMEDOUT
 #define ETIMEDOUT	WSAETIMEDOUT
 #undef  ECONNRESET

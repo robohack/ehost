@@ -18,7 +18,7 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 970908";
+static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 971108";
 #endif
 
 #include "host.h"
@@ -276,7 +276,7 @@ input int anslen;			/* maximum size of answer buffer */
 /*
  * Setup a virtual circuit connection.
  */
-	srvsock = socket(AF_INET, SOCK_STREAM, 0);
+	srvsock = _res_socket(AF_INET, SOCK_STREAM, 0);
 	if (srvsock < 0)
 	{
 		_res_perror(addr, host, "socket");
@@ -374,7 +374,7 @@ input int anslen;			/* maximum size of answer buffer */
 /*
  * Setup a connected (if possible) datagram socket.
  */
-	srvsock = socket(AF_INET, SOCK_DGRAM, 0);
+	srvsock = _res_socket(AF_INET, SOCK_DGRAM, 0);
 	if (srvsock < 0)
 	{
 		_res_perror(addr, host, "socket");
@@ -453,6 +453,76 @@ wait:
 #endif /*HOST_RES_SEND*/
 
 /*
+** _RES_SOCKET -- Obtain a socket and set additional parameters
+** ------------------------------------------------------------
+**
+**	Returns:
+**		socket descriptor if successfully obtained.
+**		-1 in case of failure.
+*/
+
+int
+_res_socket(family, type, protocol)
+input int family;
+input int type;
+input int protocol;
+{
+	int sock;
+
+	/* try to obtain the desired socket */
+	sock = socket(family, type, protocol);
+	if (sock < 0)
+		return(-1);
+
+	/* all done */
+	return(sock);
+}
+
+/*
+** _RES_BLOCKING -- Use blocking or non-blocking socket I/O
+** --------------------------------------------------------
+**
+**	Returns:
+**		0 if new mode was successfully set.
+**		-1 in case of failure.
+**	
+**	Under obscure circumstances when reading input from the socket,
+**	select() may indicate that data is available, whereas in practice
+**	there isn't any, and the subsequent recvfrom() will hang forever.
+**	This condition can be detected by reading in non-blocking mode,
+**	and restarting the select() if appropriate.
+*/
+
+int
+_res_blocking(sock, blocking)
+input int sock;
+input bool blocking;			/* indicate blocking or not */
+{
+	int flags;
+	register int n;
+
+#if !defined(WINNT)
+
+	/* fetch current settings */
+	n = fcntl(sock, F_GETFL, 0);
+	flags = (n == -1) ? 0 : n;
+
+	/* update settings appropriately */
+	flags = blocking ? (flags & ~O_NDELAY) : (flags | O_NDELAY);
+	n = fcntl(sock, F_SETFL, flags);
+
+#else /*WINNT*/
+
+	/* just set the desired mode */
+	flags = blocking ? 0 : 1;
+	n = ioctlsocket(sock, FIONBIO, (u_long *)&flags);
+
+#endif /*WINNT*/
+
+	return(n);
+}
+
+/*
 ** _RES_CONNECT -- Connect to a stream (virtual circuit) socket
 ** ------------------------------------------------------------
 **
@@ -474,7 +544,6 @@ int sig;
 	longjmp(timer_buf, 1);
 	/*NOTREACHED*/
 }
-
 
 int
 _res_connect(sock, addr, addrlen)
@@ -546,6 +615,11 @@ input int bufsize;			/* length of query buffer */
 		_res_perror(addr, host, "write query");
 		return(-1);
 	}
+
+/*
+ * Use non-blocking I/O to read the answer.
+ */
+	(void) _res_blocking(sock, FALSE);
 
 	return(bufsize);
 }
@@ -709,20 +783,20 @@ rewait:
 
 	/* wait for the arrival of data, or timeout */
 	n = select(FD_SETSIZE, &fds, (fd_set *)NULL, (fd_set *)NULL, &wait);
+	if (n < 0 && errno == EINTR)
+		goto rewait;
+	if (n == 0)
+		seterrno(ETIMEDOUT);
 	if (n <= 0)
-	{
-		if (n < 0 && errno == EINTR)
-			goto rewait;
-		if (n == 0)
-			seterrno(ETIMEDOUT);
 		return(-1);
-	}
 reread:
 	/* fake an error if nothing was actually read */
 	fromlen = sizeof(from);
 	n = recvfrom(sock, buffer, buflen, 0, from_sa, &fromlen);
 	if (n < 0 && errno == EINTR)
 		goto reread;
+	if (n < 0 && errno == EWOULDBLOCK)
+		goto rewait;
 	if (n == 0)
 		seterrno(ECONNRESET);
 	return(n);
@@ -737,6 +811,7 @@ reread:
  *
  * This version uses an alarm() instead of select(). This introduces
  * additional system call overhead.
+ * Note that we cannot use non-blocking I/O in this mode.
  */
 
 #ifdef BROKEN_SELECT

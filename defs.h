@@ -1,7 +1,7 @@
 /*
 ** Declaration of functions.
 **
-**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 970908
+**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 971107
 */
 
 /*
@@ -32,6 +32,7 @@ int get_info		PROTO((querybuf *, char *, int, int));
 bool print_info		PROTO((querybuf *, int, char *, int, int, bool));
 void print_data		PROTO((char *, ...));
 u_char *print_rrec	PROTO((char *, int, int, u_char *, u_char *, u_char *, bool));
+void dump_rrec		PROTO((u_char *, int, char *));
 u_char *skip_qrec	PROTO((char *, int, int, u_char *, u_char *, u_char *));
 bool get_recursive	PROTO((char **));
 
@@ -134,6 +135,8 @@ static bool check_from	PROTO((void));
 static int send_stream	PROTO((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
 static int send_dgram	PROTO((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
 #endif /*HOST_RES_SEND*/
+int _res_socket		PROTO((int, int, int));
+int _res_blocking	PROTO((int, bool));
 static sigtype_t timer	PROTO((int));
 int _res_connect	PROTO((int, struct sockaddr_in *, int));
 int _res_write		PROTO((int, struct sockaddr_in *, char *, char *, int));

@@ -1,4 +1,4 @@
-	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 970908
+	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 980531
 
 	URL	ftp://ftp.nikhef.nl/pub/network/host.tar.Z
 
@@ -11,6 +11,82 @@ MISC		Miscellaneous reminders
 # ----------------------------------------------------------------------
 # Description of changes per release
 # ----------------------------------------------------------------------
+
+980531
+	New resource records and query types.
+		Define T_CERT resource record type, but no support yet.
+
+980108
+	Add more statistics in recursive mode.
+		Classify zones depending on their number of hosts.
+		Distinguish empty, small, medium, large, and huge zones.
+		Results are printed with the final overall statistics.
+
+980105
+	Print extra information on negative answers.
+		If a query fails but a valid answer buffer was obtained,
+		the authority section may contain extra information,
+		e.g. an SOA record for the appropriate zone.
+		This information is now printed, albeit only in verbose
+		mode.
+	Miscellaneous changes.
+		Change the text of the verbose announcement message of
+		the authority section.
+
+971216
+	New resource records and query types.
+		Add support for T_KX resource records (RFC 2230).
+		Should not test the RHS name for a canonical name. The
+		RHS name must have an A record, but may also be a CNAME.
+	Miscellaneous enhancements.
+		Optionally dump the data portion of the resource record
+		in hex and ascii, after the regular printout. This is
+		done via the undocumented new -Y command line option.
+	Minor portability changes.
+		Identify SVR4 platforms depending on cpp symbols,
+		which are different for various compilers.
+	Include another simple utility script.
+		These scripts are just examples of wrappers to host.
+		rblookup -- search the Realtime Blackhole List (MAPS).
+
+971108
+	Use non-blocking mode for socket I/O.
+		When reading socket input, select() may indicate data
+		available, whereas the subsequent recvfrom() doesn't
+		pickup any and hangs forever. When using non-blocking
+		reads, this can be detected, and select() is restarted.
+		Currently it is implemented only for stream (TCP) I/O.
+		The problem has been observed only on the solaris 2.*
+		platform so far, and has been reported by (who else)
+		Peter Koch <pk@TechFak.Uni-Bielefeld.DE>
+	Minor portability changes.
+		Move <netdb.h> to a more appropriate place to avoid
+		BSD mode compile errors on the solaris 2.5 platform.
+
+971031
+	Extend tests for valid domain names.
+		Signal an invalid domain name in case it consists of
+		a dotted quad IP address where it shouldn't, such as
+		in the RHS of NS and MX records.
+
+971007
+	Reconsider heuristic to determine BIND release.
+		Some vendors still ship new BIND 4.9 releases that have
+		the old struct ``state'' instead of ``__res_state''.
+		This is now controlled via Makefile CONFIGDEFS.
+	There are no functional changes in this release.
+
+971003
+	Additional SOA sanity checks.
+		Report bizarre expire values, similar to BIND 8.
+	Additional ttl checking.
+		Report resource records with zero ttl values.
+	Miscellaneous enhancements.
+		Dump unrecognized and unimplemented resource records
+		in hex and ascii. The official format is unclear.
+	Backward compatibility fix.
+		Some vendors still ship old BIND 4.9 releases that have
+		the old struct ``state'' instead of ``__res_state''.
 
 970908
 	Windows-NT portability fixes.
