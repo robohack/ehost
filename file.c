@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: file.c,v 1.10 2003-04-03 23:20:39 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: file.c,v 1.11 2003-04-04 04:01:20 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)file.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -314,24 +314,22 @@ cache_write(buf, bufsize)
 
 int
 cache_read(buf, bufsize)
-	output char *buf;			/* location of buffer to store answer */
-	input size_t bufsize;			/* maximum size of answer buffer */
+	output char *buf;		/* location of buffer to store answer */
+	input size_t bufsize;		/* maximum size of answer buffer */
 {
-	u_short len;
 	char *buffer;
 	size_t buflen;
-	size_t reslen;
 	register int n;
 
-	/* we must have a valid file */
+	/* we must have a valid, open, cache file */
 	if (cachefd < 0)
 		return (0);
 
 	/*
 	 * Read the length of answer buffer.
 	 */
-	buffer = (char *) &len;
-	buflen = INT16SZ;
+	buffer = buf;
+	buflen = bufsize;
 
 	while (buflen > 0 && (n = read(cachefd, buffer, buflen)) > 0) {
 		buffer += n;
@@ -344,99 +342,7 @@ cache_read(buf, bufsize)
 		return (-1);
 	}
 
-	/*
-	 * Terminate if length is zero.
-	 */
-#if 0
-	len = ntohs(len);
-#else
-	len = ns_get16((const u_char *) &len);
-#endif
-	if (len == 0)
-		return (0);
-
-	/*
-	 * Check for truncation.
-	 * Do not chop the returned length (len) in case of buffer overflow.
-	 */
-	reslen = 0;
-	if ((size_t) len > bufsize) {
-		if (bitset(RES_DEBUG, _res.options) || debug || verbose ) {
-			fprintf(stderr, "%s: answer length %u bytes, bufsize only %lu bytes\n",
-				cachefile, (unsigned int) len, (unsigned long) bufsize);
-		}
-		reslen = len - bufsize;
-	}
-
-	/*
-	 * Read the answer buffer itself.
-	 * Truncate the answer is the supplied buffer is not big enough.
-	 */
-	buffer = buf;
-	buflen = (reslen > 0) ? bufsize : len;
-
-	while (buflen > 0 && (n = read(cachefd, buffer, buflen)) > 0) {
-		buffer += n;
-		buflen -= n;
-	}
-	if (buflen != 0) {
-		if (errno == 0)
-			seterrno(EIO);
-		cache_perror("Cannot read answer", cachefile);
-		return (-1);
-	}
-
-	/*
-	 * Discard the residu to keep subsequent reads in sync.
-	 */
-	if (reslen > 0) {
-		HEADER *bp = (HEADER *) buf;
-		char resbuf[PACKETSZ];
-
-		buffer = resbuf;
-		buflen = (reslen < sizeof(resbuf)) ? reslen : sizeof(resbuf);
-
-		while (reslen > 0 && (n = read(cachefd, buffer, buflen)) > 0) {
-			reslen -= n;
-			buflen = (reslen < sizeof(resbuf)) ? reslen : sizeof(resbuf);
-		}
-		if (reslen != 0) {
-			if (errno == 0)
-				seterrno(EIO);
-			cache_perror("Cannot read residu", cachefile);
-			return (-1);
-		}
-
-		/* set truncation flag */
-		bp->tc = 1;
-	}
-
-	return (len);
-}
-
-/*
-** CACHE_GETFILESIZE -- get the size of the open cache file
-** --------------------------------------------------------
-**
-**	Returns:
-**		file size in bytes.
-*/
-
-off_t
-cache_getfilesize()
-{
-	struct stat stb;
-
-	/* we must have a valid file */
-	if (cachefd < 0)
-		return (0);
-
-	if (fstat(cachefd, &stb) < 0) {
-		cache_perror("Cannot fstat()", cachefile);
-		return (-1);
-	}
-
-	return (stb.st_size);
+	return (bufsize);
 }
 
 /*
