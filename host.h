@@ -1,7 +1,7 @@
 /*
 ** Master include file of the host utility.
 **
-**	@(#)host.h              e07@nikhef.nl (Eric Wassenaar) 980903
+**	@(#)host.h              e07@nikhef.nl (Eric Wassenaar) 990522
 */
 
 #if defined(apollo) && defined(lint)
@@ -25,6 +25,9 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#endif
+#if defined(_AIX)
+#include <sys/select.h>		/* needed for fd_set */
 #endif
 #include <fcntl.h>
 

@@ -1,7 +1,7 @@
 /*
 ** Declaration of functions.
 **
-**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 980903
+**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 990629
 */
 
 /*
@@ -93,6 +93,7 @@ char *decode_error	PROTO((int));
 void print_status	PROTO((querybuf *, int));
 void pr_error		PROTO((char *, ...));
 void pr_warning		PROTO((char *, ...));
+void pr_timestamp	PROTO((char *, ...));
 bool want_type		PROTO((int, int));
 bool want_class		PROTO((int, int));
 bool indomain		PROTO((char *, char *, bool));
@@ -150,6 +151,8 @@ void _res_perror	PROTO((struct sockaddr_in *, char *, char *));
 ** --------------------------
 */
 	/* extern */
+
+time_t time		PROTO((time_t *));
 
 #if !defined(NO_INET_H)
 #include <arpa/inet.h>

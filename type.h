@@ -7,7 +7,7 @@
 **
 **	They belong in <arpa/nameser.h>
 **
-**	@(#)type.h              e07@nikhef.nl (Eric Wassenaar) 980531
+**	@(#)type.h              e07@nikhef.nl (Eric Wassenaar) 990605
 */
 
 /* never used in practice */
@@ -90,7 +90,7 @@
 #define T_NSAPPTR	23
 #endif
 
-/* reserved per RFC 1700, defined per RFC 2065 */
+/* reserved per RFC 1700, defined per RFC 2065, revised per RFC 2535 */
 
 #ifndef T_SIG
 #define T_SIG		24
@@ -124,7 +124,7 @@
 #define T_LOC		29
 #endif
 
-/* defined per RFC 2065 */
+/* defined per RFC 2065, revised per RFC 2535 */
 
 #ifndef T_NXT
 #define T_NXT		30
@@ -166,7 +166,7 @@
 #define T_KX		36
 #endif
 
-/* defined per RFC XXXX */
+/* defined per RFC 2538 */
 
 #ifndef T_CERT
 #define T_CERT		37
