@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.16 2003-11-01 00:29:28 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.17 2003-11-01 00:31:04 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -688,7 +688,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 
 	if (listing) {
 		classmatch = want_class(class, queryclass);
-		doprint = classmatch && want_type(type, querytype);
+		doprint = classmatch && want_type(type, qtype);
 	} else {
 		classmatch = want_class(class, C_ANY);
 		doprint = classmatch && want_type(type, T_ANY);
