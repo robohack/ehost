@@ -1,3 +1,21 @@
+- util.c:canonical() should not use geth_byname() but should use
+  get_info(T_A) so as to avoid accidentally seeing YP or /etc/hosts
+  entries that would not actually be valid.  Note that fixing this
+  involves makeing sure callers and users of the return status that
+  get_info() stores in h_errno don't accidentally assume it's a valid
+  input to h_strerror().  This will fix the problem with /etc/hosts
+  entries causing fake "not canonical" errors when the wrong hostname
+  appears in h_hname.
+
+- implement host_h_strerror() to return descriptions for extended error
+  codes from get_info() -- or maybe don't over-load h_errno in
+  get_hinfo() but instead also implement global host_errno?
+
+- do not use gethostbyname()/gethostbyaddr() or their newer replacements
+  to do basic A and PTR lookups and checks, but instead use the
+  low-level interfaces.  Provide separate options for using those
+  functions just so that the native implementations can be tested.
+
 - check that the names in the answer records match the names we asked
   for (taking CNAMEs into account where they're allowed).
 
@@ -11,6 +29,7 @@
 
 - clean up the host_res_*() mess.
 
-- build a regression test suite.
+- try to build a regression test suite (but how do we feed it known
+  bogus junk to test error handling?  nc?).
 
 - think about using autobuild.
