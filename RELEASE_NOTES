@@ -1,4 +1,6 @@
-	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 970203
+	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 970521
+
+	URL	ftp://ftp.nikhef.nl/pub/network/host.tar.Z
 
 yymmdd		Description of changes per release
 TODO		Things that still need to be done
@@ -9,6 +11,27 @@ MISC		Miscellaneous reminders
 # ----------------------------------------------------------------------
 # Description of changes per release
 # ----------------------------------------------------------------------
+
+970521
+	Apply multiple PTR handling during zone listing.
+		Multiple PTR records were handled properly only during
+		the stand-alone cross-checks. This has been extended to
+		the reverse mapping checks via -A during zone listings.
+		Requested by Greg Woods <woods@most.weird.com>
+
+970511
+	Add extra SOA checks if zone transfer is refused.
+		Lame delegations can be detected via the return status
+		of a failed AXFR request, but not if the zone transfer
+		is explicitly refused by a server. In that case, fetch
+		the SOA record, and report failures similar to those
+		during the -C checks.
+		Requested by Peter Koch <pk@TechFak.Uni-Bielefeld.DE>
+	Miscellaneous changes.
+		Declare hostalias() in defs.h only for BIND 4.8 where
+		it was missing in <resolv.h>. It conflicted with the
+		new declaration in BIND 4.9.5 and gave compile errors.
+		Reported by Juergen Georgi <georgi@belwue.de>
 
 970203
 	Anticipate multiple PTR records during cross-checks.
@@ -30,6 +53,7 @@ MISC		Miscellaneous reminders
 		the checks for valid host names. This was already done
 		during zone listings and when the -i option was given,
 		but not if an explicit in-addr.arpa name was specified.
+		Reported by Janos Zsako <zsako@banknet.net>
 	Update documentation.
 		Several drafts have reached RFC status.
 

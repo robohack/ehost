@@ -36,7 +36,7 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)host.c	e07@nikhef.nl (Eric Wassenaar) 970203";
+static char Version[] = "@(#)host.c	e07@nikhef.nl (Eric Wassenaar) 970521";
 #endif
 
 #if defined(apollo) && defined(lint)
@@ -4146,6 +4146,88 @@ input char *name;			/* name of zone to process */
 }
 
 /*
+** DO_SOA -- Check SOA record at a single nameserver address
+** ---------------------------------------------------------
+**
+**	Returns:
+**		None.
+**
+**	The zone SOA record is checked at one nameserver address.
+**	Nameserver recursion is turned off to make sure that the
+**	answer is authoritative.
+*/
+
+void
+do_soa(name, inaddr, host)
+input char *name;			/* name of zone to process */
+input struct in_addr inaddr;		/* address of server to be queried */
+input char *host;			/* name of server to be queried */
+{
+	res_state_t save_res;		/* saved copy of resolver database */
+	char *save_server;		/* saved copy of server name */
+	querybuf answer;
+	register int n;
+	HEADER *bp = (HEADER *)&answer;
+
+	/* save resolver database */
+	save_res = _res;
+	save_server = server;
+
+	/* turn off nameserver recursion */
+	_res.options &= ~RES_RECURSE;
+
+	/* substitute explicit server name and address */
+	server = host;
+	nslist(0).sin_family = AF_INET;
+	nslist(0).sin_port = htons(NAMESERVER_PORT);
+	nslist(0).sin_addr = inaddr;
+	_res.nscount = 1;
+
+	if (verbose)
+		printf("Asking SOA record for %s ...\n", name);
+
+	n = get_info(&answer, name, T_SOA, queryclass);
+	if (n < 0)
+	{
+		/* SOA query failed */
+		ns_error(name, T_SOA, queryclass, server);
+
+		/* explicit server failure: possibly data expired */
+		lameserver = (h_errno == SERVER_FAILURE) ? TRUE : FALSE;
+
+		/* non-authoritative denial: assume lame delegation */
+		if (h_errno == NO_RREC || h_errno == NO_HOST)
+			lameserver = TRUE;
+
+		/* authoritative denial: probably misconfiguration */
+		if (h_errno == NO_DATA || h_errno == HOST_NOT_FOUND)
+			lameserver = TRUE;
+
+		/* flag an error if server should not have failed */
+		if (lameserver && authserver)
+			errmsg("%s has lame delegation to %s",
+				name, server);
+	}
+	else if (!bp->aa)
+	{
+		if (authserver)
+			pr_error("%s SOA record at %s is not authoritative",
+				name, server);
+		else
+			pr_warning("%s SOA record at %s is not authoritative",
+				name, server);
+
+		if (authserver)
+			errmsg("%s has lame delegation to %s",
+				name, server);
+	}
+
+	/* restore resolver database */
+	_res = save_res;
+	server = save_server;
+}
+
+/*
 ** DO_TRANSFER -- Perform a zone transfer from any of its nameservers
 ** ------------------------------------------------------------------
 **
@@ -4190,7 +4272,11 @@ input char *name;			/* name of zone to do zone xfer for */
 
 		/* zone transfer request was explicitly refused */
 		if (h_errno == QUERY_REFUSED)
+		{
+			do_soa(name, ipaddr[n][i], nsname[n]);
+			h_errno = QUERY_REFUSED;
 			break;
+		}
 
 		/* explicit server failure: possibly data expired */
 		lameserver = (h_errno == SERVER_FAILURE) ? TRUE : FALSE;
@@ -7363,6 +7449,7 @@ input struct in_addr inaddr;		/* address of A record to check */
 	int status;
 	int save_errno;
 	int save_herrno;
+	register int i;
 	
 /*
  * Preserve state when querying, to avoid clobbering current values.
@@ -7390,9 +7477,26 @@ input struct in_addr inaddr;		/* address of A record to check */
 	}
 
 /*
- * Indicate whether the reverse mapping yields the given name.
+ * Check whether the ``official'' host name matches.
+ * This is the name in the first (or only) PTR record encountered.
  */
-	return(sameword(hp->h_name, name) ? name : hp->h_name);
+	if (sameword(hp->h_name, name))
+		return(name);
+
+/*
+ * If not, a match may be found among the aliases.
+ * They are available (as of BIND 4.9) in case multipe PTR records are used.
+ */
+	for (i = 0; hp->h_aliases[i]; i++)
+	{
+		if (sameword(hp->h_aliases[i], name))
+			return(name);
+	}
+
+/*
+ * The reverse mapping did not yield the given name.
+ */
+	return(hp->h_name);
 }
 
 /* 
