@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.24 2004-08-10 20:09:03 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.25 2004-08-12 20:26:40 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -2553,7 +2553,7 @@ check_soa(answerbuf, name, host)
 			pr_warning("%s SOA hostmaster %s has illegal mailbox",
 				   name, soa.hostmaster);
 		}
-		if (bitset(0x80000000, soa.serial)) {
+		if (bitset(0x80000000U, soa.serial)) {
 			pr_warning("%s SOA serial has high bit set",
 				   name);
 		}
