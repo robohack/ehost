@@ -2998,15 +2998,7 @@ input bool regular;			/* set if this is a regular lookup */
  * Currently this option has effect here only during zone listings.
  */
 	if (addrmode && ((type == T_A) && !reverse) && !fakeaddr(address))
-	{
-		host = mapreverse(rname, inaddr);
-		if (host == NULL)
-			pr_warning("%s address %s is not registered",
-				rname, inet_ntoa(inaddr));
-		else if (host != rname)
-			pr_warning("%s address %s maps to %s",
-				rname, inet_ntoa(inaddr), host);
-	}
+		(void) check_addr_name(inaddr, rname);
 
 /*
  * This record was processed successfully.
@@ -5590,7 +5582,7 @@ input char *name;			/* name of host to check */
 	if (verbose)
 		printf("Checking %s address %s\n", name, iname);
 
-	hp = gethostbyaddr((char *)&inaddr, INADDRSZ, AF_INET);
+	hp = geth_byaddr((char *)&inaddr, INADDRSZ, AF_INET);
 	if (hp == NULL)
 	{
 		ns_error(iname, T_PTR, C_IN, server);
@@ -5598,13 +5590,10 @@ input char *name;			/* name of host to check */
 	}
 
 /*
- * Check whether the ``official'' host name matches.
+ * Check whether the host name matches.
  * This is the name in the first (or only) PTR record encountered.
  */
-	if (!sameword(hp->h_name, name))
-		pr_warning("%s address %s maps to %s",
-			name, iname, hp->h_name);
-	else
+	if (sameword(hp->h_name, name))
 		matched++;
 
 /*
@@ -5615,13 +5604,14 @@ input char *name;			/* name of host to check */
 	{
 		for (i = 0; hp->h_aliases[i]; i++)
 		{
-			pr_warning("%s address %s maps to alias %s",
-				name, iname, hp->h_aliases[i]);
-
 			if (sameword(hp->h_aliases[i], name))
 				matched++;
 		}
 	}
+
+	if (!matched)
+		pr_warning("%s address %s maps to %s",
+			name, iname, hp->h_name);
 
 	return(matched ? TRUE : FALSE);
 }
@@ -7341,58 +7331,6 @@ input char *name;			/* the domain name to check */
  */
 	status = sameword(hp->h_name, name) ? 0 : HOST_NOT_CANON;
 	return(status);
-}
-
-/* 
-** MAPREVERSE -- Check whether address maps back to given domain
-** -------------------------------------------------------------
-**
-**	Returns:
-**		NULL if address could definitively not be mapped.
-**		Given name if the address maps back properly, or
-**		in case of transient nameserver failures.
-**		Reverse name if it differs from the given name.
-*/
-
-char *
-mapreverse(name, inaddr)
-input char *name;			/* domain name of A record */
-input struct in_addr inaddr;		/* address of A record to check */
-{
-	struct hostent *hp;
-	int status;
-	int save_errno;
-	int save_herrno;
-	
-/*
- * Preserve state when querying, to avoid clobbering current values.
- */
-	save_errno = errno;
-	save_herrno = h_errno;
-
-	hp = geth_byaddr((char *)&inaddr, INADDRSZ, AF_INET);
-	status = h_errno;
-
-	errno = save_errno;
-	h_errno = save_herrno;
-
-/*
- * Indicate negative result only after definitive lookup failures.
- */
-	if (hp == NULL)
-	{
-		/* authoritative denial -- not existing or no PTR record */
-		if (status == NO_DATA || status == HOST_NOT_FOUND)
-			return(NULL);
-
-		/* nameserver failure -- still undecided, assume ok */
-		return(name);
-	}
-
-/*
- * Indicate whether the reverse mapping yields the given name.
- */
-	return(sameword(hp->h_name, name) ? name : hp->h_name);
 }
 
 /* 

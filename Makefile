@@ -54,7 +54,7 @@ CONFIGDEFS = -DHOST_RES_SEND
 #endif
 
 # This is the default in either case if you compile stand-alone.
-CONFIGDEFS = -DHOST_RES_SEND
+CONFIGDEFS = -DBIND_RES_SEND
 
 # ----------------------------------------------------------------------
 # Include file directories.
