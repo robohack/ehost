@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.10 2003-03-31 21:57:23 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.11 2003-04-03 16:31:41 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -726,7 +726,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_A:
 		if (class == C_IN || class == C_HS) {
 			if (dlen == INADDRSZ) {
-				memcpy((char *) cp, (char *) &inaddr, INADDRSZ);
+				memcpy((char *) &inaddr, (char *) cp, INADDRSZ);
 				address = inaddr.s_addr;
 				doprintf(("\t%s", inet_ntoa(inaddr)));
 				cp += INADDRSZ;
@@ -734,7 +734,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 			}
 #ifdef obsolete
 			if (dlen == INADDRSZ + 1 + INT16SZ) {
-				memcpy((char *) cp, (char *) &inaddr, INADDRSZ);
+				memcpy((char *) &inaddr, (char *) cp, INADDRSZ);
 				address = inaddr.s_addr;
 				doprintf(("\t%s", inet_ntoa(inaddr)));
 				cp += INADDRSZ;
@@ -838,7 +838,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_WKS:
 		if (check_size(rname, type, cp, msg, eor, INADDRSZ) < 0)
 			break;
-		memcpy((char *) cp, (char *) &inaddr, INADDRSZ);
+		memcpy((char *) &inaddr, (char *) cp, INADDRSZ);
 		doprintf(("\t%s", inet_ntoa(inaddr)));
 		cp += INADDRSZ;
 

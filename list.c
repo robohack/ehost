@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.11 2003-03-31 21:57:39 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.12 2003-04-03 16:31:41 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -950,7 +950,7 @@ get_nsinfo(answerbuf, answerlen, name, qtype, qclass)
 					break;	/* found */
 			}
 			if (i < nservers && naddrs[i] < MAXIPADDR) {
-				memcpy((char *) cp, (char *) &inaddr, INADDRSZ);
+				memcpy((char *) &inaddr, (char *) cp, INADDRSZ);
 				ipaddr[i][naddrs[i]] = inaddr;
 				naddrs[i]++;
 			}

@@ -1,5 +1,5 @@
 #
-#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.5 2003-04-01 00:35:02 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.6 2003-04-03 16:31:42 -0800 woods Exp $"
 #
 
 	URL:		ftp://ftp.weird.com/pub/local/host.tar.gz
@@ -19,6 +19,11 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 # ----------------------------------------------------------------------
 # Description of important user-visible changes per release
 # ----------------------------------------------------------------------
+
+2003/03/31-Patch.1
+
+	- fix a nasty bug introduced in a last-minute code cleanup.
+	  (first reported by Swen Thuemmler <swen.thuemmler@telefonica.de>)
 
 2003/03/31
 
