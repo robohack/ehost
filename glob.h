@@ -4,7 +4,7 @@
 **	@(#)glob.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: glob.h,v 1.2 2002-01-11 22:26:04 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: glob.h,v 1.3 2003-03-21 18:50:34 -0800 woods Exp $"
 
 #ifdef _DEFINE
 #define GLOBAL
@@ -23,6 +23,8 @@ extern time_t cachetime;	/* time cache was last modified (file.c) */
 GLOBAL time_t loadtime;		/* force cache load if younger than this */
 
 GLOBAL int errorcount;		/* global error count */
+
+GLOBAL unsigned int timeout;	/* recv_sock() timeout (send.c) */
 
 GLOBAL int record_stats[T_ANY+1]; /* count of resource records per type */
 
