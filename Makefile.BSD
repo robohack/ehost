@@ -5,9 +5,10 @@
 #
 #	make -f Makefile.BSD __NetBSD__=1 __GNUC__=2 __GNULD__=2
 #
-#ident	"@(#)newsyslog:$Name:  $:$Id: Makefile.BSD,v 1.7 2003-05-17 00:51:59 -0800 woods Exp $"
+#ident	"@(#)newsyslog:$Name:  $:$Id: Makefile.BSD,v 1.8 2003-06-04 06:44:53 -0800 woods Exp $"
 #
 
+.include <bsd.own.mk>
 
 # are we running in the full NetBSD build environment?
 .if defined(MAKE) && defined(MACHINE) && defined(MACHINE_ARCH) && defined(TOOLDIR) && defined(USETOOLS)
@@ -164,7 +165,7 @@ SOELIM = soelim
 
 .sh:
 	@rm -f $@
-	sed -e 's,@BINDIR@,$(BINDIR),g' -e 's,@CONFDIR@,$(CONFDIR),g' < ${.CURDIR}/$@.sh > $@
+	sed -e 's,@CONFDIR@,$(CONFDIR),g' < ${.CURDIR}/$@.sh > $@
 	chmod +x $@
 
 .if !target(clobber)
