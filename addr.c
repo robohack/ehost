@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.8 2003-06-04 20:08:07 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.9 2003-06-06 22:36:27 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)addr.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -82,6 +82,10 @@ check_addr(name)
 	for (i = 0; hp->h_addr_list[i]; i++)
 		naddrs++;
 
+	if (verbose) {
+		printf("Found %d address%s for %s\n",
+		       naddrs, plurale(naddrs), hname);
+	}
 	if (!(inaddr = malloc(naddrs * sizeof(*inaddr)))) {
 		sys_error("malloc(%d): failed: ", naddrs * sizeof(*inaddr), strerror(errno));
 		return (FALSE);
@@ -93,10 +97,6 @@ check_addr(name)
 			printf("Hostname %s maps to address %s\n", hnamebuf, inet_ntoa(inaddr[i]));
 	}
 
-	if (verbose) {
-		printf("Found %d address%s for %s\n",
-		       naddrs, plurale(naddrs), hname);
-	}
 	/*
 	 * XXX this check only detects something if your libbind has been
 	 * patched to either dynamically allocate its internal arrays, or at
@@ -280,15 +280,15 @@ check_name(addr)
 		printf("Address %s maps to hostname %s\n", iname, hname);
 
 	/*
-	 * In case of multiple PTR records, additional names are stored as
-	 * aliases.
+	 * In case of multiple PTR records, additional names are stored in
+	 * h_aliases.
 	 */
 	for (i = 0; hp->h_aliases[i]; i++)
 		naliases++;
 
 	if (verbose) {
 		printf("Found %d hostname%s for %s\n",
-		       naliases, plural(naliases + 1), iname);
+		       naliases + 1, plural(naliases + 1), iname);
 	}
 	if (naliases) {
 		/* XXX this is big and sparse and wasteful, but what the heck... */
@@ -316,8 +316,7 @@ check_name(addr)
 	}
 
 	/*
-	 * Check whether the given address belongs to the host name and the
-	 * aliases.
+	 * Check whether the given address belongs to each of the host names
 	 */
 	if (check_name_addr(hname, addr))
 		matched++;
