@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.17 2003-11-17 05:29:26 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.18 2003-12-01 20:19:32 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -546,9 +546,9 @@ ns_error(name, type, class, host)
 		 * the intended hosts could be reached via datagrams.
 		 */
 		if (host != NULL)
-			errmsg("Nameserver %s not running", host);
+			pr_error("Nameserver %s not running", host);
 		else
-			errmsg("Nameserver not running");
+			pr_error("Nameserver not running");
 		break;
 
 	case ETIMEDOUT:
@@ -557,9 +557,9 @@ ns_error(name, type, class, host)
 		 * within the specified time frame.
 		 */
 		if (host != NULL)
-			errmsg("Nameserver %s not responding", host);
+			pr_warning("Nameserver %s not responding", host);
 		else
-			errmsg("Nameserver not responding");
+			pr_error("Nameserver not responding"); /* default resolv.conf NS should respond! */
 		break;
 
 	case ENETDOWN:
@@ -571,9 +571,9 @@ ns_error(name, type, class, host)
 		 * Our private res_send() also returns this using datagrams.
 		 */
 		if (host != NULL)
-			errmsg("Nameserver %s not reachable", host);
+			pr_warning("Nameserver %s not reachable", host);
 		else
-			errmsg("Nameserver not reachable");
+			pr_error("Nameserver not reachable"); /* default resolv.conf NS should be reachable! */
 		break;
 	}
 
@@ -588,14 +588,14 @@ ns_error(name, type, class, host)
 		 * Nameserver status: NXDOMAIN
 		 */
 		if (class != C_IN) {
-			errmsg("%s does not exist in class %s (%s)",
-			       name, pr_class(class), auth);
+			pr_error("%s does not exist in class %s (%s)",
+				 name, pr_class(class), auth);
 		} else if (host != NULL) {
-			errmsg("%s does not exist at %s (%s)",
-			       name, host, auth);
+			pr_error("%s does not exist at %s (%s)",
+				 name, host, auth);
 		} else {
-			errmsg("%s does not exist (%s)",
-			       name, auth);
+			pr_error("%s does not exist (%s)",
+				 name, auth);
 		}
 		break;
 
@@ -606,14 +606,14 @@ ns_error(name, type, class, host)
 		 * Nameserver status: NXDOMAIN
 		 */
 		if (class != C_IN){
-			errmsg("%s does not exist in class %s, try again",
-			       name, pr_class(class));
+			pr_warning("%s does not exist in class %s, try an authoritative server",
+				   name, pr_class(class));
 		} else if (host != NULL) {
-			errmsg("%s does not exist at %s, try again",
-			       name, host);
+			pr_warning("%s does not exist at %s, try an authoritative server",
+				   name, host);
 		} else {
-			errmsg("%s does not exist, try again",
-			       name);
+			pr_warning("%s does not exist, try an authoritative server",
+				   name);
 		}
 		break;
 
@@ -624,33 +624,33 @@ ns_error(name, type, class, host)
 		 * Nameserver status: NOERROR
 		 */
 		if (class != C_IN) {
-			errmsg("%s has no %s record in class %s (%s)",
-			       name, pr_type(type), pr_class(class), auth);
+			pr_error("%s has no %s record in class %s (%s)",
+				 name, pr_type(type), pr_class(class), auth);
 		} else if (host != NULL) {
-			errmsg("%s has no %s record at %s (%s)",
-			       name, pr_type(type), host, auth);
+			pr_error("%s has no %s record at %s (%s)",
+				 name, pr_type(type), host, auth);
 		} else { 
-			errmsg("%s has no %s record (%s)",
-			       name, pr_type(type), auth);
+			pr_error("%s has no %s record (%s)",
+				 name, pr_type(type), auth);
 		}
 		break;
 
 	case NO_RREC:
 		/*
 		 * The specified type does not exist, but we don't know whether
-		 * the name is valid or not. The answer was not authoritative.
+		 * the name is valid or not.  The answer was not authoritative.
 		 * Perhaps recursion was off, and no data was cached locally.
 		 * Nameserver status: NOERROR
 		 */
 		if (class != C_IN) {
-			errmsg("%s %s record in class %s currently not present",
-			       name, pr_type(type), pr_class(class));
+			pr_warning("%s %s record in class %s currently not present",
+				   name, pr_type(type), pr_class(class));
 		} else if (host != NULL) {
-			errmsg("%s %s record currently not present at %s",
-			       name, pr_type(type), host);
+			pr_warning("%s %s record currently not present at %s",
+				   name, pr_type(type), host);
 		} else {
-			errmsg("%s %s record currently not present",
-			       name, pr_type(type));
+			pr_warning("%s %s record currently not present",
+				   name, pr_type(type));
 		}
 		break;
 
@@ -663,14 +663,14 @@ ns_error(name, type, class, host)
 		 * Nameserver status: (SERVFAIL)
 		 */
 		if (class != C_IN) {
-			errmsg("%s %s record in class %s not found, try again",
-			       name, pr_type(type), pr_class(class));
+			pr_warning("%s %s record in class %s not found, try again",
+				   name, pr_type(type), pr_class(class));
 		} else if (host != NULL) {
-			errmsg("%s %s record not found at %s, try again",
-			       name, pr_type(type), host);
+			pr_warning("%s %s record not found at %s, try again",
+				   name, pr_type(type), host);
 		} else {
-			errmsg("%s %s record not found, try again",
-			       name, pr_type(type));
+			pr_warning("%s %s record not found, try again",
+				   name, pr_type(type));
 		}
 		break;
 
@@ -683,14 +683,14 @@ ns_error(name, type, class, host)
 		 * Nameserver status: SERVFAIL
 		 */
 		if (class != C_IN) {
-			errmsg("%s %s record in class %s not found, server failure",
-			       name, pr_type(type), pr_class(class));
+			pr_error("%s %s record in class %s not found, internal server failure",
+				 name, pr_type(type), pr_class(class));
 		} else if (host != NULL) {
-			errmsg("%s %s record not found at %s, server failure",
-			       name, pr_type(type), host);
+			pr_error("%s %s record not found at %s, internal server failure",
+				 name, pr_type(type), host);
 		} else {
-			errmsg("%s %s record not found, server failure",
-			       name, pr_type(type));
+			pr_error("%s %s record not found, internal server failure",
+				 name, pr_type(type));
 		}
 		break;
 
@@ -701,14 +701,14 @@ ns_error(name, type, class, host)
 		 * Nameserver status: (REFUSED) FORMERR NOTIMP NOCHANGE
 		 */
 		if (class != C_IN) {
-			errmsg("%s %s record in class %s not found, no recovery",
-				name, pr_type(type), pr_class(class));
+			pr_error("%s %s record in class %s not found, no recovery",
+				 name, pr_type(type), pr_class(class));
 		} else if (host != NULL) {
-			errmsg("%s %s record not found at %s, no recovery",
-			       name, pr_type(type), host);
+			pr_error("%s %s record not found at %s, no recovery",
+				 name, pr_type(type), host);
 		} else {
-			errmsg("%s %s record not found, no recovery",
-			       name, pr_type(type));
+			pr_error("%s %s record not found, no recovery",
+				 name, pr_type(type));
 		}
 		break;
 
@@ -719,14 +719,14 @@ ns_error(name, type, class, host)
 		 * Nameserver status: REFUSED
 		 */
 		if (class != C_IN) {
-			errmsg("%s %s record in class %s query refused",
-			       name, pr_type(type), pr_class(class));
+			pr_error("%s %s record in class %s query refused",
+				 name, pr_type(type), pr_class(class));
 		} else if (host != NULL) {
-			errmsg("%s %s record query refused by %s",
-			       name, pr_type(type), host);
+			pr_error("%s %s record query refused by %s",
+				 name, pr_type(type), host);
 		} else {
-			errmsg("%s %s record query refused",
-			       name, pr_type(type));
+			pr_error("%s %s record query refused",
+				 name, pr_type(type));
 		}
 		break;
 
@@ -735,14 +735,14 @@ ns_error(name, type, class, host)
 		 * Unknown cause for server failure.
 		 */
 		if (class != C_IN) {
-			errmsg("%s %s record in class %s not found",
-			       name, pr_type(type), pr_class(class));
+			pr_error("%s %s record in class %s not found (unknown cause: %d)",
+				 name, pr_type(type), pr_class(class), h_errno);
 		} else if (host != NULL) {
-			errmsg("%s %s record not found at %s",
-			       name, pr_type(type), host);
+			pr_error("%s %s record not found at %s (unknown cause: %d)",
+				 name, pr_type(type), host, h_errno);
 		} else {
-			errmsg("%s %s record not found",
-			       name, pr_type(type));
+			pr_error("%s %s record not found (unknown cause: %d)",
+				 name, pr_type(type), h_errno);
 		}
 		break;
 	}
@@ -1295,6 +1295,8 @@ pr_domain(name, listing)
 ** PR_DOTNAME -- Return domain name with trailing dot
 ** --------------------------------------------------
 **
+** XXX could/should be static -- only used by pr_domain() and not reentrant.
+**
 **	Returns:
 **		Pointer to new domain name, if dot was added.
 **		Pointer to original name, if dot was already present.
@@ -1314,9 +1316,6 @@ pr_dotname(name)
 	if (n > MAXDNAME)
 		n = MAXDNAME;
 
-#ifdef obsolete
-	(void) sprintf(buf, "%.*s.", MAXDNAME, name);
-#endif
 	memcpy(buf, name, n);
 	buf[n] = '.';
 	buf[n + 1] = '\0';
@@ -1327,6 +1326,8 @@ pr_dotname(name)
 /*
 ** PR_NSAP -- Convert reverse nsap.int to dotted forward notation
 ** --------------------------------------------------------------
+**
+** XXX could/should be static -- only used by pr_domain() and not reentrant.
 **
 **	Returns:
 **		Pointer to new dotted nsap, if converted.
