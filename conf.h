@@ -1,7 +1,7 @@
 /*
 ** Various configuration definitions.
 **
-**	@(#)conf.h              e07@nikhef.nl (Eric Wassenaar) 950318
+**	@(#)conf.h              e07@nikhef.nl (Eric Wassenaar) 951230
 */
 
 /*
@@ -51,3 +51,13 @@
  */
 
 #define T_LOC_VERSION	0	/* must be zero */
+
+/*
+ * Prefix for messages on stdout in debug mode.
+ */
+
+#if defined(BIND_49)
+#define DBPREFIX	";; "
+#else
+#define DBPREFIX	""
+#endif

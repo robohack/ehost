@@ -1,11 +1,12 @@
 /*
 ** Declaration of functions.
 **
-**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 950923
+**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 951015
 */
 
 /*
-** Internal modules of the host utility.
+** Internal modules of the host utility
+** ------------------------------------
 */
 
 	/* main.c */
@@ -121,7 +122,7 @@ char *pr_precision	PROTO((int));
 	/* send.c */
 
 #ifdef HOST_RES_SEND
-int res_send		PROTO((qbuf_t *, int, qbuf_t *, int));
+int res_send		PROTO((CONST qbuf_t *, int, qbuf_t *, int));
 #endif /*HOST_RES_SEND*/
 int _res_connect	PROTO((int, struct sockaddr_in *, int));
 int _res_write		PROTO((int, struct sockaddr_in *, char *, char *, int));
@@ -129,18 +130,19 @@ int _res_read		PROTO((int, struct sockaddr_in *, char *, char *, int));
 void _res_perror	PROTO((struct sockaddr_in *, char *, char *));
 
 /*
-** External library functions.
+** External library functions
+** --------------------------
 */
 
 	/* extern */
 
-ipaddr_t inet_addr	PROTO((char *));
+ipaddr_t inet_addr	PROTO((CONST char *));
 char *inet_ntoa		PROTO((struct in_addr));
-char *hostalias		PROTO((char *));
-char *getenv		PROTO((char *));
-char *strcpy		PROTO((char *, char *));
-char *rindex		PROTO((char *, char));
-char *index		PROTO((char *, char));
+char *hostalias		PROTO((CONST char *));
+char *index		PROTO((const char *, char));
+char *rindex		PROTO((const char *, char));
+char *strcpy		PROTO((char *, const char *));
+char *getenv		PROTO((const char *));
 ptr_t *malloc		PROTO((siz_t));
 ptr_t *realloc		PROTO((ptr_t *, siz_t));
 void exit		PROTO((int));

@@ -36,7 +36,7 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)host.c	e07@nikhef.nl (Eric Wassenaar) 950923";
+static char Version[] = "@(#)host.c	e07@nikhef.nl (Eric Wassenaar) 951231";
 #endif
 
 #if defined(apollo) && defined(lint)
@@ -249,7 +249,7 @@ static char Version[] = "@(#)host.c	e07@nikhef.nl (Eric Wassenaar) 950923";
  * --------------------
  *
  * -g length	only select names that are at least this long
- * -B		enforce full BIND behaviour during DNSRCH
+ * -B		enforce full BIND behavior during DNSRCH
  * -M		special mode to list mailable delegated zones of zone
  * -W		special mode to list wildcard records in a zone
  * -z		special mode to list delegated zones in a zone
@@ -283,10 +283,10 @@ Extended usage:  [-x [name ...]] [-X server [name ...]]\
 #include <arpa/nameser.h>
 #include <resolv.h>
 
-#include "type.h"		/* types should be in <arpa/nameser.h> */
-#include "exit.h"		/* exit codes come from <sysexits.h> */
 #include "port.h"		/* various portability definitions */
 #include "conf.h"		/* various configuration definitions */
+#include "type.h"		/* types should be in <arpa/nameser.h> */
+#include "exit.h"		/* exit codes come from <sysexits.h> */
 
 typedef int	bool;		/* boolean type */
 #define TRUE	1
@@ -312,7 +312,7 @@ typedef int	bool;		/* boolean type */
 #endif
 
 #define NOT_DOTTED_QUAD	((ipaddr_t)-1)
-
+#define BROADCAST_ADDR	((ipaddr_t)0xffffffff)
 #define LOCALHOST_ADDR	((ipaddr_t)0x7f000001)
 
 #if PACKETSZ > 1024
@@ -350,7 +350,8 @@ typedef union {
 EXTERN int errno;
 EXTERN int h_errno;		/* defined in gethostnamadr.c */
 EXTERN res_state_t _res;	/* defined in res_init.c */
-extern char *version;		/* program version number */
+extern char *dbprefix;		/* prefix for debug messages (send.c) */
+extern char *version;		/* program version number (vers.c) */
 
 char **optargv = NULL;		/* argument list including default options */
 int optargc = 0;		/* number of arguments in new argument list */
@@ -375,6 +376,8 @@ char adrnamebuf[MAXDNAME+1];
 char *adrname = NULL;		/* domain name of A record */
 
 ipaddr_t address;		/* internet address of A record */
+
+char *listhost = NULL;		/* actual host queried during zone listing */
 
 char serverbuf[MAXDNAME+1];
 char *server = NULL;		/* name of explicit server to query */
@@ -430,8 +433,6 @@ bool statistics = FALSE;	/* print resource record statistics */
 bool bindcompat = FALSE;	/* enforce full BIND DNSRCH compatibility */
 bool classprint = FALSE;	/* print class value in non-verbose mode */
 
-char *listhost = NULL;		/* actual host queried during zone listing */
-
 #include "defs.h"		/* declaration of functions */
 
 #define lower(c)	(((c) >= 'A' && (c) <= 'Z') ? (c) + 'a' - 'A' : (c))
@@ -448,7 +449,8 @@ char *listhost = NULL;		/* actual host queried during zone listing */
 #define samehead(a,b)	(strncasecmp(a,b,sizeof(b)-1) == 0)
 
 #define fakename(a)	(samehead(a,"localhost.") || samehead(a,"loopback."))
-#define fakeaddr(a)	(((a) == 0) || ((a) == htonl(LOCALHOST_ADDR)))
+#define nulladdr(a)	(((a) == 0) || ((a) == BROADCAST_ADDR))
+#define fakeaddr(a)	(nulladdr(a) || ((a) == htonl(LOCALHOST_ADDR)))
 #define incopy(a)	*((struct in_addr *)a)
 
 #define newlist(a,n,t)	(t *)xalloc((ptr_t *)a, (siz_t)((n)*sizeof(t)))
@@ -903,7 +905,7 @@ input char *argv[];			/* original command line arguments */
 /*
  * Construct argument list from option string.
  */
-	for (q = NULL, p = newstr(option); *p != '\0'; p = q)
+	for (q = "", p = newstr(option); *p != '\0'; p = q)
 	{
 		while (is_space(*p))
 			p++;
@@ -993,7 +995,7 @@ input FILE *fp;				/* input file with query names */
 			*p = '\0';
 
 		/* extract names separated by whitespace */
-		for (q = NULL, p = buf; *p != '\0'; p = q)
+		for (q = "", p = buf; *p != '\0'; p = q)
 		{
 			while (is_space(*p))
 				p++;
@@ -1559,13 +1561,13 @@ input char *a, *b, *c, *d;		/* optional arguments */
 **	are always, and only, tried within the own default domain,
 **	and compound names are assumed to be already fully qualified.
 **
-**	The default BIND behaviour can be simulated by turning on
+**	The default BIND behavior can be simulated by turning on
 **	RES_DNSRCH with -R. The given name, whether or not compound,
 **	is then	first tried within the possible search domains.
 **
 **	Note. In the latter case, the search terminates in case the
 **	specified name exists but does not have the desired type.
-**	The BIND behaviour is to continue the search. This can be
+**	The BIND behavior is to continue the search. This can be
 **	simulated with the undocumented option -B.
 */
 
@@ -1831,7 +1833,7 @@ input int class;			/* specific resource record class */
 	if (n < 0)
 	{
 		if (debug)
-			(void) fprintf(stderr, "res_mkquery failed\n");
+			printf("%sres_mkquery failed\n", dbprefix);
 		h_errno = NO_RECOVERY;
 		return(-1);
 	}
@@ -1840,7 +1842,7 @@ input int class;			/* specific resource record class */
 	if (n < 0)
 	{
 		if (debug)
-			(void) fprintf(stderr, "res_send failed\n");
+			printf("%sres_send failed\n", dbprefix);
 		h_errno = TRY_AGAIN;
 		return(-1);
 	}
@@ -4050,14 +4052,14 @@ input char *host;			/* name of server to be queried */
 	if (n < 0)
 	{
 		if (debug)
-			(void) fprintf(stderr, "res_mkquery failed\n");
+			printf("%sres_mkquery failed\n", dbprefix);
 		h_errno = NO_RECOVERY;
 		return(FALSE);
 	}
 
 	if (debug)
 	{
-		printf("get_zone()\n");
+		printf("%sget_zone()\n", dbprefix);
 		pr_query((qbuf_t *)&query, n, stdout);
 	}
 
@@ -4123,7 +4125,7 @@ input char *host;			/* name of server to be queried */
 
 		if (debug > 1)
 		{
-			printf("got answer, %d bytes:\n", n);
+			printf("%sgot answer, %d bytes:\n", dbprefix, n);
 			pr_query((qbuf_t *)&answer, n, stdout);
 		}
 
@@ -4138,7 +4140,7 @@ input char *host;			/* name of server to be queried */
 
 		if (bp->rcode != NOERROR || ancount == 0)
 		{
-			if (verbose)
+			if (debug || verbose)
 				print_status(&answer);
 
 			switch (bp->rcode)
@@ -4649,7 +4651,7 @@ input char *name;			/* name of zone to check soa for */
 				break;	/* found */
 
 		if ((n >= nservers) && authserver)
-			pr_warning("%s SOA primary %s is not advertized via NS",
+			pr_warning("%s SOA primary %s is not advertised via NS",
 				name, soa.primary);
 
 		if (!valid_name(soa.primary, FALSE, FALSE, FALSE))
@@ -6025,7 +6027,8 @@ input querybuf *answerbuf;		/* location of answer buffer */
 	ancount = ntohs(bp->ancount);
 	failed = (bp->rcode != NOERROR || ancount == 0);
 
-	printf("Query %s, %d answer%s%s, %sstatus: %s\n",
+	printf("%sQuery %s, %d answer%s%s, %sstatus: %s\n",
+		verbose ? "" : dbprefix,
 		failed ? "failed" : "done",
 		ancount, plural(ancount),
 		bp->tc ? " (truncated)" : "",
@@ -6535,7 +6538,7 @@ output char *namebuf;			/* location of buf to expand name in */
 {
 	register int n;
 
-	n = dn_expand(msg, eom, cp, (u_char *)namebuf, MAXDNAME);
+	n = dn_expand(msg, eom, cp, (nbuf_t *)namebuf, MAXDNAME);
 	if (n < 0)
 	{
 		pr_error("expand error in %s record for %s, offset %s",
