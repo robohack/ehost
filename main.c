@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.21 2003-12-04 03:51:58 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.22 2004-08-10 20:09:48 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -371,7 +371,7 @@ main(argc, argv)
 	 * Check whether host was called with a different name.
 	 * Interpolate default options and parameters.
 	 */
-	if (argc < 1 || argv[0] == NULL)
+	if (argc <= 1 || argv[0] == NULL)
 		usage_error(usage_msg);
 
 	if ((option = getenv("HOST_DEFAULTS"))) {
@@ -689,7 +689,7 @@ main(argc, argv)
 	 * Check the remaining arguments.
 	 */
 	/* old syntax must have at least one argument and no more than two */
-	if (!extended && (argc < 1 || argv[0] == NULL || argc > 3))
+	if (!extended && (argc < 2 || argv[1] == NULL || argc > 3))
 		usage_error(usage_msg);
 
 	/* old syntax has explicit server as second argument */
