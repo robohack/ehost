@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.12 2003-04-03 16:31:41 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.13 2003-04-03 18:28:33 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1517,9 +1517,7 @@ get_zone(name, inaddr, host)
 			printf("Loading zone from cache for %s ...\n", name);
 
 		len = cache_getfilesize();
-#if 0
 		answer = malloc(len);
-#endif
 		n = cache_read(answer, (size_t) len);
 	} else {
 		/*
@@ -1556,7 +1554,7 @@ get_zone(name, inaddr, host)
 		if (_res_connect(sock, &ns_sin, sizeof(ns_sin)) < 0) {
 			if (verbose || debug)
 				_res_perror(&ns_sin, host, "connect()");
-			(void) close(sock);
+			(void) _res_close(sock);
 			seth_errno(TRY_AGAIN);
 			return (FALSE);
 		}
@@ -1568,7 +1566,7 @@ get_zone(name, inaddr, host)
 		 * Send the query buffer.
 		 */
 		if (_res_write(sock, &ns_sin, host, (char *) &query, (size_t) n) < 0) {
-			(void) close(sock);
+			(void) _res_close(sock);
 			seth_errno(TRY_AGAIN);
 			return (FALSE);
 		}
@@ -1576,25 +1574,35 @@ get_zone(name, inaddr, host)
 
 	do {
 		/*
-		 * this sould probably be something like _res_read_anslen() in send.c
-		 */
-		/*
 		 * Read the length of answer buffer.
 		 */
-		buffer = (char *) &len;
-		buflen = INT16SZ;
 
 		if (loading) {
-			/* XXX read anslen from cache */
-#if 0
+			/*
+			 * XXX this sould probably be something like cache_read_anslen() in file.c
+			 */
+			buffer = (char *) &len;
+			buflen = INT16SZ;
 			n = cache_read(buffer, buflen);
-			if (n < 0 | n != buflen) {
+			if (n < 0 || n != (int) buflen) {
 				(void) cache_close(FALSE);
 				seth_errno(TRY_AGAIN);
 				return (FALSE);
 			}
+#if 0 /* why not? */
+			len = ntohs(len);
+#else
+			len = ns_get16((u_char *) &len);
 #endif
+			/*
+			 * XXX end of what should be cache_read_anslen()
+			 */
 		} else {
+			/*
+			 * XXX this sould probably be something like _res_read_anslen() in send.c
+			 */
+			buffer = (char *) &len;
+			buflen = INT16SZ;
 			/* set stream timeout for recv_sock() */
 			timeout = READTIMEOUT;
 
@@ -1604,32 +1612,33 @@ get_zone(name, inaddr, host)
 			}
 			if (buflen != 0) {
 				_res_perror(&ns_sin, host, "recv_sock(): error reading answer length");
-				(void) close(sock);
+				(void) _res_close(sock);
 				seth_errno(TRY_AGAIN);
 				return (FALSE);
 			}
+#if 0 /* why not? */
+			len = ntohs(len);
+#else
+			len = ns_get16((u_char *) &len);
+#endif
+			/*
+			 * XXX end of what should be cache_read_anslen()
+			 */
 		}
+
 		/*
 		 * Terminate if length is zero.
 		 */
-#if 0 /* why not? */
-		len = ntohs(len);
-#else
-		len = ns_get16((u_char *) &len);
-#endif
 		if (len == 0) {
 			seterrno(EINVAL);
 			_res_perror(&ns_sin, host, "answer has length of zero");
 			if (loading)
 				(void) cache_close(FALSE);
 			else
-				(void) close(sock);
+				(void) _res_close(sock);
 			seth_errno(TRY_AGAIN);
 			return (FALSE);
 		}
-		/*
-		 * end of what should be _res_read_anslen()
-		 */
 
 		if (debug > 2)
 			printf("%sexpecting an answer of %d bytes\n", dbprefix, len);
@@ -1642,16 +1651,14 @@ get_zone(name, inaddr, host)
 			if (loading)
 				(void) cache_close(FALSE);
 			else
-				(void) close(sock);
+				(void) _res_close(sock);
 			seth_errno(TRY_AGAIN);
 			return (FALSE);
 		}
 
-#if 0
 		if (loading)
 			n = cache_read(answer, len);
 		else
-#endif
 			n = _res_read_stream(sock, &ns_sin, host, answer, len);
 
 		if (n < 0) {
@@ -1659,7 +1666,7 @@ get_zone(name, inaddr, host)
 			if (loading)
 				(void) cache_close(FALSE);
 			else
-				(void) close(sock);
+				(void) _res_close(sock);
 			seth_errno(TRY_AGAIN);
 			return (FALSE);
 		}
@@ -1678,7 +1685,7 @@ get_zone(name, inaddr, host)
 			if (loading)
 				(void) cache_close(FALSE);
 			else
-				(void) close(sock);
+				(void) _res_close(sock);
 			seth_errno(TRY_AGAIN);
 			return (FALSE);
 		}
@@ -1689,7 +1696,7 @@ get_zone(name, inaddr, host)
 			if (loading)
 				(void) cache_close(FALSE);
 			else
-				(void) close(sock);
+				(void) _res_close(sock);
 			seth_errno(TRY_AGAIN);
 			return (FALSE);
 		}
@@ -1745,7 +1752,7 @@ get_zone(name, inaddr, host)
 			if (loading)
 				(void) cache_close(FALSE);
 			else
-				(void) close(sock);
+				(void) _res_close(sock);
 			return (FALSE);
 		}
 
@@ -1791,7 +1798,7 @@ get_zone(name, inaddr, host)
 		 * Dump data to cache if so requested.
 		 */
 		if (dumping && (cache_write(answer, (size_t) n) < 0)) {
-			(void) close(sock);
+			(void) _res_close(sock);
 			seth_errno(CACHE_ERROR);
 			return (FALSE);
 		}
@@ -1811,7 +1818,7 @@ get_zone(name, inaddr, host)
 	 */
 	if (dumping && (cache_write(answer, 0) < 0)) {
 		assert(!loading);
-		(void) close(sock);
+		(void) _res_close(sock);
 		seth_errno(CACHE_ERROR);
 		return (FALSE);
 	}
@@ -1821,7 +1828,7 @@ get_zone(name, inaddr, host)
 	if (loading)
 		(void) cache_close(FALSE);
 	else
-		(void) close(sock);
+		(void) _res_close(sock);
 
 	/*
 	 * Check for the anomaly that the whole transfer consisted of the
