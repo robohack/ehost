@@ -1,7 +1,7 @@
 .\"
-.\"	@(#)host.1              e07@nikhef.nl (Eric Wassenaar) 970203
+.\"	@(#)host.1              e07@nikhef.nl (Eric Wassenaar) 980531
 .\"
-.TH host 1 "970203"
+.TH host 1 "980531"
 .SH NAME
 host \- query nameserver about domain names and zones
 .SH SYNOPSIS 
@@ -531,6 +531,16 @@ ATM address
 .TP
 .B NAPTR
 Naming authority URN
+.PP
+The following type is proposed in RFC 2230.
+.TP 10
+.B KX
+Key exchanger (preference value, domain name)
+.PP
+The following types have been proposed, but are still in draft.
+.TP 10
+.B CERT
+Security certificate
 .SH EXAMPLES
 A very good summary and validation of an entire zone can be obtained
 with the following command:
@@ -660,6 +670,10 @@ an error, but the overall hostcount may be wrong, since the A record
 is counted as a host in the parent zone. This A record is not included
 in the hostcount of the delegated zone.
 .TP
+\fIname\fP \fItype\fP record has zero ttl
+Resource records with a zero ttl value are special. They are not cached
+after retrieval from an authoritative nameserver.
+.TP
 \fIname\fP \fItype\fP records have different ttl within \fIzone\fP from \fIserver\fP
 Resource records of the same name/type/class should have the same ttl value
 in zone listings. This is sometimes not the case, due to the independent
@@ -744,6 +758,16 @@ next refresh.
 The retry after a failing refresh would be done after the data
 has already expired.
 .TP
+\fIzone\fP SOA expire is less than 1 week
+The authoritative data at secondary servers expires after only
+one week of failing refresh attempts. This is probably a little
+too early under normal circumstances.
+.TP
+\fIzone\fP SOA expire is more than 6 months
+Secondary servers will retry failing refresh attempts for a period
+of more than 6 months before their authoritative data expires.
+As BIND 8 concludes: war must have broken out.
+.TP
 \fIserver1\fP and \fIserver2\fP have different primary for \fIzone\fP
 If the SOA record is different, the zone data is probably different
 as well. What you get depends on which server you happen to query.
@@ -813,6 +837,8 @@ this option to work.
 This option should be used with caution. Servers may be configured
 to refuse zone transfers if they are flooded with requests.
 .SH "RELATED DOCUMENTATION"
+rfc819, Domain naming convention for internet applications
+.br
 rfc883, Domain names - implementation and specification
 .br
 rfc920, Domain requirements
@@ -831,6 +857,8 @@ rfc1035, Domain names - implementation and specification
 .br
 rfc1101, DNS encoding of network names and other types
 .br
+rfc1122, Requirements for Internet hosts - comm. layers
+.br
 rfc1123, Requirements for Internet hosts - application
 .br
 rfc1183, New DNS RR definitions
@@ -844,6 +872,10 @@ rfc1536, Common DNS implementation errors
 rfc1537, Common DNS data file configuration errors
 .br
 rfc1591, Domain Name System structure and delegation
+.br
+rfc1597, Address allocation for private internets
+.br
+rfc1627, Network 10 considered harmful
 .br
 rfc1637, DNS NSAP resource records
 .br
@@ -878,6 +910,16 @@ rfc2010, Operational criteria for root nameservers
 rfc2052, Specification of location of services (SRV)
 .br
 rfc2065, DNS security extensions (KEY/SIG/NXT)
+.br
+rfc2136, Dynamic updates in the DNS
+.br
+rfc2137, Secure DNS dynamic update
+.br
+rfc2181, Clarifications to the DNS specification
+.br
+rfc2230, Key exchange delegation record for the DNS
+.br
+rfc2308, Negative cacheing of DNS queries
 .SH AUTHOR
 This program is originally from Rutgers University.
 .br

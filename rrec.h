@@ -4,7 +4,7 @@
 **	These define the various resource record fields after decoding
 **	from the internal representation in the nameserver answer buffer.
 **
-**	@(#)rrec.h              e07@nikhef.nl (Eric Wassenaar) 961010
+**	@(#)rrec.h              e07@nikhef.nl (Eric Wassenaar) 971215
 */
 
 #define MAXSTRING 255		/* maximum size of single encoded string */
@@ -195,6 +195,11 @@ typedef struct naptr_data {
 	char nahost[MAXDNAME+1];	/* name of naming authority host */
 } naptr_data_t;
 
+typedef struct kx_data {
+	int kxpref;			/* preference value */
+	char kxhost[MAXDNAME+1];	/* name of kx host */
+} kx_data_t;
+
 /*
 ** Record-specific data fields, nonstandard types.
 */
@@ -258,6 +263,7 @@ typedef struct rrecord {
 		nxt_data_t	data_nxt;
 		srv_data_t	data_srv;
 		naptr_data_t	data_naptr;
+		kx_data_t	data_kx;
 		uinfo_data_t	data_uinfo;
 		uid_data_t	data_uid;
 		gid_data_t	data_gid;
@@ -298,6 +304,7 @@ typedef struct rrecord {
 #define t_nxt		data.data_nxt
 #define t_srv		data.data_srv
 #define t_naptr		data.data_naptr
+#define t_kx		data.data_kx
 #define t_uinfo		data.data_uinfo
 #define t_uid		data.data_uid
 #define t_gid		data.data_gid

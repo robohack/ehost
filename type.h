@@ -7,7 +7,7 @@
 **
 **	They belong in <arpa/nameser.h>
 **
-**	@(#)type.h              e07@nikhef.nl (Eric Wassenaar) 970112
+**	@(#)type.h              e07@nikhef.nl (Eric Wassenaar) 980531
 */
 
 /* never used in practice */
@@ -63,15 +63,19 @@
 #ifndef T_RP
 #define T_RP		17
 #endif
+
 #ifndef T_AFSDB
 #define T_AFSDB		18
 #endif
+
 #ifndef T_X25
 #define T_X25		19
 #endif
+
 #ifndef T_ISDN
 #define T_ISDN		20
 #endif
+
 #ifndef T_RT
 #define T_RT		21
 #endif
@@ -81,6 +85,7 @@
 #ifndef T_NSAP
 #define T_NSAP		22
 #endif
+
 #ifndef T_NSAPPTR
 #define T_NSAPPTR	23
 #endif
@@ -90,6 +95,7 @@
 #ifndef T_SIG
 #define T_SIG		24
 #endif
+
 #ifndef T_KEY
 #define T_KEY		25
 #endif
@@ -154,6 +160,18 @@
 #define T_NAPTR		35
 #endif
 
+/* defined per RFC 2230 */
+
+#ifndef T_KX
+#define T_KX		36
+#endif
+
+/* defined per RFC XXXX */
+
+#ifndef T_CERT
+#define T_CERT		37
+#endif
+
 /* nonstandard types are threatened to become extinct */
 
 #ifndef T_UINFO
@@ -189,6 +207,7 @@
 #ifndef T_MAILB
 #define T_MAILB		253
 #endif
+
 #ifndef T_MAILA
 #define T_MAILA		254
 #endif

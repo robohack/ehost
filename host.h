@@ -1,7 +1,7 @@
 /*
 ** Master include file of the host utility.
 **
-**	@(#)host.h              e07@nikhef.nl (Eric Wassenaar) 970830
+**	@(#)host.h              e07@nikhef.nl (Eric Wassenaar) 971222
 */
 
 #if defined(apollo) && defined(lint)
@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <errno.h>
-#include <netdb.h>
 #include <setjmp.h>
 #include <signal.h>
 #include <time.h>
@@ -27,7 +26,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #endif
+#include <fcntl.h>
 
+#include <netdb.h>
 #undef NOERROR			/* in <sys/streams.h> on solaris 2.x */
 #include <arpa/nameser.h>
 #include <resolv.h>
@@ -43,8 +44,7 @@
 
 #define NO_RREC	(NO_DATA + 1)	/* used for non-authoritative NO_DATA */
 #define NO_HOST	(NO_DATA + 2)	/* used for non-authoritative HOST_NOT_FOUND */
-
-#define QUERY_REFUSED  (NO_DATA + 3)	/* query was refused by server */
+#define QUERY_REFUSED  (NO_DATA + 3)	/* query explicitly refused by server */
 #define SERVER_FAILURE (NO_DATA + 4)	/* instead of TRY_AGAIN upon SERVFAIL */
 #define HOST_NOT_CANON (NO_DATA + 5)	/* host name is not canonical */
 
@@ -95,21 +95,27 @@ typedef union {
 #if !defined(errno)
 EXTERN int errno;
 #endif
+
 #if !defined(h_errno)
 EXTERN int h_errno;		/* defined in the resolver library */
 #endif
+
 EXTERN res_state_t _res;	/* defined in res_init.c */
 
 #include "defs.h"		/* declaration of functions */
 
+#define plural(n)	(((n) == 1) ? "" : "s")
+#define plurale(n)	(((n) == 1) ? "" : "es")
+
 #define is_xdigit(c)	(isascii(c) && isxdigit(c))
+#define is_print(c)	(isascii(c) && isprint(c))
 #define is_space(c)	(isascii(c) && isspace(c))
 #define is_alnum(c)	(isascii(c) && isalnum(c))
 #define is_upper(c)	(isascii(c) && isupper(c))
 
 #define lowercase(c)	(is_upper(c) ? tolower(c) : (c))
 #define lower(c)	(((c) >= 'A' && (c) <= 'Z') ? (c) + 'a' - 'A' : (c))
-#define hexdigit(n)	(((n) < 10) ? '0' + (n) : 'A' + (n) - 10);
+#define hexdigit(c)	(((c) < 10) ? '0' + (c) : 'A' + (c) - 10);
 
 #define bitset(a,b)	(((a) & (b)) != 0)
 #define sameword(a,b)	(strcasecmp(a,b) == 0)
@@ -131,9 +137,6 @@ EXTERN res_state_t _res;	/* defined in res_init.c */
 #define strlength(s)	(int)strlen(s)
 #define in_string(s,c)	(index(s,c) != NULL)
 #define is_quoted(a,b)	(((a) > (b)) && ((a)[-1] == '\\'))
-
-#define plural(n)	(((n) == 1) ? "" : "s")
-#define plurale(n)	(((n) == 1) ? "" : "es")
 
 #ifdef DEBUG
 #define assert(condition)\
