@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.12 2003-04-05 22:22:39 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.13 2003-04-06 03:10:44 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -25,7 +25,7 @@ static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
 
 #include "host.h"
 
-char *dbprefix = DBPREFIX;	/* prefix for debug messages to stdout */
+char *debug_prefix = DEBUG_PREFIX; /* prefix for debug messages to stdout */
 
 ipaddr_t srcaddr = INADDR_ANY;	/* explicit source ip address */
 
@@ -80,7 +80,7 @@ res_send(query, querylen, answer, anslen)
 		return (-1);
 
 	if (bitset(RES_DEBUG, _res.options)) {
-		printf("%sres_send()\n", dbprefix);
+		printf("%sres_send()\n", debug_prefix);
 		pr_query(query, querylen, stdout);
 	}
 
@@ -110,7 +110,7 @@ res_send(query, querylen, answer, anslen)
 retry:
 			if (bitset(RES_DEBUG, _res.options)) {
 				printf("%sQuerying server (# %d) %s address = %s, accepting up to %d answer bytes\n",
-				       dbprefix, ns+1, v_circuit ? "tcp" : "udp",
+				       debug_prefix, ns+1, v_circuit ? "tcp" : "udp",
 				       inet_ntoa(addr->sin_addr),
 				       anslen);
 			}
@@ -135,7 +135,7 @@ retry:
 				if ((n > 0) && bp->tc) {
 					if (bitset(RES_DEBUG, _res.options)) {
 						printf("%struncated answer, %d bytes\n",
-						       dbprefix, n);
+						       debug_prefix, n);
 					}
 					if (!bitset(RES_IGNTC, _res.options)) {
 						v_circuit = 1;
@@ -157,7 +157,7 @@ retry:
 				continue;
 			}
 			if (bitset(RES_DEBUG, _res.options)) {
-				printf("%sgot answer, %d bytes:\n", dbprefix, n);
+				printf("%sgot answer, %d bytes:\n", debug_prefix, n);
 				pr_query(answer, (n > anslen) ? anslen : n, stdout);
 			}
 
@@ -254,7 +254,7 @@ send_stream(addr, query, querylen, answer, anslen)
 	}
 	if (bitset(RES_DEBUG, _res.options)) {
 		printf("%sconnected to %s\n",
-			dbprefix, inet_ntoa(addr->sin_addr));
+			debug_prefix, inet_ntoa(addr->sin_addr));
 	}
 	/*
 	 * Send the query buffer.
@@ -278,7 +278,7 @@ wait:
 	 */
 	if (qp->id != bp->id) {
 		if (bitset(RES_DEBUG, _res.options)) {
-			printf("%sunexpected answer:\n", dbprefix);
+			printf("%sunexpected answer:\n", debug_prefix);
 			pr_query(answer, (n > anslen) ? anslen : n, stdout);
 		}
 		goto wait;
@@ -376,7 +376,7 @@ wait:
 	 */
 	if (qp->id != bp->id) {
 		if (bitset(RES_DEBUG, _res.options))  {
-			printf("%sold answer:\n", dbprefix);
+			printf("%sold answer:\n", debug_prefix);
 			pr_query(answer, (n > anslen) ? anslen : n, stdout);
 		}
 		goto wait;
@@ -388,7 +388,7 @@ wait:
 	if (!check_from()) {
 		if (bitset(RES_DEBUG, _res.options)) {
 			printf("%sunknown server %s:\n",
-				dbprefix, inet_ntoa(from.sin_addr));
+				debug_prefix, inet_ntoa(from.sin_addr));
 			pr_query(answer, (n > anslen) ? anslen : n, stdout);
 		}
 		goto wait;
@@ -467,13 +467,13 @@ host_res_socket(family, type, protocol)
 		if (bitset(RES_DEBUG, _res.options)) {
 			if (srcaddr == INADDR_ANY) {
 				printf("%susing source port %d\n",
-				       dbprefix, port);
+				       debug_prefix, port);
 			} else if (port == 0) {
 				printf("%susing source address %s\n",
-				       dbprefix, inet_ntoa(res_sin.sin_addr));
+				       debug_prefix, inet_ntoa(res_sin.sin_addr));
 			} else {
 				printf("%susing source address %s port %d\n",
-				       dbprefix, inet_ntoa(res_sin.sin_addr), port);
+				       debug_prefix, inet_ntoa(res_sin.sin_addr), port);
 			}
 		}
 
@@ -728,7 +728,7 @@ host_res_read(sock, addr, host, buf, bufsize)
 	if (len > bufsize) {
 		if (bitset(RES_DEBUG, _res.options)) {
 			printf("%sanswer length %u bytes, bufsize only %lu bytes\n",
-			       dbprefix, (unsigned int) len, (unsigned long) bufsize);
+			       debug_prefix, (unsigned int) len, (unsigned long) bufsize);
 		}
 		reslen = len - bufsize;
 	}
@@ -769,7 +769,7 @@ host_res_read(sock, addr, host, buf, bufsize)
 		}
 		if (bitset(RES_DEBUG, _res.options)) {
 			printf("%sresponse truncated to %lu bytes\n",
-			       dbprefix, (unsigned long) bufsize);
+			       debug_prefix, (unsigned long) bufsize);
 		}
 		/* set truncation flag */
 		bp->tc = 1;

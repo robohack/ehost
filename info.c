@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.13 2003-04-04 22:35:50 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.14 2003-04-06 03:12:45 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -93,7 +93,7 @@ get_hostinfo(name, qualified)
 	 * Note that the alias is supposed to be fully qualified.
 	 */
 	if (dot == 0 && (cp = (char *) hostalias(name)) != NULL) {
-		if (verbose)
+		if (verbose)			/* XXX ??? */
 			printf("Aliased %s to %s\n", name, cp);
 
 		result = get_domaininfo(cp, (char *) NULL);
@@ -308,14 +308,14 @@ get_info(answerbuf, name, type, class)
 	if ((n = res_mkquery(QUERY, name, class, type, (qbuf_t *) NULL, 0,
 			     (rrec_t *) NULL, (qbuf_t *) &query, sizeof(querybuf_t))) < 0) {
 		if (debug)
-			printf("%sres_mkquery failed\n", dbprefix);
+			printf("%sres_mkquery failed\n", debug_prefix);
 		set_h_errno(NO_RECOVERY);
 		return (-1);
 	}
 
 	if ((n = res_send((qbuf_t *) &query, n, (qbuf_t *) answerbuf, sizeof(querybuf_t))) < 0) {
 		if (debug)
-			printf("%sres_send failed\n", dbprefix);
+			printf("%sres_send failed\n", debug_prefix);
 		set_h_errno(TRY_AGAIN);
 		return (-1);
 	}
@@ -1606,7 +1606,7 @@ dump_rrec(cp, size, comment)
 		if (comment != NULL)
 			doprintf(("\n\t%s ; %s", hexbuf, ascbuf));
 		else
-			doprintf(("\n%s\t%s ; %s", dbprefix, hexbuf, ascbuf));
+			doprintf(("\n%s\t%s ; %s", debug_prefix, hexbuf, ascbuf));
 	}
 
 	if (comment != NULL)
