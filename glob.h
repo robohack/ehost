@@ -4,7 +4,7 @@
 **	@(#)glob.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: glob.h,v 1.5 2003-04-03 23:16:33 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: glob.h,v 1.6 2003-04-05 22:30:07 -0800 woods Exp $"
 
 #ifdef _DEFINE
 # define GLOBAL
@@ -15,7 +15,7 @@
 extern char *argv0;		/* name that host was called with (main.c) */
 
 extern char *dbprefix;		/* prefix for debug messages (send.c) */
-extern char *version;		/* program version number (vers.c) */
+extern const char *const version; /* program version number (vers.c) */
 
 extern ipaddr_t srcaddr;	/* explicit source address (send.c) */
 extern int minport;		/* first source port in range (send.c) */
