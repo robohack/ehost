@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.17 2003-04-05 22:22:39 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.18 2003-04-06 03:12:22 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -26,8 +26,6 @@ char *myhostname	__P((void));
 void set_server		__P((char *));
 void set_logfile	__P((char *));
 void set_cachedir	__P((char *));
-void fatal		__P((const char *, ...));
-void errmsg		__P((const char *, ...));
 
 	/* info.c */
 
@@ -101,6 +99,7 @@ void pr_error		__P((const char *, ...));
 void pr_warning		__P((const char *, ...));
 void pr_timestamp	__P((const char *, ...));
 void sys_error		__P((const char *, ...));
+void errmsg		__P((const char *, ...));
 bool_t want_type	__P((int, int));
 bool_t want_class	__P((int, int));
 bool_t indomain		__P((char *, const char *, bool_t));
@@ -188,8 +187,8 @@ char *inet_ntoa		__P((struct in_addr));
 
 #endif
 
-#if defined(BIND_4_8)
-char *hostalias		__P((const char *));
+#if defined(ALLOW_HOSTALIASES) && defined(BIND_4_8)
+char *hostalias		__P((const char *));	/* undeclared in old headers */
 #endif
 
 #if defined(__sun__) && !defined(__svr4__)
