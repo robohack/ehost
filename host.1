@@ -1,5 +1,5 @@
 .\"
-.\"#ident "@(#)host:$Name:  $:$Id: host.1,v 1.7 2003-04-06 03:45:36 -0800 woods Exp $"
+.\"#ident "@(#)host:$Name:  $:$Id: host.1,v 1.8 2003-12-04 03:43:28 -0800 woods Exp $"
 .\"
 .\" from: @(#)host.1              e07@nikhef.nl (Eric Wassenaar) 991527
 .\"
@@ -20,9 +20,9 @@ host \- query nameserver about domain names and zones
 .br
 \fBhost\fP [\fB\-v\fP] [\fIoptions\fP] \fB\-A\fP \fIhost\fP
 .sp
-\fBhost\fP [\fIoptions\fP] \fB\-x\fP [\fIname\fP ...]
+\fBhost\fP [\fIoptions\fP] \fB\-x\fP \fIname\fP ...
 .br
-\fBhost\fP [\fIoptions\fP] \fB\-X\fP \fIserver\fP [\fIname\fP ...]
+\fBhost\fP [\fIoptions\fP] \fB\-X\fP \fIserver\fP \fIname\fP ...
 .\"
 .SH "OPTION SYNTAX"
 Besides the traditional short options (one letter with single dash, and
@@ -258,7 +258,7 @@ doing the normal search for the nameservers).
 This can be used for testing purposes in case the zone has not been
 registered yet.
 .TP
-.BI \-P " prefserver"
+.BI \-\-prefserver= "prefserver"
 gives priority for zone transfers to nameservers residing in/at domains
 given by the comma-separated list \fIprefserver\fP.  The more domain
 component labels match, the higher the priority.  If this option is not
@@ -315,6 +315,15 @@ If this option is used, all reverse nsap.int names are by default
 printed in forward notation, only to improve readability.
 The \fB\-Z\fP option forces the output to be in the official zone
 file format.
+.TP
+.B \-P
+In listing and some zone checking modes this option causes the
+nameservers for the zone to be determined, if possible, by first
+querying the parent zone.  In regular query mode this option sets the
+default query type to \fBNS\fP and then configures the resolver library
+to use the zone's authoritative nameservers as given in the parent zone
+in place of the default servers defined in the \fB/etc/resolv.conf\fP
+file.
 .TP
 .B \-q
 be quiet and suppress various warning messages (the ones preceded
