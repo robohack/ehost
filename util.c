@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.8 2003-03-31 21:05:43 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.9 2003-04-03 16:32:18 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -809,7 +809,7 @@ print_answer(answerbuf, answerlen, type)
 	printf("Query for %s records %s", pr_type(type), failed ? "failed" : "done");
 
 	if (bp->tc || (answerlen > PACKETSZ))
-		printf(", %d byte%s", answerlen, plural(answerlen));
+		printf(", %lu byte%s", (unsigned long) answerlen, plural(answerlen));
 
 	if (bp->tc) {
 		if (answerlen > sizeof(querybuf_t))
@@ -1248,7 +1248,7 @@ pr_dotname(name)
 #ifdef obsolete
 	(void) sprintf(buf, "%.*s.", MAXDNAME, name);
 #endif
-	memcpy(name, buf, n);
+	memcpy(buf, name, n);
 	buf[n] = '.';
 	buf[n + 1] = '\0';
 
