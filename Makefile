@@ -5,10 +5,10 @@
 # ----------------------------------------------------------------------
 
 # This is where the host executable will go.
-DESTBIN = /usr/local/bin
+DESTBIN = /local/bin
 
 # This is where the host manual page will go.
-DESTMAN = /usr/local/man
+DESTMAN = /local/share/man
 
 BINDIR = $(DESTBIN)
 MANDIR = $(DESTMAN)/man1
@@ -68,6 +68,7 @@ CC = cc
 CC = /usr/ucb/cc			#if defined(solaris) && BSD
 CC = /bin/cc -arch m68k -arch i386	#if defined(next)
 CC = /bin/cc
+CC = /usr/5bin/cc
 
 # ----------------------------------------------------------------------
 # Linking definitions.
@@ -85,6 +86,7 @@ RES = -lresolv
 COMPLIB =
 COMPLIB = ../compat/lib/lib44bsd.a
 COMPLIB = -lnet
+COMPLIB =
 
 LIBS = -lsocket -lnsl			#if defined(solaris) && not BSD
 LIBS =
