@@ -4,7 +4,7 @@
 **	@(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: host.h,v 1.2 2002-01-11 22:15:31 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.3 2003-03-21 19:08:29 -0800 woods Exp $"
 
 #if defined(apollo) && defined(lint)
 #define __attribute(x)
@@ -26,6 +26,8 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/in_systm.h>
+#include <netinet/ip.h>
 #endif
 
 #include <sys/stat.h>
@@ -69,6 +71,10 @@
 #define NOT_DOTTED_QUAD	((ipaddr_t)-1)
 #define BROADCAST_ADDR	((ipaddr_t)0xffffffff)
 #define LOCALHOST_ADDR	((ipaddr_t)0x7f000001)
+
+#if !defined(PACKETSZ) && defined(IP_MAXPACKET)
+# define PACKETSZ	IP_MAXPACKET
+#endif
 
 #if PACKETSZ > 8192
 #define MAXPACKET PACKETSZ	/* PACKETSZ should be the max udp size (512) */
