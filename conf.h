@@ -4,20 +4,7 @@
 **	@(#)conf.h              e07@nikhef.nl (Eric Wassenaar) 961013
 */
 
-#ident "@(#)host:$Name:  $:$Id: conf.h,v 1.4 2003-03-29 02:54:47 -0800 woods Exp $"
-
-/*
- * A special version of res_send() is included, which returns additional
- * errno statuses, and which corrects some flaws in the BIND 4.8 version.
- */
-
-#if !defined(HOST_RES_SEND) && !defined(BIND_RES_SEND)
-# if defined(BIND_4_9) || ((__BIND - 0) > 19950621)
-#  define BIND_RES_SEND		/* use the default BIND res_send() */
-# else
-#  define HOST_RES_SEND		/* use the special host res_send() */
-# endif
-#endif
+#ident "@(#)host:$Name:  $:$Id: conf.h,v 1.5 2003-04-06 03:11:07 -0800 woods Exp $"
 
 /*
  * The root domain for the internet reversed mapping zones.
@@ -74,8 +61,6 @@
  */
 
 #define MAXCHAIN	10	/* maximum count of recursive chain lookups */
-#define MAXALIAS	35	/* maximum aliases count from gethnamaddr.c */
-#define MAXADDRS	35	/* maximum address count from gethnamaddr.c */
 #define MAXNSNAME	16	/* maximum count of nameservers per zone */
 #define MAXIPADDR	10	/* maximum count of addresses per nameserver */
 
@@ -87,13 +72,3 @@
 #define DEF_RETRANS	5	/* timeout (seconds) between datagram retries */
 #define CONNTIMEOUT	5	/* connect timeout (value _res.retrans used) */
 #define READTIMEOUT	60	/* read timeout (seconds) during stream I/O */
-
-/*
- * Prefix for messages on stdout in debug mode.
- */
-
-#if !defined(BIND_4_8)
-# define DBPREFIX	";; "
-#else
-# define DBPREFIX	""
-#endif
