@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.12 2003-04-03 23:16:02 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.13 2003-04-04 04:01:25 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -149,7 +149,6 @@ int cache_open		__P((char *, bool_t));
 int cache_close		__P((bool_t));
 int cache_write		__P((char *, size_t));
 int cache_read		__P((char *, size_t));
-off_t cache_getfilesize	__P((void));
 void cache_perror	__P((char *, char *));
 
 	/* send.c */
