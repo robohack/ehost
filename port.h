@@ -4,49 +4,59 @@
 **	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.6 2003-03-29 19:50:50 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.7 2003-03-30 17:38:57 -0800 woods Exp $"
 
 #if defined(__SVR4) || defined(__svr4__)
 # define SVR4
 #endif
 
-#if defined(SYSV) || defined(SVR4)
-# define SYSV_MALLOC
-# define SYSV_MEMSET
-# define SYSV_STRCHR
-# define SYSV_SETVBUF
+#if defined(SYSV) || defined(SVR4) || (defined(sun) && defined(unix) && !defined(SVR4))
+# define SYSV_MALLOC	1
+# define SYSV_MEMSET	1
+# define SYSV_SETVBUF	1
+# define HAVE_UNISTD_H	1
+# define HAVE_STRING_H	1
+# define HAVE_MEMORY_H	1
 #endif
 
 #if defined(WINNT)
-# define SYSV_MALLOC
-# define SYSV_STRCHR
-# define SYSV_SETVBUF
+# define SYSV_MALLOC	1
+# define SYSV_SETVBUF	1
 #endif
 
 #if defined(__hpux) || defined(hpux)
-# define SYSV_MALLOC
-# define SYSV_SETVBUF
+# define SYSV_MALLOC	1
+# define SYSV_SETVBUF	1
+# define HAVE_UNISTD_H	1
+# define HAVE_STRING_H	1
+# define HAVE_MEMORY_H	1
 #endif
 
 #if defined(sgi)
-# define SYSV_MALLOC
+# define SYSV_MALLOC	1
+# define HAVE_UNISTD_H	1
 #endif
 
-#if defined(linux)
-# define SYSV_MALLOC
+#if defined(linux) || defined(__linux__)
+# define SYSV_MALLOC	1
+# define HAVE_UNISTD_H	1
+# define HAVE_STRING_H	1
 #endif
 
 #if defined(bsdi) || defined(__bsdi__)
-# define SYSV_MALLOC
+# define SYSV_MALLOC	1
+# define HAVE_UNISTD_H	1
+# define HAVE_STRING_H	1
 #endif
 
-#if defined(__NetBSD__)
-# define SYSV_MALLOC
-# define SYSV_MEMSET
+#if defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__)
+# define SYSV_MEMSET	1
+# define HAVE_UNISTD_H	1
+# define HAVE_STRING_H	1
 #endif
 
 #if defined(NeXT)
-# define SYSV_MALLOC
+# define SYSV_MALLOC	1
 #endif
 
 #if !defined(sgi) && !defined(__STDC__)
@@ -100,6 +110,16 @@ typedef int		bool_t;		/* boolean type */
 #undef FALSE				/* SunOS-5 defines this in <rpc/types.h> */
 #define FALSE		0
 
+#ifndef STDIN_FILENO
+# define STDIN_FILENO	0
+#endif
+#ifndef STDOUT_FILENO
+# define STDOUT_FILENO	1
+#endif
+#ifndef STDERR_FILENO
+# define STDERR_FILENO	2
+#endif
+
 #if !defined(HAVE_INET_ATON) && \
     (((__BIND - 0) > 19950621) || \
      ((__NAMESER - 0) > 19961001) || \
@@ -150,7 +170,7 @@ typedef int	sigtype_t;
 typedef void	sigtype_t;
 #endif
 
-#ifdef SYSV_MALLOC
+#if defined(SYSV_MALLOC) || defined(__STDC__)
 typedef void	ptr_t;		/* generic pointer type */
 typedef void	free_t;
 #else
@@ -161,11 +181,6 @@ typedef int	free_t;
 #ifdef SYSV_MEMSET
 # define bzero(a, n)	(void) memset(a, '\0', n)
 # define bcopy(a, b, n)	(void) memcpy(b, a, n)
-#endif
-
-#ifdef SYSV_STRCHR
-# define index		strchr
-# define rindex		strrchr
 #endif
 
 #ifdef SYSV_SETVBUF
