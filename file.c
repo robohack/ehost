@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: file.c,v 1.5 2003-03-30 17:33:32 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: file.c,v 1.6 2003-03-30 20:48:45 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)file.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -240,7 +240,7 @@ cache_write(buf, bufsize)
 	input char *buf;		/* location of raw answer buffer */
 	input size_t bufsize;		/* length of answer buffer */
 {
-	u_short len;
+	u_int len;
 	char *buffer;
 	size_t buflen;
 	register int n;
@@ -254,14 +254,17 @@ cache_write(buf, bufsize)
 	 */
 #if 0
 	len = htons((u_short) bufsize);
+#else
+	ns_put16((u_int) bufsize, (u_char *) &len);
 #endif
-	putshort((u_short) bufsize, (u_char *) &len);	/* XXX from resolv.h, bogus broken API! */
 
 	buffer = (char *) &len;
 	buflen = INT16SZ;
 
 	while (buflen > 0 && (n = write(cachefd, buffer, buflen)) > 0) {
+#if 0
 		buffer += n;
+#endif
 		buflen -= n;
 	}
 	if (buflen != 0) {
@@ -278,7 +281,9 @@ cache_write(buf, bufsize)
 	buflen = bufsize;
 
 	while (buflen > 0 && (n = write(cachefd, buffer, buflen)) > 0) {
+#if 0
 		buffer += n;
+#endif
 		buflen -= n;
 	}
 	if (buflen != 0) {
@@ -345,8 +350,11 @@ cache_read(buf, bufsize)
 	/*
 	 * Terminate if length is zero.
 	 */
-	/* len = ntohs(len); */
-	len = _getshort((u_char *) &len);
+#if 0
+	len = ntohs(len);
+#else
+	len = ns_get16((const u_char *) &len);
+#endif
 	if (len == 0)
 		return (0);
 
@@ -357,7 +365,9 @@ cache_read(buf, bufsize)
 	reslen = 0;
 	if ((int) len > bufsize) {
 		reslen = len - bufsize;
-		/* len = bufsize; */
+#if 0
+		len = bufsize;
+#endif
 	}
 
 	/*

@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: misc.c,v 1.5 2003-03-30 17:31:47 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: misc.c,v 1.6 2003-03-30 20:51:16 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)misc.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -273,7 +273,7 @@ ipng_ntoa(cp)
 	register int i;
 
 	for (p = buf, i = 0; i < IPNGSIZE/2; i++) {
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		cp += INT16SZ;
 
 		(void) sprintf(p, ":%X", n);

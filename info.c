@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.7 2003-03-30 17:36:11 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.8 2003-03-30 20:51:16 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -614,7 +614,8 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	input int qtype;		/* record type we are querying about */
 	input int qclass;		/* record class we are querying about */
 	input register u_char *cp;	/* current position in answer buf */
-	input u_char *msg, *eom;	/* begin and end of answer buf */
+	input u_char *msg;		/* begin of answer buf */
+	input u_char *eom;		/* end of answer buf */
 	input bool_t regular;		/* set if this is a regular lookup */
 {
 	char rname[MAXDNAME+1];		/* record name in LHS */
@@ -641,16 +642,16 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	if (check_size(rname, T_NONE, cp, msg, eom, n) < 0)
 		return (NULL);
 
-	type = _getshort(cp);
+	type = ns_get16(cp);
 	cp += INT16SZ;
 
-	class = _getshort(cp);
+	class = ns_get16(cp);
 	cp += INT16SZ;
 
-	ttl = _getlong(cp);
+	ttl = ns_get32(cp);
 	cp += INT32SZ;
 
-	dlen = _getshort(cp);
+	dlen = ns_get16(cp);
 	cp += INT16SZ;
 
 	if (check_size(rname, type, cp, msg, eom, dlen) < 0)
@@ -740,7 +741,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 				n = *cp++;
 				doprintf((" ; proto = %s", dtoa(n)));
 
-				n = _getshort(cp);
+				n = ns_get16(cp);
 				doprintf((", port = %s", dtoa(n)));
 				cp += INT16SZ;
 				break;
@@ -756,7 +757,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_MX:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
@@ -805,27 +806,27 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 			break;
 		doprintf((" ("));
 
-		n = _getlong(cp);
+		n = ns_get32(cp);
 		doprintf(("\n\t\t\t%s", utoa(n)));
 		doprintf(("\t;serial number (version)"));
 		cp += INT32SZ;
 
-		n = _getlong(cp);
+		n = ns_get32(cp);
 		doprintf(("\n\t\t\t%s", dtoa(n)));
 		doprintf(("\t;slave refresh period (%s)", pr_time(n, FALSE)));
 		cp += INT32SZ;
 
-		n = _getlong(cp);
+		n = ns_get32(cp);
 		doprintf(("\n\t\t\t%s", dtoa(n)));
 		doprintf(("\t;slave retry interval (%s)", pr_time(n, FALSE)));
 		cp += INT32SZ;
 
-		n = _getlong(cp);
+		n = ns_get32(cp);
 		doprintf(("\n\t\t\t%s", dtoa(n)));
 		doprintf(("\t;slave expire time (%s)", pr_time(n, FALSE)));
 		cp += INT32SZ;
 
-		n = _getlong(cp);
+		n = ns_get32(cp);
 		doprintf(("\n\t\t\t%s", dtoa(n)));
 		doprintf(("\t;negative response TTL (%s)", pr_time(n, FALSE)));
 		cp += INT32SZ;
@@ -928,7 +929,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_UID:
 	case T_GID:
 		if (dlen == INT32SZ) {
-			n = _getlong(cp);
+			n = ns_get32(cp);
 			doprintf(("\t%s", dtoa(n)));
 			cp += INT32SZ;
 		}
@@ -954,7 +955,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_RT:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
@@ -967,7 +968,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_AFSDB:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
@@ -1016,7 +1017,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_PX:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
@@ -1062,18 +1063,18 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 		n = INT32SZ + 3*INT32SZ;
 		if (check_size(rname, type, cp, msg, eor, n) < 0)
 			break;
-		c = _getlong(cp);
+		c = ns_get32(cp);
 		cp += INT32SZ;
 
-		n = _getlong(cp);
+		n = ns_get32(cp);
 		doprintf(("\t%s ", pr_spherical(n, "N", "S")));
 		cp += INT32SZ;
 
-		n = _getlong(cp);
+		n = ns_get32(cp);
 		doprintf((" %s ", pr_spherical(n, "E", "W")));
 		cp += INT32SZ;
 
-		n = _getlong(cp);
+		n = ns_get32(cp);
 		doprintf((" %sm ", pr_vertical(n, "", "-")));
 		cp += INT32SZ;
 
@@ -1097,7 +1098,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_SIG:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		if (n >= T_FIRST && n <= T_LAST)
 			doprintf(("\t%s", pr_type(n)));
 		else
@@ -1119,22 +1120,22 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 			break;
 		doprintf((" ("));
 
-		n = _getlong(cp);
+		n = ns_get32(cp);
 		doprintf(("\n\t\t\t%s", dtoa(n)));
 		doprintf(("\t\t;original ttl"));
 		cp += INT32SZ;
 
-		n = _getlong(cp);
+		n = ns_get32(cp);
 		doprintf(("\n\t\t\t%s", pr_date(n)));
 		doprintf(("\t;signature expiration"));
 		cp += INT32SZ;
 
-		n = _getlong(cp);
+		n = ns_get32(cp);
 		doprintf(("\n\t\t\t%s", pr_date(n)));
 		doprintf(("\t;signature inception"));
 		cp += INT32SZ;
 
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		doprintf(("\n\t\t\t%s", dtoa(n)));
 		doprintf(("\t\t;key tag"));
 		cp += INT16SZ;
@@ -1164,7 +1165,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_KEY:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		doprintf(("\t0x%s", xtoa(n)));
 		cp += INT16SZ;
 
@@ -1220,19 +1221,19 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_SRV:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		doprintf((" %s", dtoa(n)));
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		doprintf((" %s", dtoa(n)));
 		cp += INT16SZ;
 
@@ -1245,13 +1246,13 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_NAPTR:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		doprintf((" %s", dtoa(n)));
 		cp += INT16SZ;
 
@@ -1282,7 +1283,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_KX:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
@@ -1295,13 +1296,13 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_CERT:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
-		n = _getshort(cp);
+		n = ns_get16(cp);
 		doprintf((" %s", dtoa(n)));
 		cp += INT16SZ;
 
@@ -1645,10 +1646,10 @@ skip_qrec(name, qtype, qclass, cp, msg, eom)
 	if (check_size(rname, T_NONE, cp, msg, eom, n) < 0)
 		return (NULL);
 
-	type = _getshort(cp);
+	type = ns_get16(cp);
 	cp += INT16SZ;
 
-	class = _getshort(cp);
+	class = ns_get16(cp);
 	cp += INT16SZ;
 
 #ifdef DEBUG

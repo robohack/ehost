@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.8 2003-03-30 17:30:57 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.9 2003-03-30 20:51:16 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -909,16 +909,16 @@ get_nsinfo(answerbuf, answerlen, name, qtype, qclass)
 		if (check_size(rname, T_NONE, cp, msg, eom, n) < 0)
 			return (FALSE);
 
-		type = _getshort(cp);
+		type = ns_get16(cp);
 		cp += INT16SZ;
 
-		class = _getshort(cp);
+		class = ns_get16(cp);
 		cp += INT16SZ;
 
-		ttl = _getlong(cp);
+		ttl = ns_get32(cp);
 		cp += INT32SZ;
 
-		dlen = _getshort(cp);
+		dlen = ns_get16(cp);
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eom, dlen) < 0)
@@ -1615,7 +1615,7 @@ get_zone(name, inaddr, host)
 #if 0 /* why not? */
 		len = ntohs(len);
 #else
-		len = _getshort((u_char *) &len);
+		len = ns_get16((u_char *) &len);
 #endif
 		if (len == 0) {
 			seterrno(EINVAL);
@@ -2253,16 +2253,16 @@ get_soainfo(answerbuf, answerlen, name, qtype, qclass)
 		if (check_size(rname, T_NONE, cp, msg, eom, n) < 0)
 			return (FALSE);
 
-		type = _getshort(cp);
+		type = ns_get16(cp);
 		cp += INT16SZ;
 
-		class = _getshort(cp);
+		class = ns_get16(cp);
 		cp += INT16SZ;
 
-		ttl = _getlong(cp);
+		ttl = ns_get32(cp);
 		cp += INT32SZ;
 
-		dlen = _getshort(cp);
+		dlen = ns_get16(cp);
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eom, dlen) < 0)
@@ -2286,15 +2286,15 @@ get_soainfo(answerbuf, answerlen, name, qtype, qclass)
 			n = 5 * INT32SZ;
 			if (check_size(rname, type, cp, msg, eor, n) < 0)
 				return (FALSE);
-			soa.serial = _getlong(cp);
+			soa.serial = ns_get32(cp);
 			cp += INT32SZ;
-			soa.refresh = _getlong(cp);
+			soa.refresh = ns_get32(cp);
 			cp += INT32SZ;
-			soa.retry = _getlong(cp);
+			soa.retry = ns_get32(cp);
 			cp += INT32SZ;
-			soa.expire = _getlong(cp);
+			soa.expire = ns_get32(cp);
 			cp += INT32SZ;
-			soa.nxdomttl = _getlong(cp);
+			soa.nxdomttl = ns_get32(cp);
 			cp += INT32SZ;
 
 			/* valid complete soa record found */
