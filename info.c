@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.14 2003-04-06 03:12:45 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.15 2003-06-04 20:10:56 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -313,7 +313,7 @@ get_info(answerbuf, name, type, class)
 		return (-1);
 	}
 
-	if ((n = res_send((qbuf_t *) &query, n, (qbuf_t *) answerbuf, sizeof(querybuf_t))) < 0) {
+	if ((n = res_send((qbuf_t *) &query, n, (qbuf_t *) answerbuf, sizeof(*answerbuf))) < 0) {
 		if (debug)
 			printf("%sres_send failed\n", debug_prefix);
 		set_h_errno(TRY_AGAIN);
