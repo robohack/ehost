@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.10 2003-03-31 21:56:46 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.11 2003-04-03 18:25:06 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -155,13 +155,13 @@ void cache_perror	__P((char *, char *));
 
 #ifdef HOST_RES_SEND
 int res_send		__P((const qbuf_t *, int, qbuf_t *, int));
-void _res_close		__P((void));
 static bool_t check_from __P((void));
 static int send_stream	__P((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
 static int send_dgram	__P((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
 #endif /*HOST_RES_SEND*/
 
 int _res_socket		__P((int, int, int));
+int _res_close		__P((int));
 int _res_blocking	__P((int, bool_t));
 sigtype_t timer		__P((int));
 int _res_connect	__P((int, struct sockaddr_in *, socklen_t));
