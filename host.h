@@ -4,7 +4,7 @@
 ** from: @(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: host.h,v 1.6 2003-03-30 17:38:26 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.7 2003-03-30 17:59:36 -0800 woods Exp $"
 
 #if defined(apollo) && defined(lint)
 # define __attribute(x)		/* XXX ??? */
@@ -13,6 +13,10 @@
 #define justfun			/* this is only for fun, but everyone needs some fun! */
 #undef  obsolete		/* old code left as a reminder */
 #undef  notyet			/* new code for possible future use */
+
+#if defined(__NetBSD__) && defined(__GNUC__)
+# define unix	1		/* avoid bogus ``"unix" is no longer predefined'' warning */
+#endif
 
 #if (defined(sun) && defined(unix)) || (defined(__sun__) && defined(__unix__))
 # define TIME_WITH_SYS_TIME	1
