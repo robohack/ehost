@@ -1,5 +1,5 @@
 #
-#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.11 2003-03-31 21:59:02 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.12 2003-04-09 06:27:23 -0800 woods Exp $"
 #
 # from:	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 991515
 
@@ -71,24 +71,20 @@ DESTCONF = ${DESTDIR}/${CONFDIR}
 #CONFIGDEFS = -DOLD_RES_STATE
 #endif
 
-#if defined(BIND_4_8) && You want to use the default bind res_send()
-#CONFIGDEFS = -DBIND_RES_SEND
-#endif
-
-#if defined(BIND_4_9) || newer && You want to use the special host res_send()
-#CONFIGDEFS = -DHOST_RES_SEND
-#endif
-
 # By default we want to use the latest avaliable resolver API.
 #
 # Keep in mind that if your resolver library has hooks for using
-# non-DNS naming systems (YP, HESIOD, etc.), and if your target
+# non-DNS naming systems (YP/NIS, HESIOD, etc.), and if your target
 # system(s) might make use of those hooks, then using the system
 # resolver will cause grief to "host" users who expect only to query
-# the DNS!  Either install a pure BIND resolver library to avoid this,
-# or switch to the HOST_RES_SEND option above.
+# the DNS!
 #
-CONFIGDEFS = -DBIND_RES_SEND
+# Either install a pure BIND resolver library and link host against it
+# to avoid this, or enable the HOST_RES_SEND option.
+#
+#if defined(BIND_4_9) || newer && You still want to use the special host res_send()
+CONFIGDEFS = -DHOST_RES_SEND
+#endif
 
 # ----------------------------------------------------------------------
 # Include file directories.
