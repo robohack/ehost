@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.15 2003-11-01 00:26:51 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.16 2003-11-01 00:37:36 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -1701,7 +1701,7 @@ canonical(name)
 	save_errno = errno;
 	save_herrno = h_errno;
 
-	if (debug || verbose > print_level)
+	if (debug || verbose)
 		printf("Checking if %s is a canonical hostname ...\n", name);
 
 	/*
