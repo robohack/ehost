@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.15 2003-06-04 20:10:56 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.16 2003-11-01 00:29:28 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -221,13 +221,13 @@ get_domaininfo(name, domain)
 	/*
 	 * Show what we are about to query.
 	 */
-	if (verbose) {
+	if (verbose > 1) {
 		if (domain == NULL || domain[0] == '\0')
 			printf("Trying %s", name);
 		else
 			printf("Trying %s within %s", name, domain);
 
-		if (server && (verbose > 1))
+		if (server)
 			printf(" at server %s", server);
 
 		printf(" ...\n");
@@ -290,8 +290,10 @@ get_info(answerbuf, name, type, class)
 {
 	querybuf_t query;
 	HEADER *bp;
+	int qdcount;
 	int ancount;
 	int nscount;
+	int arcount;
 	register int n;
 
 	/*
@@ -336,8 +338,14 @@ get_info(answerbuf, name, type, class)
 		print_answer(answerbuf, (size_t) n, type);
 
 	bp = (HEADER *) answerbuf;
+	qdcount = ntohs((u_short) bp->qdcount);
 	ancount = ntohs((u_short) bp->ancount);
 	nscount = ntohs((u_short) bp->nscount);
+	arcount = ntohs((u_short) bp->arcount);
+
+	if (debug)
+		printf("get_info(%s): qdcount = %d, ancount = %d, nscount = %d, arcount = %d\n",
+		       name, qdcount, ancount, nscount, arcount);
 
 	if (bp->rcode != NOERROR || (type != T_NS && ancount == 0) ||
 	    (type == T_NS && (nscount == 0 && ancount == 0))) {
@@ -353,14 +361,20 @@ get_info(answerbuf, name, type, class)
 			break;
 
 		case SERVFAIL:
+			if (debug)
+				printf("%sres_send returned with SERVFAIL\n", debug_prefix);
 			set_h_errno(SERVER_FAILURE); /* instead of TRY_AGAIN */
 			break;
 
 		case REFUSED:
+			if (debug)
+				printf("%sres_send returned with REFUSED\n", debug_prefix);
 			set_h_errno(QUERY_REFUSED); /* instead of NO_RECOVERY */
 			break;
 
 		default:
+			if (debug)
+				printf("%sres_send returned with %d\n", debug_prefix, bp->rcode);
 			set_h_errno(NO_RECOVERY); /* FORMERR NOTIMP NOCHANGE */
 			break;
 		}
@@ -417,6 +431,9 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 	 * Skip the query section in the response (present only in normal queries).
 	 */
 	if (qdcount) {
+		if (debug)
+			printf("Query section contains (%d record%s):\n", qdcount, plural(qdcount));
+
 		while (qdcount > 0 && cp < eom) { /* process all records */
 			if (!(cp = skip_qrec(name, type, class, cp, msg, eom)))
 				return (FALSE);
@@ -435,8 +452,10 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 	 * During zone transfers, this is the only section available.
 	 */
 	if (ancount) {
-		if ((type != T_AXFR) && verbose && !bp->aa)
+		if ((type != T_AXFR) && verbose >= print_level+1 && !bp->aa)
 			printf("The following answer is not authoritative:\n");
+		if (verbose >= print_level+1)
+			printf("Answer section contains (%d record%s):\n", ancount, plural(ancount));
 
 		while (ancount > 0 && cp < eom) {
 			/* reset for each record during zone listings */
@@ -453,9 +472,11 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 			if (type == T_AXFR)
 				update_zone(name);
 
+#if 0
 			/* we trace down CNAME chains ourselves */
 			if (regular && !verbose && cname)
 				return (TRUE);
+#endif
 
 			/* recursively expand MR/MG records into MB records */
 			if (regular && mailmode && mname)
@@ -473,14 +494,15 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 	 * The nameserver and additional info section are normally not
 	 * processed.  Both sections shouldn't exist in zone transfers.
 	 */
-	if (type != T_NS && (!verbose || exclusive))
+	if (type != T_NS || (!verbose && exclusive))
 		return (TRUE);
 
 	if (nscount) {
 		if (type == T_NS && ntohs((u_short) bp->ancount) == 0) /* ancount already used up! */
-			printf("Refer to the following authoritative servers:\n");
+			printf("Refer to%s the following %d authoritative server%s:\n",
+			       ((nscount > 1) ? " one of" : ""), nscount, plural(nscount));
 		else
-			printf("Authority section contains:\n");
+			printf("Authority section contains (%d record%s):\n", nscount, plural(nscount));
 
 		while (nscount > 0 && cp < eom) {
 			print_level++;
@@ -502,7 +524,7 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 		return (TRUE);
 
 	if (arcount) {
-		printf("Additional information:\n");
+		printf("Additional information (%d record%s):\n", arcount, plural(arcount));
 
 		while (arcount > 0 && cp < eom) {
 			print_level++;
@@ -597,16 +619,16 @@ print_data(fmt, va_alist)
 #define pr_name(x)	pr_domain(x, listing)
 
 /* check the LHS record name of these records for invalid characters */
-#define test_valid(t)	(((t == T_A) && !reverse) || t == T_MX || t == T_AAAA)
+#define should_test_valid(t)	(((t == T_A) && !reverse) || t == T_MX || t == T_AAAA)
 
 /* check the RHS domain name of these records for canonical host names */
-#define test_canon(t)	(t == T_NS || t == T_MX)
+#define should_test_canon(t)	(t == T_NS || t == T_MX)
 
 /* an ordinary PTR record in a reverse zone */
-#define test_ptr(t,s)	(((t == T_PTR) && reverse) && !zeroname(s))
+#define should_test_ptr(t,s)	(((t == T_PTR) && reverse) && !zeroname(s))
 
 /* an ordinary A record in a forward zone */
-#define test_adr(t,a)	(((t == T_A) && !reverse) && !fakeaddr(a))
+#define should_test_addr(t,a)	(((t == T_A) && !reverse) && !fakeaddr(a))
 
 u_char *
 print_rrec(name, qtype, qclass, cp, msg, eom, regular)
@@ -685,18 +707,27 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 #endif
 
 	/*
-	 * Print name and common values, if appropriate.
+	 * Print the record name.
 	 */
 	doprintf(("%-20s", pr_name(rname)));
 
-	if (verbose || ttlprint) {
+	/*
+	 * Print TTL, if appropriate.
+	 */
+	if (debug || verbose > 1 || ttlprint) {
 		doprintf(("\t%s", dtoa(ttl)));
 	}
 
+	/*
+	 * Print CLASS, if appropriate.
+	 */
 	if (verbose || classprint || (class != qclass)) {
 		doprintf(("\t%s", pr_class(class)));
 	}
 
+	/*
+	 * Print the record type.
+	 */
 	doprintf(("\t%s", pr_type(type)));
 
 	/*
@@ -1459,15 +1490,15 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	 * selected records.  By default underscores are not reported during
 	 * deep recursive listings.
 	 */
-	if (test_valid(type) && !valid_name(rname, TRUE, FALSE, underskip)) {
+	if (should_test_valid(type) && !valid_name(rname, TRUE, FALSE, underskip)) {
 		pr_error("%s %s record has invalid name",
 			 rname, pr_type(type));
 	}
-	if (test_canon(type) && !valid_name(dname, FALSE, FALSE, underskip)) {
+	if (should_test_canon(type) && !valid_name(dname, FALSE, FALSE, underskip)) {
 		pr_error("%s %s host %s has invalid name",
 			 rname, pr_type(type), dname);
 	}
-	if (test_ptr(type, rname) && !valid_name(dname, FALSE, FALSE, underskip)) {
+	if (should_test_ptr(type, rname) && !valid_name(dname, FALSE, FALSE, underskip)) {
 		pr_error("%s %s host %s has invalid name",
 			 rname, pr_type(type), dname);
 	}
@@ -1478,7 +1509,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	 * By default this test is suppressed during deep recursive zone
 	 * listings.  Results are cached globally, not on a per-zone basis.
 	 */
-	if (!canonskip && test_canon(type) && ((n = check_canon(dname)) != 0)) {
+	if (!canonskip && should_test_canon(type) && ((n = check_canon(dname)) != 0)) {
 		/* only report definitive target host failures */
 		if (n == HOST_NOT_FOUND) {
 			pr_error("%s %s host %s does not exist",
@@ -1489,6 +1520,9 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 		} else if (n == HOST_NOT_CANON) {
 			pr_error("%s %s host %s is not canonical",
 				 rname, pr_type(type), dname);
+		} else if (n) {
+			pr_error("%s %s host %s: %s",
+				 rname, pr_type(type), dname, hstrerror(n)); /* XXX host_hstrerror() */
 		}
 		/* authoritative failure to find nameserver target host */
 		if (type == T_NS && (n == NO_DATA || n == HOST_NOT_FOUND)) {
@@ -1513,7 +1547,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	 * or host 255 entries, indicating network names as suggested by RFC
 	 * 1101.
 	 */
-	if (addrmode && test_ptr(type, rname) && ((n = canonical(dname)) != 0)) {
+	if (addrmode && should_test_ptr(type, rname) && ((n = canonical(dname)) != 0)) {
 		/* only report definitive target host failures */
 		if (n == HOST_NOT_FOUND) {
 			pr_warning("%s %s host %s does not exist",
@@ -1524,6 +1558,9 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 		} else if (n == HOST_NOT_CANON) {
 			pr_warning("%s %s host %s is not canonical",
 				   rname, pr_type(type), dname);
+		} else if (n) {
+			pr_error("%s %s host %s: %s",
+				 rname, pr_type(type), dname, hstrerror(n)); /* XXX host_hstrerror() */
 		}
 	}
 
@@ -1535,7 +1572,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	 * Note that in reverse zones there are usually no A records, except
 	 * perhaps to specify a network mask as suggested in RFC 1101.
 	 */
-	if (addrmode && test_adr(type, address)) {
+	if (addrmode && should_test_addr(type, address)) {
 		if (!(host = mapreverse(rname, inaddr))) {
 			pr_warning("%s address %s is not registered",
 				   rname, inet_ntoa(inaddr));
@@ -1556,6 +1593,9 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 		} else if (n == NO_DATA) {
 			pr_warning("%s %s target %s has no ANY record",
 				   rname, pr_type(type), dname);
+		} else if (n) {
+			pr_error("%s %s host %s: %s",
+				 rname, pr_type(type), dname, hstrerror(n)); /* XXX host_hstrerror() */
 		}
 	}
 
@@ -1653,11 +1693,8 @@ skip_qrec(name, qtype, qclass, cp, msg, eom)
 	class = ns_get16(cp);
 	cp += INT16SZ;
 
-#ifdef DEBUG
-	if (verbose)
-		printf("%-20s\t%s\t%s\n",
-		       rname, pr_class(class), pr_type(type));
-#endif
+	if (debug)
+		printf("%-20s\t%s\t%s\n", rname, pr_class(class), pr_type(type));
 
 	/*
 	 * The values in the answer should match those in the query.
