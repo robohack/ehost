@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.22 2003-11-17 05:29:26 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.23 2003-12-04 03:32:33 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -30,18 +30,18 @@ static bool_t check_cache	__P((char *, char *));
 
 
 /*
- * Nameserver information.
- * Stores names and addresses of all servers that are to be queried
- * for a zone transfer of the desired zone. Normally these are the
- * authoritative primary and/or secondary nameservers for the zone.
+ * Nameserver information.  Stores names and addresses of all servers that are
+ * to be queried for a zone transfer or SOA check of the desired zone. Normally
+ * these are the authoritative primary and/or secondary nameservers for the
+ * zone.
  */
-
 char nsname[MAXNSNAME][MAXDNAME+1];		/* nameserver host name */
 struct in_addr ipaddr[MAXNSNAME][MAXIPADDR];	/* nameserver addresses */
 int naddrs[MAXNSNAME];				/* count of addresses */
 int nservers = 0;				/* count of nameservers */
 
 #ifdef notyet
+/* more-structured  */
 typedef struct srvr_data {
 	char sd_nsname[MAXDNAME+1];		/* nameserver host name */
 	struct in_addr sd_ipaddr[MAXIPADDR];	/* nameserver addresses */
@@ -49,6 +49,7 @@ typedef struct srvr_data {
 } srvr_data_t;
 
 srvr_data_t nsinfo[MAXNSNAME];	/* nameserver info */
+unsigned int nsinfocount = 0;	/* count of nameservers */
 #endif
 
 bool_t authserver;		/* server is supposed to be authoritative */
@@ -200,8 +201,10 @@ list_zone(name)
 	 * Enable various checks in certain circumstances.
 	 * This affects processing in print_rrec(). It may need refinement.
 	 */
+#if 0 /* do it yourself!  --cnamecheck */
 	if (addrmode && !reverse)
 		cnamecheck = TRUE;
+#endif
 
 	/*
 	 * Suppress various checks if working beyond the recursion skip level.
@@ -248,7 +251,7 @@ list_zone(name)
 	 * but we want them anyway if we are going to check the SOA records.
 	 */
 	if (!loading || checkmode) {
-		(void) find_servers(name);
+		(void) find_servers(name);	/* note we use nservers below to test success */
 
 		if (nservers < 1) {
 			errmsg("No nameservers for %s found", name);
@@ -260,7 +263,7 @@ list_zone(name)
 				break;
 		}
 		if (nservers > 0 && n >= nservers) {
-			errmsg("No addresses of nameservers for %s found", name);
+			errmsg("No addresses found for any of the nameservers for %s", name);
 			if (!loading)
 				return (FALSE);
 		}
@@ -269,6 +272,9 @@ list_zone(name)
 	/*
 	 * Without an explicit server on the command line, the servers we
 	 * have looked up are supposed to be authoritative for the zone.
+	 *
+	 * XXX should we not set this if '-r' was specified (i.e. if recursion
+	 * is already turned off in the resolver state)?
 	 */
 	authserver = (server && !primary) ? FALSE : TRUE;
 
@@ -340,7 +346,7 @@ list_zone(name)
 		/* skip apparent glue records */
 		if (gluerecord(hostname(n), name, zonename, nzones)) {
 			if (verbose > 1)
-				printf("%s is glue record\n", hostname(n));
+				printf("%s is a glue record\n", hostname(n));
 			continue;
 		}
 
@@ -355,7 +361,7 @@ list_zone(name)
 		if (!samedomain(hostname(n), name, TRUE)) {
 			nextrs++;
 			if (extrmode || (verbose > 1))
-				printf("%s is extrazone host\n", hostname(n));
+				printf("%s is an extrazone host\n", hostname(n));
 		}
 
 		/*
@@ -365,7 +371,7 @@ list_zone(name)
 		if (multaddr(n)) {
 			ngates++;
 			if (gatemode || (verbose > 1))
-				printf("%s is gateway host\n", hostname(n));
+				printf("%s is a gateway host\n", hostname(n));
 		} else if (check_dupl(hostaddr(n))) {
 			/*
 			 * Compare single address hosts against global list of
@@ -377,7 +383,7 @@ list_zone(name)
 
 			ndupls++;
 			if (duplmode || (verbose > 1)) {
-				printf("%s is duplicate host with address %s\n",
+				printf("%s is a duplicate host, with address %s\n",
 				       hostname(n), inet_ntoa(inaddr));
 			}
 		}
@@ -620,6 +626,9 @@ list_zone(name)
 **
 **	Outputs:
 **		The resolver is initialised to use the discovered servers.
+**
+** XXX should maybe use first address of each server, then if MAXNS not yet
+** reached the next address of each server, and so on....
 */
 
 bool_t
@@ -639,13 +648,12 @@ use_servers(name)
 	for (n = 0; n < nservers; n++) {
 		if (naddrs[n] < 1)
 			continue;	/* shortcut */
-		server = nsname[n];
-		for (i = _res.nscount; i < MAXNS && i < naddrs[n]; i++) {
-			nslist(i).sin_family = AF_INET;
-			nslist(i).sin_port = htons(NAMESERVER_PORT);
-			nslist(i).sin_addr = ipaddr[n][i];
+		server = nsname[n];	/* BOGUS!  but needed to enable global state */
+		for (i = 0; _res.nscount < MAXNS && i < naddrs[n]; i++, _res.nscount++) {
+			nslist(_res.nscount).sin_family = AF_INET;
+			nslist(_res.nscount).sin_port = htons(NAMESERVER_PORT);
+			nslist(_res.nscount).sin_addr = ipaddr[n][i];
 		}
-		_res.nscount += i;
 	}
 	return (TRUE);
 }
@@ -681,8 +689,10 @@ find_servers(name)
 	register int n, i;
 
 	/*
-	 * Use the explicit server if given on the command line.
-	 * Its addresses are stored in the resolver state struct.
+	 * Use the explicit server if given on the command line.  Its addresses
+	 * will have already been loaded into the resolver library's nslist
+	 * vector by the call to set_server() from main().
+	 *
 	 * This server may not be authoritative for the given zone.
 	 */
 	if (server && !primary) {
@@ -698,6 +708,7 @@ find_servers(name)
 
 	/*
 	 * Fetch primary nameserver info if so requested.
+	 * 
 	 * Get its name from the SOA record for the zone, and do a regular
 	 * host lookup to fetch its addresses. We are assuming here that the
 	 * SOA record is a proper one. This is not necessarily true.
@@ -760,7 +771,7 @@ find_servers(name)
 					ipaddr[n][i] = incopy(hp->h_addr_list[i]);
 				naddrs[n] = i;
 			}
-			if (verbose) {
+			if (verbose > 1) {
 				printf("Found %d address%s for %s by extra query\n",
 				       naddrs[n], plurale(naddrs[n]), nsname[n]);
 			}
@@ -771,8 +782,8 @@ find_servers(name)
 				/* authoritative denial: probably misconfiguration */
 				if (h_errno == NO_DATA || h_errno == HOST_NOT_FOUND) {
 					if (server == NULL) {
-						errmsg("%s has lame delegation to %s",
-						       name, nsname[n]);
+						pr_error("No adddress for NS!  %s has lame delegation to %s",
+							 name, nsname[n]);
 					}
 				}
 			}
@@ -783,7 +794,7 @@ find_servers(name)
 			if (hp)
 				geth_freehostent(hp);
 		} else {
-			if (verbose) {
+			if (verbose > 1) {
 				printf("Found %d address%s for %s\n",
 				       naddrs[n], plurale(naddrs[n]), nsname[n]);
 			}
@@ -823,12 +834,102 @@ get_servers(name)
 {
 	querybuf_t answer;
 	register int n;
+	res_state_t save_res;		/* saved copy of resolver database */
 
 	if (verbose)
 		printf("Finding nameservers for %s ...\n", name);
 
+	/*
+	 * honour --parent by using the parent zone's nameservers to search
+	 * (non-recursively) for the nameservers of the zone to be checked.
+	 *
+	 * We need to use the parent zone's nameservers only for the
+	 * get_info(T_NS) call below, and we only want recursion turned off
+	 * when looking up the NS records, but not their corresponding A
+	 * records.
+	 */
+	if (parent) {
+		/*
+		 * XXX this code should be refactored out into a separate
+		 * function so that the similar code in main.c:execute()
+		 * can also be refactored out and use the same function.
+		 */
+		char pzn[MAXDNAME + 2];
+		char *parent_zone;
+		int save_verbose;
+
+		/*
+		 * save resolver database so that we can restore it when we go
+		 * to find the A RRs for the discovered NS RRs
+		 */
+		save_res = _res;
+		server = NULL;
+
+		_res.options &= ~RES_RECURSE;
+
+		/* there is always one final parent:  "." */
+		assert(strlen(name) <= MAXDNAME);
+		sprintf(pzn, "%s.", name);
+		parent_zone = pzn;
+
+		if (verbose > 1)
+			printf("(Attempting to use the parent nameservers for %s)\n", name);
+
+		/* use_servers() will recursively call back here! */
+		parent = FALSE;
+
+		save_verbose = verbose;
+		if (verbose)
+			verbose--;
+
+		while ((parent_zone = strchr(parent_zone, '.'))) {
+			size_t dot_offset = 0;
+
+			/* skip the dot unless it's the last dot */
+			parent_zone = *(parent_zone + 1) ? (parent_zone + 1) : parent_zone;
+			/* trim the trailing dot unless it's the last one */
+			if (*(parent_zone + 1)) {
+				dot_offset = strlen(parent_zone) - 1;
+				parent_zone[dot_offset] = '\0';
+			}
+			if (save_verbose)
+				printf("(Attempting to find nameservers for the parent zone: %s)\n", parent_zone);
+			if (use_servers(parent_zone) != FALSE) {
+				parent = TRUE; /* used to indicate success */
+				break;
+			}
+			/* make sure next call to use_servers works right! */
+			server = NULL;
+			/* restore any trimmed trailing dot in case it's the last one */
+			if (dot_offset)
+				parent_zone[dot_offset] = '.';
+		}
+		verbose = save_verbose;
+		if (!parent) {
+			ns_error(name, T_NS, queryclass, (char *) NULL);
+			_res = save_res;
+			return (FALSE);
+		}
+		if (verbose > 1 || debug > 1)
+			show_res();
+	}
+
 	if ((n = get_info(&answer, name, T_NS, queryclass)) < 0)
 		return (FALSE);
+
+	if (parent) {
+		/*
+		 * restore resolver database so that the code in find_servers()
+		 * which searches for A RRs for the found nameservers can use
+		 * the local cache
+		 */
+		_res = save_res;
+		/* make it look like the user did not explicitly specify a server */
+		server = NULL;
+		/* turn on recursion again if it wasn't explicitly disabled */
+		if (! norecurs)
+			_res.options |= RES_RECURSE;
+	}
 
 	if (verbose > 1)
 		(void) print_info(&answer, n, name, T_NS, queryclass, FALSE);
@@ -928,8 +1029,8 @@ get_nsinfo(answerbuf, answerlen, name, qtype, qclass)
 			return (FALSE);
 		eor = cp + dlen;
 #ifdef DEBUG
-		if (verbose) {
-			printf("%-20s\t%d\t%s\t%s\n",
+		if (verbose > 2) {
+			printf("get_nsinfo(): DEBUG: %-20s\t%d\t%s\t%s\n",
 			       rname, ttl, pr_class(class), pr_type(type));
 		}
 #endif
@@ -1158,7 +1259,14 @@ do_check(name)
 	save_res = _res;
 	save_server = server;
 
-	/* turn off nameserver recursion */
+	/*
+	 * turn off nameserver recursion
+	 *
+	 * if authserver is set then each _MUST_ be authoritative, and if
+	 * authserver is not set then it is likely the user only wants to check
+	 * what the specified server already knows, not ask it to first fetch
+	 * the record.
+	 */
 	_res.options &= ~RES_RECURSE;
 
 	for (n = 0; n < nservers; n++) {
@@ -1166,12 +1274,13 @@ do_check(name)
 			continue;	/* shortcut */
 
 		server = nsname[n];
-		for (i = 0; i < MAXNS && i < naddrs[n]; i++) {
-			nslist(i).sin_family = AF_INET;
-			nslist(i).sin_port = htons(NAMESERVER_PORT);
-			nslist(i).sin_addr = ipaddr[n][i];
+
+		/* XXX could use just one index -- both start at zero */
+		for (i = 0, _res.nscount = 0; _res.nscount < MAXNS && i < naddrs[n]; i++, _res.nscount++) {
+			nslist(_res.nscount).sin_family = AF_INET;
+			nslist(_res.nscount).sin_port = htons(NAMESERVER_PORT);
+			nslist(_res.nscount).sin_addr = ipaddr[n][i];
 		}
-		_res.nscount = i;
 
 		/* retrieve and check SOA */
 		if (check_zone(name, server))
@@ -1193,8 +1302,11 @@ do_check(name)
 
 		/* flag an error if server should not have failed */
 		if (lameserver && authserver) {
-			errmsg("%s has lame delegation to %s",
-			       name, server);
+			pr_error("%s has lame delegation to delegated nameserver %s",
+				 name, server);
+		} else if (lameserver) {
+			pr_warning("%s no SOA found at the specified nameserver %s",
+				   name, server);
 		}
 	}
 
@@ -1263,22 +1375,21 @@ do_soa(name, inaddr, host)
 
 		/* flag an error if server should not have failed */
 		if (lameserver && authserver) {
-			errmsg("%s has lame delegation to %s",
-			       name, server);
+			pr_error("No SOA.  %s has lame delegation to %s",
+				 name, server);
+		} else if (lameserver) {
+			pr_warning("No SOA found at server %s",
+				   name, server);
 		}
 	}
 	bp = (HEADER *) &answer;
 	if ((n > 0) && !bp->aa) {
 		if (authserver) {
-			pr_error("%s SOA record at %s is not authoritative",
+			pr_error("Non-authoritative SOA!  %s has lame delegation to server %s",
 				 name, server);
 		} else {
 			pr_warning("%s SOA record at %s is not authoritative",
 				   name, server);
-		}
-		if (authserver) {
-			errmsg("%s has lame delegation to %s",
-			       name, server);
 		}
 	}
 
@@ -1370,8 +1481,11 @@ do_transfer(name)
 
 			/* flag an error if server should not have failed */
 			if (lameserver && authserver) {
-				errmsg("%s has lame delegation to %s",
-				       name, nsname[n]);
+				pr_error("AXFR failed: %s has lame delegation to %s",
+					 name, nsname[n]);
+			} else if (lameserver) {
+				pr_warning("AXFR failed: %s is not authoritative for the zone %s",
+					   nsname[n], name);
 			}
 
 			/* try next server if this one is sick */
@@ -1829,6 +1943,7 @@ get_zone(name, inaddr, host)
 	 * Do an extra check for delegated zones that also have an A record.
 	 * Those may have been defined in the child zone, and crept in the
 	 * parent zone, or may have been defined as glue records.
+	 *
 	 * This is not necessarily an error, but the host count may be wrong.
 	 * Note that an A record for the current zone has been ignored above.
 	 * Skip this check if explicitly requested in quick mode, or in case
@@ -2259,8 +2374,8 @@ get_soainfo(answerbuf, answerlen, name, qtype, qclass)
 			return (FALSE);
 		eor = cp + dlen;
 #ifdef DEBUG
-		if (verbose) {
-			printf("%-20s\t%d\t%s\t%s\n",
+		if (verbose > 2) {
+			printf("get_soainfo(): DEBUG: %-20s\t%d\t%s\t%s\n",
 			       rname, ttl, pr_class(class), pr_type(type));
 		}
 #endif
@@ -2401,8 +2516,8 @@ check_soa(answerbuf, name, host)
 				   name, host);
 		}
 		if (authserver) {
-			errmsg("%s has lame delegation to %s",
-			       name, host);
+			pr_error("no SOA: %s has lame delegation to %s",
+				 name, host);
 		}
 	}
 
