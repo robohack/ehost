@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.8 2003-03-30 22:53:55 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.9 2003-03-31 21:12:17 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -97,7 +97,7 @@ void clear_stats	__P((int *));
 void show_types		__P((char *, int, int));
 void ns_error		__P((char *, int, int, char *));
 char *decode_error	__P((int));
-void print_answer	__P((querybuf_t *, int, int));
+void print_answer	__P((querybuf_t *, size_t, int));
 void pr_error		__P((const char *, ...));
 void pr_warning		__P((const char *, ...));
 void pr_timestamp	__P((const char *, ...));
@@ -159,6 +159,7 @@ static bool_t check_from __P((void));
 static int send_stream	__P((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
 static int send_dgram	__P((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
 #endif /*HOST_RES_SEND*/
+
 int _res_socket		__P((int, int, int));
 int _res_blocking	__P((int, bool_t));
 sigtype_t timer		__P((int));
@@ -168,6 +169,7 @@ int _res_read		__P((int, struct sockaddr_in *, char *, char *, size_t));
 int _res_read_stream	__P((int, struct sockaddr_in *, char *, char *, size_t));
 int recv_sock		__P((int, char *, size_t));
 void _res_perror	__P((struct sockaddr_in *, char *, char *));
+
 
 /*
 ** External library functions
@@ -190,12 +192,18 @@ char *inet_ntoa		__P((struct in_addr));
 char *hostalias		__P((const char *));
 #endif
 
-/* SunOS-4.x -- gcc doesn't have <sys/socket.h> with __USE_FIXED_PROTOTYPES__ */
-#if defined(__sun__) && !defined(SVR4)
+#if defined(__sun__) && !defined(__svr4__)
+/*
+ * SunOS-4.x -- gcc doesn't have <sys/socket.h> with __USE_FIXED_PROTOTYPES__
+ *
+ * These prototypes are taken from SunOS-5.9, but they should remain correct
+ * for the SunOS-4 API....
+ */
 extern int accept	__P((int, struct sockaddr *, int *));
 extern int bind		__P((int, const struct sockaddr *, int));
 extern int connect	__P((int, struct sockaddr *, int));
 extern int getpeername	__P((int, struct sockaddr *, int *));
+extern int gethostname	__P((char *, int));	/* <unistd.h> */
 extern int getsockname	__P((int, struct sockaddr *, int *));
 extern int getsockopt	__P((int, int, int, char *, int *));
 extern int listen	__P((int, int));
@@ -215,8 +223,8 @@ extern int socket	__P((int, int, int));
 
 	/* <string.h> */
 
-#if HAVE_STRING_H
-# if !STDC_HEADERS && HAVE_MEMORY_H
+#ifdef HAVE_STRING_H
+# if !defined(STDC_HEADERS) && defined(HAVE_MEMORY_H)
 #  include <memory.h>
 # endif
 # include <string.h>
@@ -229,7 +237,7 @@ char *strncpy		__P((char *, const char *, size_t));
 
 	/* <strings.h> */
 
-#if HAVE_STRINGS_H
+#ifdef HAVE_STRINGS_H
 # include <strings.h>
 #elif defined(sun) && defined(unix)
 
