@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.10 2003-03-31 21:06:59 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.11 2003-03-31 21:57:39 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1516,8 +1516,8 @@ get_zone(name, inaddr, host)
 		if (verbose)
 			printf("Loading zone from cache for %s ...\n", name);
 
+		len = cache_getfilesize();
 #if 0
-		len = getfilesize(name);
 		answer = malloc(len);
 #endif
 		n = cache_read(answer, (size_t) len);
