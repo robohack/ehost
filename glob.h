@@ -4,6 +4,8 @@
 **	@(#)glob.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
+#ident "@(#)host:$Name:  $:$Id: glob.h,v 1.2 2002-01-11 22:26:04 -0800 woods Exp $"
+
 #ifdef _DEFINE
 #define GLOBAL
 #else
@@ -74,7 +76,8 @@ GLOBAL bool quiet;		/* suppress non-fatal warning messages */
 GLOBAL bool quick;		/* disable time consuming special checks */
 GLOBAL bool reverse;		/* generate reverse in-addr.arpa queries */
 GLOBAL bool revnsap;		/* generate reverse nsap.int queries */
-GLOBAL bool primary;		/* use primary server for zone transfers */
+GLOBAL bool parent;		/* use nameservers for parent zone for queries */
+GLOBAL bool primary;		/* use the primary nameserver for queries */
 GLOBAL bool compare;		/* compare serial numbers before transfer */
 GLOBAL bool loading;		/* really load zone data from local cache */
 GLOBAL bool dumping;		/* really dump zone data to local cache */
