@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.8 2003-03-30 20:51:16 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.9 2003-03-31 21:07:12 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -333,7 +333,7 @@ get_info(answerbuf, name, type, class)
 	 * Analyze the status of the answer from the nameserver.
 	 */
 	if ((verbose > print_level) || debug)
-		print_answer(answerbuf, n, type);
+		print_answer(answerbuf, (size_t) n, type);
 
 	bp = (HEADER *) answerbuf;
 	ancount = ntohs((u_short) bp->ancount);
@@ -725,7 +725,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_A:
 		if (class == C_IN || class == C_HS) {
 			if (dlen == INADDRSZ) {
-				bcopy((char *) cp, (char *) &inaddr, INADDRSZ);
+				memcpy((char *) cp, (char *) &inaddr, INADDRSZ);
 				address = inaddr.s_addr;
 				doprintf(("\t%s", inet_ntoa(inaddr)));
 				cp += INADDRSZ;
@@ -733,7 +733,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 			}
 #ifdef obsolete
 			if (dlen == INADDRSZ + 1 + INT16SZ) {
-				bcopy((char *) cp, (char *) &inaddr, INADDRSZ);
+				memcpy((char *) cp, (char *) &inaddr, INADDRSZ);
 				address = inaddr.s_addr;
 				doprintf(("\t%s", inet_ntoa(inaddr)));
 				cp += INADDRSZ;
@@ -837,7 +837,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_WKS:
 		if (check_size(rname, type, cp, msg, eor, INADDRSZ) < 0)
 			break;
-		bcopy((char *) cp, (char *) &inaddr, INADDRSZ);
+		memcpy((char *) cp, (char *) &inaddr, INADDRSZ);
 		doprintf(("\t%s", inet_ntoa(inaddr)));
 		cp += INADDRSZ;
 

@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.9 2003-03-30 20:51:16 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.10 2003-03-31 21:06:59 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -950,7 +950,7 @@ get_nsinfo(answerbuf, answerlen, name, qtype, qclass)
 					break;	/* found */
 			}
 			if (i < nservers && naddrs[i] < MAXIPADDR) {
-				bcopy((char *) cp, (char *) &inaddr, INADDRSZ);
+				memcpy((char *) cp, (char *) &inaddr, INADDRSZ);
 				ipaddr[i][naddrs[i]] = inaddr;
 				naddrs[i]++;
 			}
@@ -1540,7 +1540,7 @@ get_zone(name, inaddr, host)
 		}
 
 		/* setup destination address */
-		bzero((char *) &ns_sin, sizeof(ns_sin));
+		memset((char *) &ns_sin, (int) '\0', sizeof(ns_sin));
 
 		ns_sin.sin_family = AF_INET;
 		ns_sin.sin_port = htons(NAMESERVER_PORT);
@@ -1701,7 +1701,7 @@ get_zone(name, inaddr, host)
 			pr_query((qbuf_t *) answer, n, stdout);
 
 		if (verbose || debug)
-			print_answer((querybuf_t *) answer, n, T_AXFR);
+			print_answer((querybuf_t *) answer, (size_t) n, T_AXFR);
 		/*
 		 * Analyze the contents of the answer and check for errors.  An
 		 * error can be expected only in the very first packet.  The
