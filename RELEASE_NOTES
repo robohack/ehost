@@ -1,6 +1,6 @@
 # -*-indented-text-*-
 #
-#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.10 2003-11-01 17:14:13 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.11 2003-12-04 04:54:36 -0800 woods Exp $"
 #
 
 	URL:		ftp://ftp.weird.com/pub/local/host.tar.gz
@@ -8,18 +8,52 @@
 	Originally:	ftp://ftp.nikhef.nl/pub/network/host.tar.Z
 	Based on:	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 991529
 
-Contents:
+Contents of this file:
 
-<release date>	Description of important user-visible changes per release
-TODO		Things that still need to be done
-WISHLIST	Wishes expressed by various people
-NOTES		Important issues to keep in mind
-MISC		Miscellaneous reminders
-HOSTCOUNT	The RIPE NCC monthly European hostcount
+    <release date>	Descriptions of important user-visible changes per release
+    NOTES		Important issues to keep in mind
+    MISC		Miscellaneous reminders
+    HOSTCOUNT		Info about the RIPE NCC monthly European hostcount
 
 # ----------------------------------------------------------------------
 # Description of important user-visible changes per release
 # ----------------------------------------------------------------------
+
+2003/12/03
+
+	- fixed an over-eager search&replace in the previous release
+	  which completely broke all zone listings.  Sorry!
+
+	- setting the preferred server(s) for zone listings is now done
+          only with the '--prefserver=serverlist' option.
+
+	- the poorly documented '-P' or '--parent' option now works much
+	  better!  The NS records of the zone to be listed or checked
+	  are now fetched from the parent zone and used, if possible, in
+	  place of the local nameservers thus queries will be directed
+	  at what should be the officially delegated nameservers, not
+	  just those found in a local cache (the official nameservers in
+	  the local caches may have already been overwritten by NS
+	  records learned from within a zone).
+
+	- canonical checks of NS and MX records are forcably disabled
+	  and recursion is explicitly turned off when using the parent
+	  zone's nameservers, or some explicitly specified nameserver in
+	  query mode.
+
+	- the default query type when using '--parent' is NS since of
+	  course the parent nameservers may know nothing other than the
+	  NS records (i.e. not even glue records for their addresses).
+
+	- zone listings now show the class of every record so that the
+	  output more better matches the normal BIND zone files format.
+
+	- more of the data related error messages are printed with
+	  leading asterisks so that they stand out better, and other
+	  temporary errors are treated as warnings and some message
+	  wording is improved.
+
+	- better portability for systems where sizeof(int)!=4.
 
 2003/11/01
 
@@ -1295,43 +1329,6 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 	Recognize obsolete T_MAILA.
 
 # ----------------------------------------------------------------------
-# TODO
-# ----------------------------------------------------------------------
-
-	Don't strip trailing dot from PTR targets that have only one label.
-
-	Enhance reverse mapping.
-
-		The new BIND 4.9.* gethostbyaddr() and newer can be
-		configured to return host aliases in case multiple PTR
-		records were encountered during the reverse lookup.  We
-		must abandon the idea of an official host name.  All
-		PTRs must point to valid hostnames, each of which
-		resolve to at least an A record which has an IP address
-		which will resolve to the given PTR.
-
-	Enhance error reporting.
-
-		After a negative return from gethostbyname/gethostbyaddr
-		we want to know whether the answer was authoritative or
-		not.  In a few places we are able to find out, but this
-		is a kludge and needs to be reimplemented.
-
-# ----------------------------------------------------------------------
-# WISHLIST
-# ----------------------------------------------------------------------
-
-	Skip printing of second SOA in zone listing.
-
-		Asked by Peter Koch <pk@TechFak.Uni-Bielefeld.DE>.
-
-	Check for both A and AAAA records.
-
-		The check for canonical hostnames in NS and MX records
-		should be extended to include also AAAA records.
-		Asked by Matti Aarnio <matti.aarnio@sonera.fi>
-
-# ----------------------------------------------------------------------
 # NOTES
 # ----------------------------------------------------------------------
 
@@ -1414,6 +1411,10 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 		Suggestions by Dietrich Wiegandt <dietrich@dxcern.cern.ch>
 		and David Cherkus <cherkus@zk3.dec.com>.
 
+		[[ Note 'host' builds and works fine on NetBSD/alpha ]]
+
+  [[ The rest _should_ now be historical curiosities! ]]
+
 	Compatibility with BIND 4.9.
 
 		Don't use the u_long types any more.
@@ -1450,7 +1451,7 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 
 	For each of the applicable toplevel domains, the entire DNS tree
 	is recursively traversed, performing zone transfers from the
-	appropriate nameservers. During this process, statistics are
+	appropriate nameservers.  During this process, statistics are
 	accumulated, and various checks are carried out to report error
 	conditions.
 
@@ -1462,17 +1463,19 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 	to cooperate.
 
 	A single job per toplevel domain would do all processing in one
-	sequential run. With the current growth of the Internet, and the
-	corresponding increase of the DNS information, this is no longer
-	practical, at least for some of the largest domains. The total
-	runtime would become excessive, and make the process vulnerable
-	for unexpected crashes or network outages.
+	sequential run.  With the current growth of the Internet, and
+	the corresponding increase of the DNS information, this is no
+	longer practical, at least for some of the largest domains.  The
+	total runtime would become excessive, and make the process
+	vulnerable for unexpected crashes or network outages.
 
 	The procedure can now be split up into two independent parts:
+
 	o  A data collecting phase, which only performs zone transfers
-	   and saves the information in local cache disk files. This is
+	   and saves the information in local cache disk files.  This is
 	   restartable at any moment, and can easily be subdivided into
 	   parallel streams.
+
 	o  A data processing phase, which just reads the current local
 	   cache, making a snapshot without doing any zone transfers.
 
@@ -1490,12 +1493,13 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 	Various other switches can be specified to turn on extra checking
 	and verbose logging.
 
-	Special attention deserves the command
+	The following command deserves special attention:
 
-	   host --checkzone zone
+	   host -C -A -l zone
 
-	This will perform an extensive analysis of the given single zone
-	by turning on all implemented checks. All zone administrators
+	It will perform an extensive analysis of the given single zone
+	by turning on all implemented checks.  All zone administrators
 	are encouraged to regularly exercise this for their own zones.
-	If this command passes all tests, the world would be a better one.
+	If all zones passed all tests with this command, the Internet
+	would be MUCH more consistent and probably more reliable.
 
