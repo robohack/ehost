@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.17 2003-05-17 00:59:21 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.18 2003-06-04 20:11:43 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -692,17 +692,18 @@ main(argc, argv)
 
 			case 'V' :
 #if defined(__NAMESER) && !defined(HOST_RES_SEND)
-				printf("Host version %s, BIND-8 resolver API version: %d\n", version, __NAMESER);
+				printf("Host version %s, BIND-8 resolver version %d, API version: %d\n", version, __RES, __NAMESER);
 #elif defined(__BIND) && !defined(HOST_RES_SEND)
-				printf("Host version %s, BIND-4 resolver API version: %d\n", version, __BIND);
+				printf("Host version %s, BIND-4 resolver version %d, API version: %d\n", version, __RES, __BIND);
 #elif defined(BIND_4_8) && !defined(HOST_RES_SEND)
-				printf("Host version %s, BIND 4.8.x resolver\n", version);
+				printf("Host version %s, BIND 4.8.x resolver version %d\n", version, __RES);
 #elif defined(__NAMESER) && defined(HOST_RES_SEND)
-				printf("Host version %s, using private res_send() with BIND-8 resolver API version %d\n", version, __NAMESER);
+# include "ERROR: -DHOST_RES_SEND will not work with BIND-8"
+				printf("Host version %s, using private res_send() with BIND-8 resolver version %d, API version %d\n", version, __RES, __NAMESER);
 #elif defined(__BIND) && defined(HOST_RES_SEND)
-				printf("Host version %s, using private res_send() with BIND-4 resolver API version %d\n", version, __BIND);
+				printf("Host version %s, using private res_send() with BIND-4 resolver version %d, API version %d\n", version, __RES, __BIND);
 #elif defined(BIND_4_8) && defined(HOST_RES_SEND)
-				printf("Host version %s, using private res_send() with BIND 4.8.x resolver\n", version);
+				printf("Host version %s, using private res_send() with BIND 4.8.x resolver version %d\n", version, __RES);
 #elif defined(HOST_RES_SEND)
 				printf("Host version %s, using private res_send() with very old or non-BIND headers\n", version);
 #else
@@ -760,7 +761,7 @@ main(argc, argv)
 	/*
 	 * Set default preferred server for zone listings, if not specified.
 	 */
-	if (listmode && !checkmode && !prefserver) {
+	if (listmode && !checkmode && !prefserver && !servername) {
 		if (!(prefserver = myhostname()))
 			fprintf(stderr, "Nameserver selection will be random, use -P for more control\n");
 	}
