@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.14 2003-04-09 06:10:41 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.15 2003-05-17 00:53:24 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -32,7 +32,7 @@ ipaddr_t srcaddr = INADDR_ANY;	/* explicit source ip address */
 int minport = 0;		/* first source port in explicit range */
 int maxport = 0;		/* last  source port in explicit range */
 
-unsigned int timeout;		/* connection read timeout */
+static unsigned int conn_timeout;	/* connection read timeout */
 
 static struct sockaddr_in from;	/* address of inbound packet */
 static struct sockaddr *from_sa = (struct sockaddr *) &from;
@@ -132,11 +132,11 @@ retry:
 				n = send_stream(addr, query, (size_t) querylen, answer, (size_t) anslen);
 			} else {
 				/* set datagram read timeout for recv_sock() */
-				timeout = (_res.retrans << try);
+				conn_timeout = (_res.retrans << try);
 				if (try > 0)
-					timeout /= _res.nscount;
-				if (timeout <= 0)
-					timeout = 1;
+					conn_timeout /= _res.nscount;
+				if (conn_timeout <= 0)
+					conn_timeout = 1;
 
 				/* connect via datagram */
 				n = send_dgram(addr, query, (size_t) querylen, answer, (size_t) anslen);
@@ -311,7 +311,7 @@ wait:
 **		-1 if an error occurred.
 **
 **	Inputs:
-**		The global variable ``timeout'' should have been
+**		The global variable ``conn_timeout'' should have been
 **		set with the desired timeout value in seconds.
 **
 **	Sending to a nameserver datagram port with no nameserver running
@@ -699,7 +699,7 @@ host_res_read(sock, addr, host, buf, bufsize)
 	register int n;
 
 	/* set stream timeout for recv_sock() */
-	timeout = READTIMEOUT;
+	conn_timeout = READTIMEOUT;
 
 	/*
 	 * Read the length of answer buffer.
@@ -810,7 +810,7 @@ host_res_read_stream(sock, addr, host, buf, bufsize)
 	register int n;
 
 	/* set stream timeout for recv_sock() */
-	timeout = READTIMEOUT;
+	conn_timeout = READTIMEOUT;
 
 	/*
 	 * Read more of the answer itself.
@@ -839,7 +839,7 @@ host_res_read_stream(sock, addr, host, buf, bufsize)
 **		Length of buffer if successfully received.
 **		-1 in case of failure or timeout.
 **	Inputs:
-**		The global variable ``timeout'' should have been
+**		The global variable ``conn_timeout'' should have been
 **		set with the desired timeout value in seconds.
 **	Outputs:
 **		Sets ``from'' to the address of the packet sender.
@@ -856,7 +856,7 @@ recv_sock(sock, buffer, buflen)
 	socklen_t fromlen;
 	register int n;
 
-	wait.tv_sec = timeout;
+	wait.tv_sec = conn_timeout;
 	wait.tv_usec = 0;
 rewait:
 	/* FD_ZERO(&fds); */
@@ -915,7 +915,7 @@ recv_sock(sock, buffer, buflen)
 	}
 
 	setsignal(SIGALRM, timer);
-	setalarm(timeout);
+	setalarm(conn_timeout);
 reread:
 	/* fake an error if nothing was actually read */
 	fromlen = sizeof(from);
