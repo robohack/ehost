@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.9 2003-06-06 22:36:27 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.10 2003-11-01 01:21:08 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)addr.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -79,11 +79,14 @@ check_addr(name)
 	hname = strncpy(hnamebuf, hp->h_name, MAXDNAME);
 	hname[MAXDNAME] = '\0';
 
+	if (!sameword(hname, name))
+		pr_warning("hostname may not be canonical -- returned name does not match query name.");
+
 	for (i = 0; hp->h_addr_list[i]; i++)
 		naddrs++;
 
 	if (verbose) {
-		printf("Found %d address%s for %s\n",
+		printf("Found %d address%s for host %s\n",
 		       naddrs, plurale(naddrs), hname);
 	}
 	if (!(inaddr = malloc(naddrs * sizeof(*inaddr)))) {
