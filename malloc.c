@@ -36,7 +36,7 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)malloc.c	e07@nikhef.nl (Eric Wassenaar) 961019";
+static char Version[] = "@(#)malloc.c	e07@nikhef.nl (Eric Wassenaar) 970519";
 #endif
 
 #if defined(apollo) && defined(lint)
@@ -87,19 +87,23 @@ typedef int	free_t;
  * The page size used to request blocks of system memory.
  */
 
+#if defined(sgi) && !defined(_PAGESZ)
+#define _PAGESZ 16384		/* kludge for sgi && IRIX64 */
+#endif
+
 #ifndef PAGESIZE
 #ifdef NBPG
 
 #ifdef CLSIZE
-#define PAGESIZE (NBPG*CLSIZE)
+#define PAGESIZE (NBPG*CLSIZE)	/* sun && SunOS, ultrix */
 #else
-#define PAGESIZE NBPG
+#define PAGESIZE NBPG		/* hpux */
 #endif
 
 #else /*not NBPG*/
 
 #ifdef NBPC
-#define PAGESIZE NBPC
+#define PAGESIZE NBPC		/* sgi */
 #else
 #define PAGESIZE 4096		/* some reasonable default */
 #endif

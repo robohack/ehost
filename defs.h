@@ -1,7 +1,7 @@
 /*
 ** Declaration of functions.
 **
-**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 970203
+**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 970511
 */
 
 /*
@@ -44,6 +44,7 @@ bool get_nsinfo		PROTO((querybuf *, int, char *));
 void sort_servers	PROTO((void));
 bool skip_transfer	PROTO((char *));
 void do_check		PROTO((char *));
+void do_soa		PROTO((char *, struct in_addr, char *));
 bool do_transfer	PROTO((char *));
 bool transfer_zone	PROTO((char *, struct in_addr, char *));
 bool get_zone		PROTO((char *, struct in_addr, char *));
@@ -142,7 +143,9 @@ void _res_perror	PROTO((struct sockaddr_in *, char *, char *));
 
 ipaddr_t inet_addr	PROTO((CONST char *));
 char *inet_ntoa		PROTO((struct in_addr));
+#if defined(BIND_48)
 char *hostalias		PROTO((CONST char *));
+#endif
 
 	/* avoid <strings.h> */
 
