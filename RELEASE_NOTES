@@ -1,6 +1,6 @@
 # -*-indented-text-*-
 #
-#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.7 2003-04-06 03:46:56 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.8 2003-05-27 19:38:56 -0800 woods Exp $"
 #
 
 	URL:		ftp://ftp.weird.com/pub/local/host.tar.gz
@@ -20,6 +20,13 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 # ----------------------------------------------------------------------
 # Description of important user-visible changes per release
 # ----------------------------------------------------------------------
+
+2003/05/27
+
+	- minor updates for some DNS blacklists in the rblookup script, etc.
+
+	- fixed minor portability issues for GNU/Linux (really GNU LibC), as
+          well as for FreeBSD.
 
 2003/04/05
 
