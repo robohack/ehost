@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.19 2003-04-09 06:10:41 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.20 2003-06-05 01:13:16 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -146,6 +146,7 @@ char *cachename		__P((char *, char *, int));
 int cache_open		__P((char *, bool_t));
 int cache_close		__P((bool_t));
 int cache_write		__P((char *, size_t));
+int cache_read_anslen	__P((void));
 int cache_read		__P((char *, size_t));
 void cache_perror	__P((char *, char *));
 
@@ -162,8 +163,8 @@ sigtype_t timer		__P((int));
 int host_res_connect	__P((int, struct sockaddr_in *, socklen_t));
 int host_res_write	__P((int, struct sockaddr_in *, char *, const char *, size_t));
 int host_res_read	__P((int, struct sockaddr_in *, char *, char *, size_t));
+int host_res_read_anslen __P((int, struct sockaddr_in *, char *));
 int host_res_read_stream __P((int, struct sockaddr_in *, char *, char *, size_t));
-int recv_sock		__P((int, char *, size_t));
 void host_res_perror	__P((struct sockaddr_in *, char *, char *));
 
 

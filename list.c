@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.19 2003-04-06 03:14:29 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.20 2003-06-05 01:13:16 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1516,9 +1516,7 @@ get_zone(name, inaddr, host)
 	register int n;
 	int nrecords = 0;		/* number of records processed */
 	int npackets = 0;		/* number of packets received */
-	u_short len;
-	char *buffer;
-	size_t buflen;
+	int len;
 
 	/* clear global counts */
 	soacount = 0;			/* count of SOA records */
@@ -1600,52 +1598,17 @@ get_zone(name, inaddr, host)
 		 */
 
 		if (loading) {
-			/*
-			 * XXX this sould probably be something like cache_read_anslen() in file.c
-			 */
-			buffer = (char *) &len;
-			buflen = INT16SZ;
-			n = cache_read(buffer, buflen);
-			if (n < 0 || n != (int) buflen) {
+			if ((len = cache_read_anslen()) < 0) {
 				(void) cache_close(FALSE);
 				set_h_errno(TRY_AGAIN);
 				return (FALSE);
 			}
-#if 0 /* why not? */
-			len = ntohs(len);
-#else
-			len = ns_get16((u_char *) &len);
-#endif
-			/*
-			 * XXX end of what should be cache_read_anslen()
-			 */
 		} else {
-			/*
-			 * XXX this sould probably be something like host_res_read_anslen() in send.c
-			 */
-			buffer = (char *) &len;
-			buflen = INT16SZ;
-			/* set stream timeout for recv_sock() */
-			timeout = READTIMEOUT;
-
-			while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0) {
-				buffer += n;
-				buflen -= n;
-			}
-			if (buflen != 0) {
-				host_res_perror(&ns_sin, host, "recv_sock(): error reading answer length");
+			if ((len = host_res_read_anslen(sock, &ns_sin, host)) < 0) {
 				(void) host_res_close(sock);
 				set_h_errno(TRY_AGAIN);
 				return (FALSE);
 			}
-#if 0 /* why not? */
-			len = ntohs(len);
-#else
-			len = ns_get16((u_char *) &len);
-#endif
-			/*
-			 * XXX end of what should be cache_read_anslen()
-			 */
 		}
 
 		/*
@@ -1665,9 +1628,7 @@ get_zone(name, inaddr, host)
 		if (debug > 2)
 			printf("%sexpecting an answer of %d bytes\n", debug_prefix, len);
 
-		if (!(answer = (answer) ?
-		      realloc(answer, len) : /* XXX is realloc() really cheaper? */
-		      malloc(len))) {
+		if (!(answer = (answer) ? realloc(answer, (size_t) len) : malloc((size_t) len))) {
 			sys_error("unable to allocate %s byte buffer to hold %s for %s from %s",
 				  dtoa(len), pr_type(T_AXFR), name, host);
 			if (loading)
@@ -1679,9 +1640,9 @@ get_zone(name, inaddr, host)
 		}
 
 		if (loading)
-			n = cache_read(answer, len);
+			n = cache_read(answer, (size_t) len);
 		else
-			n = host_res_read_stream(sock, &ns_sin, host, answer, len);
+			n = host_res_read_stream(sock, &ns_sin, host, answer, (size_t) len);
 
 		if (n < 0) {
 			/* host_res_perror() already called */

@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.15 2003-05-17 00:53:24 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.16 2003-06-05 01:13:16 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -32,11 +32,19 @@ ipaddr_t srcaddr = INADDR_ANY;	/* explicit source ip address */
 int minport = 0;		/* first source port in explicit range */
 int maxport = 0;		/* last  source port in explicit range */
 
-static unsigned int conn_timeout;	/* connection read timeout */
-
 static struct sockaddr_in from;	/* address of inbound packet */
 static struct sockaddr *from_sa = (struct sockaddr *) &from;
 
+static unsigned int conn_timeout; /* connection read timeout */
+
+static int recv_sock	__P((int, char *, size_t));
+
+/*
+ * The first part of this file is our private res_send() implementation.
+ *
+ * Note that the remainder of this file is unprotected by the following #ifdef
+ * and contains generic functions for interacting with a remote nameserver.
+ */
 #ifdef HOST_RES_SEND
 
 static int srvsock = -1;	/* socket descriptor */
@@ -90,7 +98,7 @@ res_send(query, querylen, answer, anslen)
 		return (-1);
 
 	if (bitset(RES_DEBUG, _res.options)) {
-		printf("%sres_send()\n", debug_prefix);
+		printf("%sres_send(query, %d, answer, %d) called:\n", debug_prefix, querylen, anslen);
 		pr_query(query, querylen, stdout);
 	}
 
@@ -154,7 +162,7 @@ retry:
 				}
 			}
 			if (n <= 0) {
-				switch (errno) {
+				switch (errno) { /* EINVAL (answer was 0 bytes) ??? */
 				case ECONNREFUSED:
 				case ENETDOWN:
 				case ENETUNREACH:
@@ -232,7 +240,6 @@ check_from()
 **	Note that connect() is the call that is allowed to fail
 **	under normal circumstances. All other failures generate
 **	an unconditional error message.
-**	Note that truncation is handled within host_res_read().
 */
 
 static int
@@ -246,6 +253,7 @@ send_stream(addr, query, querylen, answer, anslen)
 	char *host = NULL;		/* name of server is unknown */
 	const HEADER *qp = (const HEADER *) query;
 	const HEADER *bp = (const HEADER *) answer;
+	int len;
 	register int n;
 
 	/*
@@ -275,10 +283,31 @@ send_stream(addr, query, querylen, answer, anslen)
 	}
 
 	/*
-	 * Read the answer buffer.
+	 * Read the answer's lengh.
 	 */
-wait:
-	if ((n = host_res_read(srvsock, addr, host, (char *) answer, (size_t) anslen)) < 0) {
+	if ((len = host_res_read_anslen(srvsock, addr, host)) < 0) {
+		(void) host_res_close(srvsock);
+		return (-1);
+	}
+
+	/*
+	 * Terminate if length is zero.
+	 */
+	if (len == 0) {
+		set_errno(EINVAL);
+		host_res_perror(addr, host, "answer has length of zero");
+		(void) host_res_close(srvsock);
+		return (-1);
+	}
+
+	if (bitset(RES_DEBUG, _res.options))
+		printf("%sexpecting an answer of %d bytes\n", debug_prefix, len);
+
+	/*
+	 * Read the answer into the 'answer' buffer.
+	 */
+  reread:
+	if ((n = host_res_read_stream(srvsock, addr, host, (char *) answer, (size_t) len)) < 0) {
 		(void) host_res_close(srvsock);
 		return (-1);
 	}
@@ -291,7 +320,7 @@ wait:
 			printf("%sunexpected answer:\n", debug_prefix);
 			pr_query(answer, ((size_t) n > anslen) ? (int) anslen : n, stdout);
 		}
-		goto wait;
+		return (-1);
 	}
 
 	/*
@@ -412,7 +441,10 @@ wait:
 	return (n);
 }
 
-#endif /*HOST_RES_SEND*/
+#endif /* HOST_RES_SEND */
+/*
+ * remainder of file contains generic client functions
+ */
 
 /*
 ** HOST_RES_SOCKET -- Obtain a socket and set additional parameters
@@ -502,13 +534,25 @@ host_res_socket(family, type, protocol)
 **	Returns:
 **		0 if close() was successful.
 **		-1 in case of failure.
+**
+**	NOTE:  errno is always left unchanged to accomodate the silly way error
+**	handling works in this module.
 */
-
 int
 host_res_close(sock)
 	input int sock;
 {
-	return close(sock);
+	int ret;
+	int save_errno = errno;
+
+	ret = close(sock);
+
+	if (bitset(RES_DEBUG, _res.options) && ret < 0)
+		printf("%shost_res_close(): close() failed: %s\n", debug_prefix, strerror(errno));
+
+	set_errno(save_errno);
+
+	return (ret);
 }
 
 /*
@@ -663,134 +707,50 @@ host_res_write(sock, addr, host, buf, bufsize)
 }
 
 /*
-** HOST_RES_READ -- Read the answer buffer via a datagram socket
-** -------------------------------------------------------
+** HOST_RES_READ_ANSLEN -- Read the answer length via a stream socket
+** ------------------------------------------------------------------
 **
 **	Returns:
-**		Length of (untruncated) answer if successfully received.
+**		Expected length of (untruncated) answer.
 **		-1 in case of failure (error message is issued).
 **
-**	The answer is read in two steps: first a single word which
-**	gives the length of the buffer, followed by the buffer itself.
-**	If the answer is too long to fit into the supplied buffer,
-**	only the portion that fits will be stored, the residu will be
-**	flushed, and the truncation flag will be set.
-**
-**	Note:  The returned length is that of the *un*truncated answer,
-**	however, and not the amount of data that is actually available.
-**	This may give the caller a hint about new buffer reallocation.
-**
-**	Note:  This function is currently not used if HOST_RES_SEND is not
-**	defined, though all of it's companions are used in list.c.
 */
-
 int
-host_res_read(sock, addr, host, buf, bufsize)
+host_res_read_anslen(sock, addr, host)
 	input int sock;			/* socket FD to read from */
 	input struct sockaddr_in *addr;	/* the server address to connect to */
 	input char *host;		/* name of server to connect to */
-	output char *buf;		/* location of buffer to store answer */
-	input size_t bufsize;	/* maximum size of answer buffer */
 {
-	u_short len;
 	char *buffer;
-	socklen_t buflen;
-	size_t reslen;			/* residue length.... */
+	size_t buflen;
 	register int n;
+	u_short len;
 
-	/* set stream timeout for recv_sock() */
-	conn_timeout = READTIMEOUT;
-
-	/*
-	 * Read the length of answer buffer.
-	 */
 	buffer = (char *) &len;
 	buflen = INT16SZ;
+	/* set stream timeout for recv_sock() */
+	conn_timeout = DEF_STRM_TMOUT;
 
 	while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0) {
 		buffer += n;
 		buflen -= n;
 	}
 	if (buflen != 0) {
-		host_res_perror(addr, host, "recv_sock(): error reading answer length");
+		host_res_perror(addr, host, "host_res_read_anslen(): recv_sock(): error reading answer's length");
 		return (-1);
 	}
-
-	/*
-	 * Terminate if length is zero.
-	 */
-#if 0
+#if 0 /* why not? */
 	len = ntohs(len);
 #else
 	len = ns_get16((u_char *) &len);
 #endif
-	if (len == 0) {
-		errno = EINVAL;		
-		host_res_perror(addr, host, "answer has length of zero");
-		return (0);
-	}
 
-	/*
-	 * Check for truncation.
-	 * Do not chop the returned length (len) in case of buffer overflow.
-	 */
-	reslen = 0;
-	if (len > bufsize) {
-		if (bitset(RES_DEBUG, _res.options)) {
-			printf("%sanswer length %u bytes, bufsize only %lu bytes\n",
-			       debug_prefix, (unsigned int) len, (unsigned long) bufsize);
-		}
-		reslen = len - bufsize;
-	}
-
-	/*
-	 * Read the answer itself.
-	 * Don't read more than we can fit in the supplied buffer.
-	 */
-	buffer = buf;
-	buflen = (reslen > 0) ? bufsize : len;
-
-	while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0) {
-		buffer += n;
-		buflen -= n;
-	}
-	if (buflen != 0) {
-		host_res_perror(addr, host, "recv_sock(): error reading answer");
-		return (-1);
-	}
-
-	/*
-	 * If we're truncating then discard the residue to keep connection in sync.
-	 */
-	if (reslen > 0) {
-		HEADER *bp = (HEADER *) buf;
-		char junkresbuf[PACKETSZ];
-
-		buffer = junkresbuf;
-		buflen = (reslen < sizeof(junkresbuf)) ? reslen : sizeof(junkresbuf);
-
-		while (reslen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0) {
-			reslen -= n;
-			buflen = (reslen < sizeof(junkresbuf)) ? reslen : sizeof(junkresbuf);
-		}
-		if (reslen != 0) {
-			host_res_perror(addr, host, "read residu");
-			return (-1);
-		}
-		if (bitset(RES_DEBUG, _res.options)) {
-			printf("%sresponse truncated to %lu bytes\n",
-			       debug_prefix, (unsigned long) bufsize);
-		}
-		/* set truncation flag */
-		bp->tc = 1;
-	}
-
-	return (len);
+	return ((int) len);
 }
 
 /*
 ** HOST_RES_READ_STREAM -- Read the answer buffer via a stream socket
-** --------------------------------------------------------------
+** ------------------------------------------------------------------
 **
 **	Returns:
 **		Length of (untruncated) answer if successfully received.
@@ -810,7 +770,7 @@ host_res_read_stream(sock, addr, host, buf, bufsize)
 	register int n;
 
 	/* set stream timeout for recv_sock() */
-	conn_timeout = READTIMEOUT;
+	conn_timeout = DEF_STRM_TMOUT;
 
 	/*
 	 * Read more of the answer itself.
@@ -824,7 +784,7 @@ host_res_read_stream(sock, addr, host, buf, bufsize)
 		buflen -= n;
 	}
 	if (buflen != 0) {
-		host_res_perror(addr, host, "recv_sock(): error reading answer");
+		host_res_perror(addr, host, "host_res_read_stream(): recv_sock(): error reading whole answer");
 		return (-1);
 	}
 
@@ -845,7 +805,7 @@ host_res_read_stream(sock, addr, host, buf, bufsize)
 **		Sets ``from'' to the address of the packet sender.
 */
 
-int
+static int
 recv_sock(sock, buffer, buflen)
 	input int sock;			/* socket FD to read from */
 	output char *buffer;		/* current buffer address */
@@ -858,8 +818,10 @@ recv_sock(sock, buffer, buflen)
 
 	wait.tv_sec = conn_timeout;
 	wait.tv_usec = 0;
-rewait:
-	/* FD_ZERO(&fds); */
+  rewait:
+#if 0
+	FD_ZERO(&fds);
+#endif
 	memset((char *) &fds, (int) '\0', sizeof(fds));
 	FD_SET(sock, &fds);
 
@@ -871,7 +833,7 @@ rewait:
 		set_errno(ETIMEDOUT);
 	if (n <= 0)
 		return (-1);
-reread:
+  reread:
 	/* fake an error if nothing was actually read */
 	fromlen = sizeof(from);
 	n = recvfrom(sock, buffer, (sock_buflen_t) buflen, 0, from_sa, &fromlen);

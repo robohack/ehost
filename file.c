@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: file.c,v 1.12 2003-04-04 04:10:49 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: file.c,v 1.13 2003-06-05 01:13:16 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)file.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -298,6 +298,39 @@ cache_write(buf, bufsize)
 ** -------------------------------------------------------------
 **
 **	Returns:
+**		Expected length of (untruncated) answer.
+**		-1 in case of failure (error message is issued).
+**
+*/
+int
+cache_read_anslen()
+{
+	char *buffer;
+	size_t buflen;
+	register int n;
+	u_short len;
+
+	buffer = (char *) &len;
+	buflen = INT16SZ;
+	n = cache_read(buffer, buflen);
+	if (n < 0 || n != (int) buflen) {
+		cache_perror("cache_read_anslen(): recv_sock(): error reading answer's length", tempcache);
+		return (-1);
+	}
+#if 0 /* why not? */
+	len = ntohs(len);
+#else
+	len = ns_get16((u_char *) &len);
+#endif
+
+	return ((int) len);
+}
+
+/*
+** CACHE_READ -- Read an answer buffer from the local disk cache
+** -------------------------------------------------------------
+**
+**	Returns:
 **		Length of (untruncated) answer if successfully read.
 **		-1 in case of failure (error message is issued).
 **
@@ -338,7 +371,7 @@ cache_read(buf, bufsize)
 	if (buflen != 0) {
 		if (errno == 0)
 			set_errno(EIO);
-		cache_perror("Cannot read answer length", cachefile);
+		cache_perror("Cannot read full answer", cachefile);
 		return (-1);
 	}
 
