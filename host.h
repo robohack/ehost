@@ -4,7 +4,7 @@
 ** from: @(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: host.h,v 1.9 2003-03-31 21:07:51 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.10 2003-04-03 23:17:07 -0800 woods Exp $"
 
 #if defined(apollo) && defined(lint)
 # define __attribute(x)		/* XXX ??? */
@@ -111,10 +111,10 @@
 # define PACKETSZ	IP_MAXPACKET
 #endif
 
-#if PACKETSZ > 8192
-# define MAXPACKET	PACKETSZ	/* PACKETSZ should be the max udp size (512) */
+#if PACKETSZ > (2^16)
+# define MAXPACKET	PACKETSZ
 #else
-# define MAXPACKET	8192		/* but tcp packets can be considerably larger */
+# define MAXPACKET	(2^16)		/* maximum TCP answer length... RFC 1035 4.2.2 */
 #endif
 
 typedef union {
