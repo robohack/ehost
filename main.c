@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.7 2003-03-29 19:49:51 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.8 2003-03-30 17:31:24 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -836,13 +836,13 @@ set_defaults(option, argc, argv)
 	 * Construct argument list from option string.
 	 */
 	for (q = newstr(option), p = q; *p != '\0'; p = q) {
-		while (is_space(*p))
+		while (is_space((int) *p))
 			p++;
 
 		if (*p == '\0')
 			break;
 
-		for (q = p; *q != '\0' && !is_space(*q); q++)
+		for (q = p; *q != '\0' && !is_space((int) *q); q++)
 			continue;
 
 		if (*q != '\0')
@@ -918,7 +918,7 @@ cvtopt(optstring)
 	register char *value;
 
 	/* separate keyword and value */
-	if ((value = index(optstring, '=')))
+	if ((value = strchr(optstring, '=')))
 		*value++ = '\0';
 
 	/*
@@ -1179,20 +1179,20 @@ process_file(fp)
 	int excode = EX_NOINPUT;	/* overall result status */
 
 	while (fgets(buf, sizeof(buf), fp) != NULL) {
-		p = index(buf, '\n');
+		p = strchr(buf, '\n');
 		if (p != NULL)
 			*p = '\0';
 
 		/* extract names separated by whitespace */
 		for (q = buf, p = q; *p != '\0'; p = q) {
-			while (is_space(*p))
+			while (is_space((int) *p))
 				p++;
 
 			/* ignore comment lines */
 			if (*p == '\0' || *p == '#' || *p == ';')
 				break;
 
-			for (q = p; *q != '\0' && !is_space(*q); q++)
+			for (q = p; *q != '\0' && !is_space((int) *q); q++)
 				continue;
 
 			if (*q != '\0')
@@ -1771,7 +1771,7 @@ fatal(const char *fmt, ...)
 #else
 void
 fatal(fmt, va_alist)
-	input char *fmt;		/* format of message */
+	input const char *fmt;		/* format of message */
 	va_dcl				/* arguments for printf */
 #endif
 {
@@ -1804,7 +1804,7 @@ errmsg(const char *fmt, ...)
 #else
 void
 errmsg(fmt, va_alist)
-	input char *fmt;		/* format of message */
+	input const char *fmt;		/* format of message */
 	va_dcl				/* arguments for printf */
 #endif
 {

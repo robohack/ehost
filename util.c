@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.5 2003-03-29 19:49:51 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.6 2003-03-30 17:32:27 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -238,7 +238,7 @@ nsap_int(name)
 			continue;
 
 		/* must consist of hex digits only */
-		if (!is_xdigit(name[i]))
+		if (!is_xdigit((int) name[i]))
 			return (NULL);
 
 		/* but not too many */
@@ -844,21 +844,21 @@ print_answer(answerbuf, answerlen, type)
 /*VARARGS1*/
 #ifdef __STDC__
 void
-pr_error(char *fmt, ...)
+pr_error(const char *fmt, ...)
 #else
 void
 pr_error(fmt, va_alist)
-	input char *fmt;		/* format of message */
+	input const char *fmt;		/* format of message */
 	va_dcl				/* arguments for printf */
 #endif
 {
 	va_list ap;
 
-	(void) fprintf(stderr, " *** ");
+	(void) fputs(" *** ", stderr);
 	VA_START(ap, fmt);
 	(void) vfprintf(stderr, fmt, ap);
 	va_end(ap);
-	(void) fprintf(stderr, "\n");
+	(void) fputs("\n", stderr);
 
 	/* flag an error */
 	errorcount++;
@@ -881,11 +881,11 @@ pr_error(fmt, va_alist)
 /*VARARGS1*/
 #ifdef __STDC__
 void
-pr_warning(char *fmt, ...)
+pr_warning(const char *fmt, ...)
 #else
 void
 pr_warning(fmt, va_alist)
-	input char *fmt;		/* format of message */
+	input const char *fmt;		/* format of message */
 	va_dcl				/* arguments for printf */
 #endif
 {
@@ -914,11 +914,11 @@ pr_warning(fmt, va_alist)
 /*VARARGS1*/
 #ifdef __STDC__
 void
-pr_timestamp(char *fmt, ...)
+pr_timestamp(const char *fmt, ...)
 #else
 void
 pr_timestamp(fmt, va_alist)
-	input char *fmt;		/* format of message */
+	input const char *fmt;		/* format of message */
 	va_dcl				/* arguments for printf */
 #endif
 {
@@ -1033,13 +1033,13 @@ indomain(name, domain, equal)
 	if (sameword(domain, "."))
 		return (TRUE);
 
-	dot = index(name, '.');
+	dot = strchr(name, '.');
 	while (dot != NULL) {
 		if (!is_quoted(dot, name)) {
 			if (sameword(dot + 1, domain))
 				return (TRUE);
 		}
-		dot = index(dot+1, '.');
+		dot = strchr(dot+1, '.');
 	}
 
 	return (FALSE);
@@ -1066,7 +1066,7 @@ samedomain(name, domain, equal)
 	if (sameword(name, domain))
 		return (equal);
 
-	dot = index(name, '.');
+	dot = strchr(name, '.');
 	while (dot != NULL) {
 		if (!is_quoted(dot, name)) {
 			if (sameword(dot+1, domain))
@@ -1074,7 +1074,7 @@ samedomain(name, domain, equal)
 
 			return (FALSE);
 		}
-		dot = index(dot+1, '.');
+		dot = strchr(dot+1, '.');
 	}
 	if (sameword(domain, "."))
 		return (TRUE);
@@ -1134,14 +1134,14 @@ gluerecord(name, domain, zone, nzones)
 	if (n < nzones)
 		return (TRUE);
 
-	dot = index(name, '.');
+	dot = strchr(name, '.');
 	while (dot != NULL) {
 		if (!is_quoted(dot, name)) {
 			n = zone_index(dot + 1, FALSE);
 			if (n < nzones)
 				return (TRUE);
 		}
-		dot = index(dot + 1, '.');
+		dot = strchr(dot + 1, '.');
 	}
 
 	return (FALSE);
@@ -1171,7 +1171,7 @@ matchlabels(name, domain)
 	j = strlength(domain);
 
 	while (--i >= 0 && --j >= 0) {
-		if (lowercase(name[i]) != lowercase(domain[j]))
+		if (lowercase((int) name[i]) != lowercase((int) domain[j]))
 			break;
 		if (domain[j] == '.')
 			matched++;
@@ -1274,7 +1274,7 @@ pr_nsap(name)
 	register int i;
 
 	/* must begin with single hex digits separated by dots */
-	for (i = 0; is_xdigit(name[i]) && name[i+1] == '.'; i += 2)
+	for (i = 0; is_xdigit((int) name[i]) && name[i+1] == '.'; i += 2)
 		continue;
 
 	/* must have an even number of hex digits */ 
@@ -1565,13 +1565,13 @@ valid_name(name, wildcard, localpart, underscore)
 				return (FALSE);		/* should be '.' */
 			else if (in_string(specials, c))
 				return (FALSE);		/* must be escaped */
-			else if (is_space(c))
+			else if (is_space((int) c))
 				return (FALSE);		/* must be escaped */
 			continue;
 		}
 
 		/* basic character set */
-		if (is_alnum(c) || ((c == '-') && in_label(p, name)))
+		if (is_alnum((int) c) || ((c == '-') && in_label(p, name)))
 			continue;
 
 		/* start of a new label component */
