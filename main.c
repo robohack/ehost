@@ -39,9 +39,9 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.4 2003-03-28 21:57:23 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.5 2003-03-28 22:19:57 -0800 woods Exp $"
 
-#ifndef lint
+#if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
 #endif
 
