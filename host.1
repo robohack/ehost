@@ -1,7 +1,7 @@
 .\"
-.\"	@(#)host.1              e07@nikhef.nl (Eric Wassenaar) 951024
+.\"	@(#)host.1              e07@nikhef.nl (Eric Wassenaar) 970203
 .\"
-.TH host 1 "951024"
+.TH host 1 "970203"
 .SH NAME
 host \- query nameserver about domain names and zones
 .SH SYNOPSIS 
@@ -60,6 +60,8 @@ specifications, e.g. "nl."
 Note that the usual lookup convention for any name that does not end
 with a trailing dot is to try first with the local domain appended,
 and possibly other search domains.
+(As of BIND 4.9, names that have embedded dots but no trailing dot
+are first tried ``as is'' before appending search domains)
 This convention is not used by this program.
 .PP
 The actual suffix to tack on the end is usually the local domain
@@ -427,7 +429,7 @@ Mailbox or mail list information (request domain name, error domain name)
 Mail exchanger (preference value, domain name)
 .TP
 .B TXT
-Descriptive text (string)
+Descriptive text (one or more strings)
 .TP
 .B UINFO
 User information (string)
@@ -470,9 +472,9 @@ Route through host (preference value, domain name)
 .PP
 The following types have been defined in RFC 1348, but
 are not yet in general use. They are recognized by this program.
-RFC 1348 has already been obsoleted by RFC 1637, which defines
-a new experimental usage of NSAP records. This program has now
-hooks to manipulate them.
+RFC 1348 has already been obsoleted by RFC 1637 and RFC 1706,
+which defines a new experimental usage of NSAP records.
+This program has now hooks to manipulate them.
 .TP 10
 .B NSAP
 NSAP address (encoded address)
@@ -481,7 +483,7 @@ NSAP address (encoded address)
 NSAP pointer (domain name)
 .PP
 The following are new types as per RFC 1664 and RFC 1712.
-Note that the GPOS type has been withdrawn already, and will be
+Note that the GPOS type has been withdrawn already, and has been
 superseded by the LOC type.
 .TP 10
 .B PX
@@ -490,26 +492,51 @@ X400 to RFC822 mapping (preference value, rfc822 domain, x400 domain)
 .B GPOS
 Geographical position (longitude string, latitude string, altitude string)
 .PP
-The following types have already been reserved in RFC 1700, but are
-not yet implemented.
+The following types have been reserved in RFC 1700, and are
+defined in RFC 2065.
 .TP 10
 .B SIG
 Security signature
 .TP
 .B KEY
 Security key
-.TP
+.PP
+The IP v6 address architecture and DNS extensions are defined in
+RFC 1884 and RFC 1886.
+.TP 10
 .B AAAA
-IP v6 address
-.TP
+IP v6 address (address spec with colons)
+.PP
+The following type is documented in RFC 1876.
+.TP 10
 .B LOC
-Geographical location
+Geographical location (latitude, longitude, altitude, precision)
+.PP
+The following types have been proposed, but are still in draft.
+.TP 10
+.B NXT
+Next valid record
+.TP
+.B EID
+Endpoint identifier
+.TP
+.B NIMLOC
+Nimrod locator
+.TP
+.B SRV
+Internet service information
+.TP
+.B ATMA
+ATM address
+.TP
+.B NAPTR
+Naming authority URN
 .SH EXAMPLES
 A very good summary and validation of an entire zone can be obtained
 with the following command:
-.br
-	\fBhost \-G \-S \-C \-A \-L 1 nikhef.nl\fP
-.br
+.sp
+	\fBhost \-G \-S \-C \-A \-L 1\fP \fIzone\fP
+.sp
 .SH DIAGNOSTICS
 .SS "FAILURE MESSAGES"
 The following messages are printed to show the reason
@@ -676,6 +703,12 @@ There may be A records with different names for the same address.
 In the reverse in-addr.arpa zone there is usually only one PTR to
 the ``official'' host name.
 .TP
+\fIname\fP address \fIA.B.C.D\fP maps to alias \fIaliasname\fP
+In case of multiple PTR records, the first one encountered points
+to the ``official'' host name. Subsequent ones are returned as
+alias names via gethostbyaddr() as of BIND 4.9. Note that PTR
+records are exempt from round-robin reshuffling.
+.TP
 \fIzone\fP SOA record at \fIserver\fP is not authoritative
 When checking the SOA for a zone at one of its supposedly
 authoritative nameservers, the SOA information turns out
@@ -752,11 +785,11 @@ in it, a default domain is appended to the end. This domain is usually
 defined in the \fB/etc/resolv.conf\fP file. If not, it is derived by
 taking the local hostname and taking everything after its first dot.
 .PP
-.hw LOCALDOMAIN
+.fw LOCALDOMAIN
 The user can override this, and specify a different default domain,
 by defining it in the environment variable \fILOCALDOMAIN\fP.
 .PP
-.hw HOSTALIASES
+.fw HOSTALIASES
 In addition, the user can supply his own single-word abbreviations
 for host names. They should be in a file consisting of one line per
 abbreviation. Each line contains an abbreviation, white space, and
@@ -780,12 +813,74 @@ this option to work.
 This option should be used with caution. Servers may be configured
 to refuse zone transfers if they are flooded with requests.
 .SH "RELATED DOCUMENTATION"
-rfc920, rfc952, rfc974, rfc1032, rfc1033, rfc1034, rfc1035,
-rfc1101, rfc1183, rfc1348, rfc1535, rfc1536, rfc1537, rfc1637,
-rfc1664, rfc1712
+rfc883, Domain names - implementation and specification
+.br
+rfc920, Domain requirements
+.br
+rfc952, DOD Internet host table specification
+.br
+rfc974, Mail routing and the domain system
+.br
+rfc1032, Domain administrators guide
+.br
+rfc1033, Domain administrators operations guide
+.br
+rfc1034, Domain names - concepts and facilities
+.br
+rfc1035, Domain names - implementation and specification
+.br
+rfc1101, DNS encoding of network names and other types
+.br
+rfc1123, Requirements for Internet hosts - application
+.br
+rfc1183, New DNS RR definitions
+.br
+rfc1348, DNS NSAP RRs
+.br
+rfc1535, A security problem and proposed correction
+.br
+rfc1536, Common DNS implementation errors
+.br
+rfc1537, Common DNS data file configuration errors
+.br
+rfc1591, Domain Name System structure and delegation
+.br
+rfc1637, DNS NSAP resource records
+.br
+rfc1664, Using DNS to distribute X.400 address mappings
+.br
+rfc1700, Assigned numbers
+.br
+rfc1706, DNS NSAP resource records
+.br
+rfc1712, DNS encoding of geographical location (GPOS)
+.br
+rfc1713, Tools for DNS debugging
+.br
+rfc1794, DNS support for load balancing
+.br
+rfc1876, Expressing location information in the DNS (LOC)
+.br
+rfc1884, IP v6 addressing architecture
+.br
+rfc1886, DNS extensions to support IP v6 (AAAA)
+.br
+rfc1912, Common DNS operational and configuration errors
+.br
+rfc1982, Serial number arithmetic
+.br
+rfc1995, Incremental zone transfer in DNS (IXFR)
+.br
+rfc1996, Prompt notification of zone changes
+.br
+rfc2010, Operational criteria for root nameservers
+.br
+rfc2052, Specification of location of services (SRV)
+.br
+rfc2065, DNS security extensions (KEY/SIG/NXT)
 .SH AUTHOR
 This program is originally from Rutgers University.
 .br
-Rewritten by Eric Wassenaar, Nikhef-H, <e07@nikhef.nl>
+Rewritten by Eric Wassenaar, NIKHEF, <e07@nikhef.nl>
 .SH "SEE ALSO"
 named(8), resolv.conf(5), resolver(3)
