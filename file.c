@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: file.c,v 1.7 2003-03-31 21:07:26 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: file.c,v 1.8 2003-03-31 21:56:58 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)file.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -414,6 +414,31 @@ cache_read(buf, bufsize)
 	}
 
 	return (len);
+}
+
+/*
+** CACHE_GETFILESIZE -- get the size of the open cache file
+** --------------------------------------------------------
+**
+**	Returns:
+**		file size in bytes.
+*/
+
+off_t
+cache_getfilesize()
+{
+	struct stat stb;
+
+	/* we must have a valid file */
+	if (cachefd < 0)
+		return (0);
+
+	if (fstat(cachefd, &stb) < 0) {
+		cache_perror("Cannot fstat()", cachefile);
+		return (-1);
+	}
+
+	return (stb.st_size);
 }
 
 /*
