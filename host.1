@@ -1,7 +1,7 @@
 .\"
-.\"	@(#)host.1              e07@nikhef.nl (Eric Wassenaar) 950302
+.\"	@(#)host.1              e07@nikhef.nl (Eric Wassenaar) 951024
 .\"
-.TH host 1 "950302"
+.TH host 1 "951024"
 .SH NAME
 host \- query nameserver about domain names and zones
 .SH SYNOPSIS 
@@ -340,7 +340,7 @@ should have all relevant information available.
 Normally querynames are assumed to be fully qualified and are
 tried as such, unless it is a single name, which is always tried
 (and only once) in the default domain.
-This option simulates the default BIND behaviour by qualifying
+This option simulates the default BIND behavior by qualifying
 any specified name by repeatedly adding search domains, with
 the exception that the search terminates immediately if the name
 exists but does not have the desired querytype.
@@ -675,11 +675,11 @@ authoritative nameservers, the SOA information turns out
 to be not authoritative.  This could be determined by making
 a query without nameserver recursion turned on.
 .TP
-\fIzone\fP SOA primary \fIserver\fP is not advertized via NS
+\fIzone\fP SOA primary \fIserver\fP is not advertised via NS
 The primary nameserver is not among the list of nameservers
 retrieved via NS records for the zone.
 This is not an error per se, since only publicly accessible
-nameservers may be advertized, and others may be behind a
+nameservers may be advertised, and others may be behind a
 firewall.
 .TP
 \fIzone\fP SOA primary \fIserver\fP has illegal name
@@ -692,7 +692,7 @@ whereas the at-sign should have been replaced with a dot.
 .TP
 \fIzone\fP SOA serial has high bit set
 Although the serial number is an unsigned 32-bit value, overflow
-into the high bit can inadvertantly occur by making inappropriate
+into the high bit can inadvertently occur by making inappropriate
 use of the dotted decimal notation in the zone file. This may lead
 to synchronization failures between primary and secondary servers.
 .TP
@@ -764,7 +764,7 @@ answer is authoritative or not.
 When listing a zone with the "-l" option, information will be fetched
 from authoritative nameservers for that zone. This is implemented by
 doing a complete zone transfer and then filtering out the information
-theat you have asked for.
+that you have asked for.
 Note that direct contact with such nameservers must be possible for
 this option to work.
 This option should be used with caution. Servers may be configured

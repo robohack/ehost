@@ -18,7 +18,7 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 950923";
+static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 951231";
 #endif
 
 #if defined(apollo) && defined(lint)
@@ -52,15 +52,18 @@ static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 950923";
 extern int errno;
 extern res_state_t _res;	/* defined in res_init.c */
 
+char *dbprefix = DBPREFIX;	/* prefix for debug messages to stdout */
+
 static int timeout;		/* connection read timeout */
-static struct sockaddr from;	/* address of inbound packet */
+static struct sockaddr_in from;	/* address of inbound packet */
+static struct sockaddr *from_sa = (struct sockaddr *)&from;
 
 /* extern */
 char *inet_ntoa		PROTO((struct in_addr));
 
 /* send.c */
 #ifdef HOST_RES_SEND
-int res_send		PROTO((qbuf_t *, int, qbuf_t *, int));
+int res_send		PROTO((CONST qbuf_t *, int, qbuf_t *, int));
 void _res_close		PROTO((void));
 static int send_stream	PROTO((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
 static int send_dgram	PROTO((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
@@ -96,7 +99,7 @@ void _res_perror	PROTO((struct sockaddr_in *, char *, char *));
 
 int
 res_send(query, querylen, answer, anslen)
-input qbuf_t *query;			/* location of formatted query buffer */
+input CONST qbuf_t *query;		/* location of formatted query buffer */
 input int querylen;			/* length of query buffer */
 output qbuf_t *answer;			/* location of buffer to store answer */
 input int anslen;			/* maximum size of answer buffer */
@@ -114,7 +117,7 @@ input int anslen;			/* maximum size of answer buffer */
 
 	if (bitset(RES_DEBUG, _res.options))
 	{
-		printf("res_send()\n");
+		printf("%sres_send()\n", dbprefix);
 		pr_query(query, querylen, stdout);
 	}
 
@@ -145,8 +148,8 @@ input int anslen;			/* maximum size of answer buffer */
 		addr = &nslist(ns);
 retry:
 		if (bitset(RES_DEBUG, _res.options))
-			printf("Querying server (# %d) %s address = %s\n", ns+1,
-			    v_circuit ? "tcp" : "udp", inet_ntoa(addr->sin_addr));
+			printf("%sQuerying server (# %d) %s address = %s\n", dbprefix,
+			    ns+1, v_circuit ? "tcp" : "udp", inet_ntoa(addr->sin_addr));
 
 		if (v_circuit)
 		{
@@ -172,7 +175,7 @@ retry:
 			if (n > 0 && bp->tc)
 			{
 				if (bitset(RES_DEBUG, _res.options))
-					(void) fprintf(stderr, "truncated answer\n");
+					printf("%struncated answer\n", dbprefix);
 
 				if (!bitset(RES_IGNTC, _res.options))
 				{
@@ -201,7 +204,7 @@ retry:
 
 		if (bitset(RES_DEBUG, _res.options))
 		{
-			printf("got answer, %d bytes:\n", n);
+			printf("%sgot answer, %d bytes:\n", dbprefix, n);
 			pr_query(answer, n, stdout);
 		}
 
@@ -285,7 +288,7 @@ input int anslen;			/* maximum size of answer buffer */
 	}
 
 	if (bitset(RES_DEBUG, _res.options))
-		printf("connected to %s\n", inet_ntoa(addr->sin_addr));
+		printf("%sconnected to %s\n", dbprefix, inet_ntoa(addr->sin_addr));
 
 /*
  * Send the query buffer.
@@ -399,7 +402,7 @@ wait:
 	{
 		if (bitset(RES_DEBUG, _res.options))
 		{
-			printf("old answer:\n");
+			printf("%sold answer:\n", dbprefix);
 			pr_query(answer, n, stdout);
 		}
 		goto wait;
@@ -622,7 +625,7 @@ input int bufsize;			/* maximum size of answer buffer */
 		}
 
 		if (bitset(RES_DEBUG, _res.options))
-			(void) fprintf(stderr, "response truncated\n");
+			printf("%sresponse truncated\n", dbprefix);
 
 		/* set truncation flag */
 		bp->tc = 1;
@@ -677,7 +680,7 @@ input int buflen;			/* remaining buffer size */
 
 	/* fake an error if nothing was actually read */
 	fromlen = sizeof(from);
-	n = recvfrom(sock, buffer, buflen, 0, &from, &fromlen);
+	n = recvfrom(sock, buffer, buflen, 0, from_sa, &fromlen);
 	if (n == 0)
 		errno = ECONNRESET;
 	return(n);
@@ -717,7 +720,7 @@ input int buflen;			/* remaining buffer size */
 
 	/* fake an error if nothing was actually read */
 	fromlen = sizeof(from);
-	n = recvfrom(sock, buffer, buflen, 0, &from, &fromlen);
+	n = recvfrom(sock, buffer, buflen, 0, from_sa, &fromlen);
 	if (n == 0)
 		errno = ECONNRESET;
 	setalarm(0);

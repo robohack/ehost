@@ -1,7 +1,7 @@
 /*
 ** Various portability definitions.
 **
-**	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 950923
+**	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 950925
 */
 
 #if defined(SYSV) || defined(SVR4)
@@ -18,6 +18,12 @@
 #define BIND_49
 #else
 #define BIND_48
+#endif
+
+#if defined(BIND_49)
+#if defined(__BIND)
+#define BIND_493
+#endif
 #endif
 
 /*
@@ -46,16 +52,26 @@ typedef struct __res_state	res_state_t;
 typedef struct state		res_state_t;
 #endif
 
-#if defined(BIND_49)
+#if defined(BIND_48)
+typedef struct rrec	rrec_t;
+#else
+#if defined(BIND_493)
 typedef u_char		rrec_t;
 #else
-typedef struct rrec	rrec_t;
+typedef char		rrec_t;
+#endif
 #endif
 
-#if defined(BIND_49)
+#if defined(BIND_493)
 typedef u_char	qbuf_t;
 #else
 typedef char	qbuf_t;
+#endif
+
+#if defined(BIND_493)
+typedef char	nbuf_t;
+#else
+typedef u_char	nbuf_t;
 #endif
 
 #if defined(__alpha) || defined(BIND_49)
@@ -70,6 +86,7 @@ typedef int	sigtype_t;
 typedef void	sigtype_t;
 #endif
 
+/* too primitive */
 typedef char	ptr_t;		/* generic pointer type */
 typedef u_int	siz_t;		/* general size type */
 
@@ -111,3 +128,9 @@ typedef u_int	siz_t;		/* general size type */
 */
 
 #define PROTO(TYPES)	()
+
+#if defined(__STDC__) && defined(BIND_49)
+#define CONST	const
+#else
+#define CONST
+#endif
