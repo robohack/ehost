@@ -7,6 +7,8 @@
 **	@(#)exit.h              e07@nikhef.nl (Eric Wassenaar) 961010
 */
 
+#ident "@(#)host:$Name:  $:$Id: exit.h,v 1.2 2002-01-12 08:09:55 -0800 woods Exp $"
+
 #undef  EX_OK			/* defined in <unistd.h> on SVR4 */
 #define EX_SUCCESS	0	/* successful termination */
 #define EX_USAGE	64	/* command line usage error */
