@@ -1,5 +1,5 @@
 #
-#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.12 2003-04-09 06:27:23 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.13 2003-05-17 01:04:30 -0800 woods Exp $"
 #
 # from:	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 991515
 
@@ -52,6 +52,10 @@ DESTCONF = ${DESTDIR}/${CONFDIR}
 
 #if defined(ultrix) && You are using the default ultrix <resolv.h>
 #SYSDEFS = -DULTRIX_RESOLV
+#endif
+
+#if defined(sunos-4)
+#SYSDEFS = -Dstrerror=isc_strerror
 #endif
 
 #if defined(solaris) && You are using its default broken resolver library
@@ -136,6 +140,12 @@ GCCWARNFLAGS = -W \
  -Wshadow
 #endif
 
+#if $(__GNULD__) >= 1
+GNULDWARNFLAGS = -W \
+ -Wall \
+ -Wid-clash-30
+#endif
+
 #if $(__GNUC__) >= 2
 GCC2WARNFLAGS = -Waggregate-return \
  -Wcast-align \
@@ -188,12 +198,17 @@ CFLAGS = $(COPTS) $(CDEBUG) $(COPTIM) $(GCCWARNFLAGS) $(GCC2WARNFLAGS) $(GCC3WAR
 #
 # This program _must_ be linked with the resolver library associated
 # with the header files you compiled with.
+#
+# GNU LibC has a horrible mis-mash of half-baked header files and
+# mangled resolver subroutines, at least as of 2.3.x.  E.g. there's a
+# __NAMESER define in <netdb.h> indicating it to be BIND-8 compatible,
+# but there's no getipnodebyname() in sight.
 # ----------------------------------------------------------------------
 
 #if defined(SCO) && default
 #RES_LIB = -lsocket
 #endif
-#if defined(NEED_LIBRESOLV) || (sunos5.x)
+#if defined(NEED_LIBRESOLV) || (sunos5.x) || defined(__GLIBC__)
 #RES_LIB = -lresolv
 #endif
 #if defined(LOCAL_LIBBIND) || (sunos5.x < 5.9)
@@ -221,7 +236,7 @@ LIBRARIES = $(RES_LIB) $(COMPAT_LIB) $(SYS_LIBS)
 # Unfortunately SunOS-5.9 has only libresolv.so !!!
 #
 #if defined(NEED_LIBRESOLV) && !defined(sunos5.x)
-LDFLAGS = -static
+LDFLAGS = -static $(GNULDWARNFLAGS)
 #endif
 
 # ----------------------------------------------------------------------
