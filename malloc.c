@@ -35,7 +35,7 @@
  * - The strictest alignment for memalign is the page size.
  */
 
-#ident "@(#)host:$Name:  $:$Id: malloc.c,v 1.2 2002-01-11 22:15:31 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: malloc.c,v 1.3 2002-01-11 22:27:43 -0800 woods Exp $"
 
 #ifndef lint
 static char Version[] = "@(#)malloc.c	e07@nikhef.nl (Eric Wassenaar) 970519";
@@ -50,6 +50,8 @@ static char Version[] = "@(#)malloc.c	e07@nikhef.nl (Eric Wassenaar) 970519";
 #include <sys/types.h>
 #include <sys/param.h>
 
+#include "port.h"
+
 #ifdef lint
 #define EXTERN
 #else
@@ -62,11 +64,6 @@ EXTERN int errno;
  * Portability definitions. These are probably too primitive, but the
  * semantics on various platforms are too chaotic to do it correctly.
  */
-
-#if defined(SYSV) || defined(SVR4)
-#define SYSV_MALLOC
-#define SYSV_MEMSET
-#endif
 
 #ifdef SYSV_MALLOC
 typedef void	ptr_t;
