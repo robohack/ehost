@@ -1,7 +1,7 @@
 /*
 ** Declaration of functions.
 **
-**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 970511
+**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 970908
 */
 
 /*
@@ -107,12 +107,12 @@ int check_size		PROTO((char *, int, u_char *, u_char *, u_char *, int));
 bool valid_name		PROTO((char *, bool, bool, bool));
 int canonical		PROTO((char *));
 char *mapreverse	PROTO((char *, struct in_addr));
-int compare_name	PROTO((const ptr_t *, const ptr_t *));
+int compare_name	Proto((const ptr_t *, const ptr_t *));
 
 	/* misc.c */
 
 ptr_t *xalloc		PROTO((ptr_t *, siz_t));
-char *itoa		PROTO((int));
+char *dtoa		PROTO((int));
 char *utoa		PROTO((int));
 char *xtoa		PROTO((int));
 char *stoa		PROTO((u_char *, int, bool));
@@ -129,10 +129,16 @@ char *pr_precision	PROTO((int));
 
 #ifdef HOST_RES_SEND
 int res_send		PROTO((CONST qbuf_t *, int, qbuf_t *, int));
+void _res_close		PROTO((void));
+static bool check_from	PROTO((void));
+static int send_stream	PROTO((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
+static int send_dgram	PROTO((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
 #endif /*HOST_RES_SEND*/
+static sigtype_t timer	PROTO((int));
 int _res_connect	PROTO((int, struct sockaddr_in *, int));
 int _res_write		PROTO((int, struct sockaddr_in *, char *, char *, int));
 int _res_read		PROTO((int, struct sockaddr_in *, char *, char *, int));
+static int recv_sock	PROTO((int, char *, int));
 void _res_perror	PROTO((struct sockaddr_in *, char *, char *));
 
 /*
@@ -141,8 +147,15 @@ void _res_perror	PROTO((struct sockaddr_in *, char *, char *));
 */
 	/* extern */
 
+#if !defined(NO_INET_H)
+#include <arpa/inet.h>
+#else
+
 ipaddr_t inet_addr	PROTO((CONST char *));
 char *inet_ntoa		PROTO((struct in_addr));
+
+#endif
+
 #if defined(BIND_48)
 char *hostalias		PROTO((CONST char *));
 #endif
@@ -184,6 +197,10 @@ void qsort		PROTO((ptr_t *, siz_t, siz_t, int (*)(const ptr_t *, const ptr_t *))
 
 	/* <unistd.h> */
 
-#if defined(__STDC__) && !defined(apollo)
+#if defined(__STDC__) && !defined(apollo) && !defined(WINNT)
 #include <unistd.h>
+#else
+
+unsigned int alarm	PROTO((unsigned int));
+
 #endif

@@ -1,7 +1,7 @@
 /*
 ** Various portability definitions.
 **
-**	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 961010
+**	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 970908
 */
 
 #if defined(SYSV) || defined(SVR4)
@@ -11,10 +11,32 @@
 #define SYSV_SETVBUF
 #endif
 
+#if defined(WINNT)
+#define SYSV_MALLOC
+#define SYSV_STRCHR
+#define SYSV_SETVBUF
+#endif
+
 #if defined(__hpux) || defined(hpux)
 #define SYSV_MALLOC
 #define SYSV_SETVBUF
 #endif
+
+#if defined(sgi)
+#define SYSV_MALLOC
+#endif
+
+#if defined(linux)
+#define SYSV_MALLOC
+#endif
+
+#if defined(NeXT)
+#define SYSV_MALLOC
+#endif
+
+/*
+** Distinguish between various BIND releases.
+*/
 
 #if defined(RES_PRF_STATS)
 #define BIND_49
@@ -45,6 +67,10 @@
 /*
 ** The following should depend on existing definitions.
 */
+
+typedef int	bool;		/* boolean type */
+#define TRUE	1
+#define FALSE	0
 
 #if defined(BIND_49)
 typedef struct __res_state	res_state_t;
@@ -107,9 +133,9 @@ typedef int	free_t;
 #endif
 
 #ifdef SYSV_SETVBUF
-#define linebufmode(a)	(void) setvbuf(a, (char *)NULL, _IOLBF, BUFSIZ);
+#define linebufmode(a)	(void) setvbuf(a, (char *)NULL, _IOLBF, BUFSIZ)
 #else
-#define linebufmode(a)	(void) setlinebuf(a);
+#define linebufmode(a)	(void) setlinebuf(a)
 #endif
 
 #ifdef ULTRIX_RESOLV
@@ -130,10 +156,90 @@ typedef int	free_t;
 #endif
 
 /*
+** Very specific definitions for certain platforms.
+*/
+
+#if defined(WINNT)
+#define NO_CONNECTED_DGRAM
+#endif
+
+#if defined(WINNT)
+#undef  linebufmode
+#define linebufmode(a)	(void) setvbuf(a, (char *)NULL, _IONBF, 0)
+#endif
+
+#if defined(WINNT)
+#ifndef strcasecmp
+#define strcasecmp	_stricmp
+#endif
+#ifndef strncasecmp
+#define strncasecmp	_strnicmp
+#endif
+#endif /*WINNT*/
+
+#if defined(WINNT)
+#define setalarm(n)
+#define setsignal(s,f)
+#else
+#define setalarm(n)	(void) alarm((unsigned int)(n))
+#define setsignal(s,f)	(void) signal(s,f)
+#endif
+
+#if defined(WINNT)
+#ifndef errno
+#define errno		WSAGetLastError()
+#endif
+#ifndef h_errno
+#define h_errno		WSAGetLastError()
+#endif
+#endif /*WINNT*/
+
+#if defined(WINNT)
+#define seterrno(n)	WSASetLastError(n)
+#define seth_errno(n)	WSASetLastError(n)
+#else
+#define seterrno(n)	errno = (n)
+#define seth_errno(n)	h_errno = (n)
+#endif
+
+#if defined(WINNT)
+#undef  EINTR
+#define EINTR		WSAEINTR
+#undef  ETIMEDOUT
+#define ETIMEDOUT	WSAETIMEDOUT
+#undef  ECONNRESET
+#define ECONNRESET	WSAECONNRESET
+#undef  ECONNREFUSED
+#define ECONNREFUSED	WSAECONNREFUSED
+#undef  ENETDOWN
+#define ENETDOWN	WSAENETDOWN
+#undef  ENETUNREACH
+#define ENETUNREACH	WSAENETUNREACH
+#undef  EHOSTDOWN
+#define EHOSTDOWN	WSAEHOSTDOWN
+#undef  EHOSTUNREACH
+#define EHOSTUNREACH	WSAEHOSTUNREACH
+#endif /*WINNT*/
+
+#if defined(WINNT)
+HANDLE hReadWriteEvent;
+#endif
+
+#if defined(WINNT) && !defined(__STDC__)
+#define __STDC__
+#endif
+
+/*
 ** No prototypes yet.
 */
 
 #define PROTO(TYPES)	()
+
+#if !defined(__STDC__) || defined(apollo)
+#define Proto(TYPES)	()
+#else
+#define Proto(TYPES)	TYPES
+#endif
 
 #if !defined(__STDC__) || defined(apollo)
 #define const

@@ -1,4 +1,4 @@
-	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 970521
+	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 970908
 
 	URL	ftp://ftp.nikhef.nl/pub/network/host.tar.Z
 
@@ -11,6 +11,56 @@ MISC		Miscellaneous reminders
 # ----------------------------------------------------------------------
 # Description of changes per release
 # ----------------------------------------------------------------------
+
+970908
+	Windows-NT portability fixes.
+		Cannot use connected datagrams on NT, recvfrom() will
+		return EISCONN. Skip connect() call, and use sendto()
+		instead of send().
+		Line buffer mode does not seem to work. Use unbuffered
+		output to synchronize stdout and stderr.
+		Use the WSA interface during errno handling instead of
+		the plain SetLastError and GetLastError.
+		Make sure that errno values are the WSA values.
+	Minor changes.
+		Always use send() instead of write() for stream sockets.
+	Miscellaneous changes.
+		Minor esthetical code changes.
+
+970830
+	Port to Windows-NT platform.
+		Local module itoa() seems to conflict, rename to dtoa().
+		Use _stricmp() instead of strcasecmp() for comparisons.
+		Must use send() instead of write() for socket I/O.
+		For the time being, disable alarms and signal handling.
+		Define network related errno values in terms of WSA.
+		Rearrange code to store errno and h_errno values.
+		The semantics of WSASetLastError and SetLastError are
+		still unclear. This probably needs refinement.
+		Exclude various standard header files that don't exist.
+		Must be careful to avoid conflicts with portability.h
+		from the BIND distribution.
+		The port is not complete in the sense that it still
+		depends on definitions from the BIND distribution.
+		Contributions made by Paul E. Jones <paulej@acm.org>
+	Minor portability fixes.
+		Must use some prototypes to avoid compiler warnings.
+		Properly identify certain platforms in port.h to avoid
+		compiler warnings.
+	Miscellaneous changes.
+		Concentrate all global definitions in separate host.h
+		header file.
+
+970828
+	Linux portability fixes.
+		On some linux platforms h_name is a (const char *).
+		Recent BIND versions define hostalias() similarly.
+		Use explicit casts in assignments and function returns
+		to avoid compiler warnings.
+	Minor portability fixes.
+		Use explicit casts for ntohs()/htons() in a few places
+		to avoid compiler warnings on some platforms.
+	There are no functional changes in this release.
 
 970521
 	Apply multiple PTR handling during zone listing.
@@ -64,7 +114,7 @@ MISC		Miscellaneous reminders
 		On certain platforms PAGESIZE is not a constant, but
 		hides a sysconf() call. This precludes initialization
 		of static variables in malloc.c
-		There are no functional changes in this release.
+	There are no functional changes in this release.
 
 961013
 	Configurable defaults.
@@ -247,7 +297,7 @@ MISC		Miscellaneous reminders
 		resolver routines to be even more backward compatible,
 		and to avoid compilation or lint warning messages on
 		new platforms. It should run clean on BSD44 systems.
-		There are no functional changes in this release.
+	There are no functional changes in this release.
 
 950923
 	Add new -z option to list delegated zones in a zone.
@@ -287,7 +337,7 @@ MISC		Miscellaneous reminders
 		Check for SVR4 as well as for SYSV in port.h, which is
 		necessary for compilation via the master BIND Makefile.
 		Suggested by <Piete.Brooks@cl.cam.ac.uk>
-		There are no functional changes in this release.
+	There are no functional changes in this release.
 
 950502
 	Maintain hash list for zone name lookups.
