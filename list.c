@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.21 2003-11-01 01:22:24 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.22 2003-11-17 05:29:26 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -718,7 +718,7 @@ find_servers(name)
 			return (FALSE);
 		}
 
-		primaryname = strncpy(nsname[0], hp->h_name, MAXDNAME);
+		primaryname = strncpy(nsname[0], hp->h_name, (size_t) MAXDNAME);
 		primaryname[MAXDNAME] = '\0';
 
 		for (i = 0; i < MAXIPADDR && hp->h_addr_list[i]; i++)
@@ -953,7 +953,7 @@ get_nsinfo(answerbuf, answerlen, name, qtype, qclass)
 					break;	/* found */
 			}
 			if (i < nservers && naddrs[i] < MAXIPADDR) {
-				memcpy((char *) &inaddr, (char *) cp, INADDRSZ);
+				memcpy((char *) &inaddr, (char *) cp, (size_t) INADDRSZ);
 				ipaddr[i][naddrs[i]] = inaddr;
 				naddrs[i]++;
 			}
@@ -964,7 +964,7 @@ get_nsinfo(answerbuf, answerlen, name, qtype, qclass)
 		}
 		if (cp != eor) {
 			pr_error("size error in %s record for %s, off by %s",
-				 pr_type(type), rname, dtoa(cp - eor));
+				 pr_type(type), rname, dtoa((int) (cp - eor)));
 			set_h_errno(NO_RECOVERY);
 			return (FALSE);
 		}
@@ -1544,7 +1544,7 @@ get_zone(name, inaddr, host)
 		 * Construct query, and connect to the given server.
 		 */
 		n = res_mkquery(QUERY, name, queryclass, T_AXFR, (qbuf_t *) NULL, 0,
-				(rrec_t *) NULL, (qbuf_t *) &query, sizeof(querybuf_t));
+				(rrec_t *) NULL, (qbuf_t *) &query, (int) sizeof(querybuf_t));
 		if (n < 0) {
 			if (debug)
 				printf("%sres_mkquery failed\n", debug_prefix);
@@ -1571,7 +1571,7 @@ get_zone(name, inaddr, host)
 			return (FALSE);
 		}
 
-		if (host_res_connect(sock, &ns_sin, sizeof(ns_sin)) < 0) {
+		if (host_res_connect(sock, &ns_sin, (socklen_t) sizeof(ns_sin)) < 0) {
 			if (verbose || debug)
 				host_res_perror(&ns_sin, host, "connect()");
 			(void) host_res_close(sock);
@@ -1799,7 +1799,7 @@ get_zone(name, inaddr, host)
 	 * Write a zero length trailer to the cache to indicate end-of-file.
 	 * This is not strictly necessary if the second SOA marks the end.
 	 */
-	if (dumping && (cache_write(answer, 0) < 0)) {
+	if (dumping && (cache_write(answer, (size_t) 0) < 0)) {
 		assert(!loading);
 		(void) host_res_close(sock);
 		set_h_errno(CACHE_ERROR);
@@ -2295,7 +2295,7 @@ get_soainfo(answerbuf, answerlen, name, qtype, qclass)
 		}
 		if (cp != eor) {
 			pr_error("size error in %s record for %s, off by %s",
-				 pr_type(type), rname, dtoa(cp - eor));
+				 pr_type(type), rname, dtoa((int) (cp - eor)));
 			set_h_errno(NO_RECOVERY);
 			return (FALSE);
 		}

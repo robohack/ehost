@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.18 2003-06-04 20:11:43 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.19 2003-11-17 05:29:26 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1193,7 +1193,7 @@ process_file(fp)
 	int result;			/* result status of action taken */
 	int excode = EX_NOINPUT;	/* overall result status */
 
-	while (fgets(buf, sizeof(buf), fp) != NULL) {
+	while (fgets(buf, (int) sizeof(buf), fp) != NULL) {
 		p = strchr(buf, '\n');
 		if (p != NULL)
 			*p = '\0';
@@ -1603,7 +1603,7 @@ myhostname()
 	static char *myname = NULL;
 
 	if (myname == NULL) {
-		if (gethostname(mynamebuf, MAXDNAME) < 0) {
+		if (gethostname(mynamebuf, (size_t) MAXDNAME) < 0) {
 			perror("gethostname");
 			exit(EX_OSERR);
 		}
@@ -1616,7 +1616,7 @@ myhostname()
 		}
 
 		/* cache the result */
-		myname = strncpy(mynamebuf, hp->h_name, MAXDNAME);
+		myname = strncpy(mynamebuf, hp->h_name, (size_t) MAXDNAME);
 		myname[MAXDNAME] = '\0';
 	}
 
@@ -1693,7 +1693,7 @@ set_server(name)
 	 * Indicate the use of an explicit server.
 	 */
 	if (hp)	{
-		server = strncpy(serverbuf, hp->h_name, MAXDNAME);
+		server = strncpy(serverbuf, hp->h_name, (size_t) MAXDNAME);
 		server[MAXDNAME] = '\0';
 
 		if (verbose)

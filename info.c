@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.18 2003-11-01 01:22:08 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.19 2003-11-17 05:29:26 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -308,14 +308,14 @@ get_info(answerbuf, name, type, class)
 	set_errno(0);	/* reset before querying nameserver */
 
 	if ((n = res_mkquery(QUERY, name, class, type, (qbuf_t *) NULL, 0,
-			     (rrec_t *) NULL, (qbuf_t *) &query, sizeof(querybuf_t))) < 0) {
+			     (rrec_t *) NULL, (qbuf_t *) &query, (int) sizeof(querybuf_t))) < 0) {
 		if (debug)
 			printf("%sres_mkquery failed\n", debug_prefix);
 		set_h_errno(NO_RECOVERY);
 		return (-1);
 	}
 
-	if ((n = res_send((qbuf_t *) &query, n, (qbuf_t *) answerbuf, sizeof(*answerbuf))) < 0) {
+	if ((n = res_send((qbuf_t *) &query, n, (qbuf_t *) answerbuf, (int) sizeof(*answerbuf))) < 0) {
 		if (debug)
 			printf("%sres_send failed\n", debug_prefix);
 		set_h_errno(TRY_AGAIN);
@@ -757,7 +757,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_A:
 		if (class == C_IN || class == C_HS) {
 			if (dlen == INADDRSZ) {
-				memcpy((char *) &inaddr, (char *) cp, INADDRSZ);
+				memcpy((char *) &inaddr, (char *) cp, (size_t) INADDRSZ);
 				address = inaddr.s_addr;
 				doprintf(("\t%s", inet_ntoa(inaddr)));
 				cp += INADDRSZ;
@@ -765,7 +765,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 			}
 #ifdef obsolete
 			if (dlen == INADDRSZ + 1 + INT16SZ) {
-				memcpy((char *) &inaddr, (char *) cp, INADDRSZ);
+				memcpy((char *) &inaddr, (char *) cp, (size_t) INADDRSZ);
 				address = inaddr.s_addr;
 				doprintf(("\t%s", inet_ntoa(inaddr)));
 				cp += INADDRSZ;
@@ -869,7 +869,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	case T_WKS:
 		if (check_size(rname, type, cp, msg, eor, INADDRSZ) < 0)
 			break;
-		memcpy((char *) &inaddr, (char *) cp, INADDRSZ);
+		memcpy((char *) &inaddr, (char *) cp, (size_t) INADDRSZ);
 		doprintf(("\t%s", inet_ntoa(inaddr)));
 		cp += INADDRSZ;
 
@@ -1435,7 +1435,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	 */
 	if (cp != eor) {
 		pr_error("size error in %s record for %s, off by %s",
-			 pr_type(type), rname, dtoa(cp - eor));
+			 pr_type(type), rname, dtoa((int) (cp - eor)));
 
 		/* we believe value of dlen; should perhaps return (NULL) */
 		return (eor);

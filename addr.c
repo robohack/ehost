@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.10 2003-11-01 01:21:08 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.11 2003-11-17 05:29:26 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)addr.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -76,7 +76,7 @@ check_addr(name)
 	}
 #endif
 
-	hname = strncpy(hnamebuf, hp->h_name, MAXDNAME);
+	hname = strncpy(hnamebuf, hp->h_name, (size_t) MAXDNAME);
 	hname[MAXDNAME] = '\0';
 
 	if (!sameword(hname, name))
@@ -276,7 +276,7 @@ check_name(addr)
 	}
 #endif
 
-	hname = strncpy(hnamebuf, hp->h_name, MAXDNAME);
+	hname = strncpy(hnamebuf, hp->h_name, (size_t) MAXDNAME);
 	hname[MAXDNAME] = '\0';
 
 	if (verbose)
@@ -295,12 +295,12 @@ check_name(addr)
 	}
 	if (naliases) {
 		/* XXX this is big and sparse and wasteful, but what the heck... */
-		if (!(anamebuf = calloc(naliases, (MAXDNAME + 1)))) {
+		if (!(anamebuf = calloc((size_t) naliases, (size_t) (MAXDNAME + 1)))) {
 			sys_error("calloc(%u, %d): failed: ", naliases, (MAXDNAME + 1), strerror(errno));
 			return (FALSE);
 		}
 		for (i = 0; hp->h_aliases[i]; i++) {
-			aname = strncpy(&anamebuf[i * (MAXDNAME + 1)], hp->h_aliases[i], MAXDNAME);
+			aname = strncpy(&anamebuf[i * (MAXDNAME + 1)], hp->h_aliases[i], (size_t) MAXDNAME);
 			aname[MAXDNAME] = '\0';
 			
 			if (verbose)

@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.16 2003-11-01 00:37:36 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.17 2003-11-17 05:29:26 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -1518,7 +1518,7 @@ expand_name(name, type, cp, msg, eom, namebuf)
 	n = dn_expand(msg, eom, cp, (nbuf_t *) namebuf, MAXDNAME);
 	if (n < 0) {
 		pr_error("expand error in %s record for %s, offset %s",
-			pr_type(type), name, dtoa(cp - msg));
+			pr_type(type), name, dtoa((int) (cp - msg)));
 		set_h_errno(NO_RECOVERY);
 		return (-1);
 	}
@@ -1560,7 +1560,7 @@ check_size(name, type, cp, msg, eor, size)
 	if (cp + size > eor) {
 		if (type != T_HINFO) {
 			pr_error("incomplete %s record for %s, offset %s",
-				 pr_type(type), name, dtoa(cp - msg));
+				 pr_type(type), name, dtoa((int) (cp - msg)));
 		} else {
 			pr_warning("incomplete %s record for %s",
 				   pr_type(type), name);

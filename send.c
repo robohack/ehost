@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.16 2003-06-05 01:13:16 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.17 2003-11-17 05:29:26 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -492,7 +492,7 @@ host_res_socket(family, type, protocol)
 		res_sin.sin_addr.s_addr = srcaddr;
 		res_sin.sin_port = htons((u_short)port);
 
-		if (bind(sock, (struct sockaddr *) &res_sin, sizeof(res_sin)) < 0) {
+		if (bind(sock, (struct sockaddr *) &res_sin, (socklen_t) sizeof(res_sin)) < 0) {
 			int save_errno = errno;
 
 			if (port > 0 && errno == EADDRINUSE) {
