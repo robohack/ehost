@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.14 2003-04-06 03:20:17 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.15 2003-11-01 00:26:51 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -1688,16 +1688,38 @@ canonical(name)
 	input char *name;		/* the domain name to check */
 {
 	struct hostent *hp;
+	querybuf_t answer;
 	int status;
 	int save_errno;
 	int save_herrno;
 	int result = 0;
+	register int n;
 	
 	/*
 	 * Preserve state when querying, to avoid clobbering current values.
 	 */
 	save_errno = errno;
 	save_herrno = h_errno;
+
+	if (debug || verbose > print_level)
+		printf("Checking if %s is a canonical hostname ...\n", name);
+
+	/*
+	 * ignore errors here -- we want the errors from geth_byname()
+	 */
+	n = get_info(&answer, name, T_A, C_IN);
+
+	/*
+	 * XXX ideally the details should be printed _after_ the error message
+	 * that the caller will print...
+	 */
+	if (n >= 0 && (debug || verbose >= print_level)) {
+		int oquick = quick;
+	
+		quick = 1;			/* avoid recursion! */
+		(void) print_info(&answer, n, name, T_A, C_IN, FALSE);
+		quick = oquick;
+	}
 
 	hp = geth_byname(name);
 	status = h_errno;
@@ -1710,10 +1732,13 @@ canonical(name)
 	 */
 	if (hp == NULL) {
 		/* authoritative denial -- not existing or no A record */
-		if (status == NO_DATA || status == HOST_NOT_FOUND)
+		if (status == NO_DATA || status == NO_RREC ||
+		    status == HOST_NOT_FOUND || status == NO_HOST)
 			return (status);
 
 		/* nameserver failure -- still undecided, assume ok */
+		if ((verbose > print_level) || debug)
+			fprintf(stderr, "%s: canonical(%s): %s [%d]\n", argv0, name, hstrerror(status), status);
 		return (0);
 	}
 
@@ -1721,6 +1746,10 @@ canonical(name)
 	 * The given name exists and there is an associated A record.
 	 * The name of this A record should be the name we queried about.
 	 * If this is not the case then the answer was probably a CNAME.
+	 *
+	 * XXX:  ... unless we got the answer from something other than the
+	 * DNS, such as /etc/hosts, in which case the "official" name will be
+	 * the the one listed first in /etc/hosts, not the name we queried....
 	 */
 	result = sameword(hp->h_name, name) ? 0 : HOST_NOT_CANON;
 
@@ -1840,6 +1869,9 @@ anyrecord(name)
 	 */
 	if (n < 0) {
 		/* authoritative denial -- not existing or no ANY record */
+		/*
+		 * XXX this ignores several extended error codes from get_info()!!!
+		 */
 		if (status == NO_DATA || status == HOST_NOT_FOUND)
 			return (status);
 
