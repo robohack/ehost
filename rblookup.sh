@@ -10,7 +10,7 @@
 #
 # Ongoing maintenance by Greg A. Woods <woods@planix.com>
 #
-#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.3 2003-04-09 00:17:11 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.4 2003-05-17 00:58:43 -0800 woods Exp $"
 #
 # Lookup a dotted quad IP address, or hostname in one of many
 # Reverse/Realtime Blackhole Lists
@@ -76,9 +76,14 @@ reversed=""
 #
 #	http://www.declude.com/junkmail/support/ip4r.htm
 #
-#	http://www.iki.fi/era/rbl/rbl.html	# very dated 2001/12/02
+#	http://relays.osirusoft.com/cgi-bin/rbcheck.cgi	# has a test interface
 #
-#	http://relays.osirusoft.com/cgi-bin/rbcheck.cgi
+#	http://openrbl.org/stats.htm	# very little info.
+#
+#	http://www.rbls.org/	# complete, but just a list and a test
+#				# interface, no commentary.
+#
+#	http://www.iki.fi/era/rbl/rbl.html	# very dated 2001/12/02
 #
 # some published stats by one user of many DNS Black Lists.
 #
@@ -187,43 +192,43 @@ ALL_RBLS="${DORKSLAYERS_ROOT} ${ALL_RBLS}"
 # Osirusoft Open Relay Spam Stopper
 # <URL:http://relays.osirusoft.com/>
 #
-#     * 127.0.0.2 Verified Open Relay                                            
-#     * 127.0.0.3 Dialup Spam Source                                             
-#       Dialup Spam Sources are imported into the Zone file from other sources   
-#       and some known sources are manually added to the local include file.     
-#     * 127.0.0.4 Confirmed Spam Source                                          
-#       A site has been identified as a constant source of spam, and is          
-#       manually added. Submissions for this type of spam require multiple       
-#       nominations from multiple sites. Test Blockers also find themselves in   
-#       this catagory.                                                           
-#     * 127.0.0.5 Smart Host (In progress)                                       
-#       A Smart host is a site determined to be secure, but relays for those     
-#       who are not, defeating one level of security. When this is ready, it     
-#       will be labeled outputs.osirusoft.com. NOTE: I strongly discourage       
-#       using outputs due to it being way too effective to be useful.            
-#     * 127.0.0.6 A Spamware software developer or spamvertized site. This       
-#       information is maintained by spamsites.org and spamhaus.org.             
-#     * 127.0.0.7 A list server that automatically opts users in without         
-#       confirmation                                                             
-#     * 127.0.0.8 An insecure formmail.cgi script. (Planned)                     
-#     * 127.0.0.9 Open proxy servers                                             
+#     * 127.0.0.2 Verified Open Relay
+#     * 127.0.0.3 Dialup Spam Source
+#       Dialup Spam Sources are imported into the Zone file from other sources
+#       and some known sources are manually added to the local include file.
+#     * 127.0.0.4 Confirmed Spam Source
+#       A site has been identified as a constant source of spam, and is
+#       manually added. Submissions for this type of spam require multiple
+#       nominations from multiple sites. Test Blockers also find themselves in
+#       this catagory.
+#     * 127.0.0.5 Smart Host (In progress)
+#       A Smart host is a site determined to be secure, but relays for those
+#       who are not, defeating one level of security. When this is ready, it
+#       will be labeled outputs.osirusoft.com. NOTE: I strongly discourage
+#       using outputs due to it being way too effective to be useful.
+#     * 127.0.0.6 A Spamware software developer or spamvertized site. This
+#       information is maintained by spamsites.org and spamhaus.org.
+#     * 127.0.0.7 A list server that automatically opts users in without
+#       confirmation
+#     * 127.0.0.8 An insecure formmail.cgi script. (Planned)
+#     * 127.0.0.9 Open proxy servers
 #
-#     * Relays.OsiruSoft.com contains all zones, except for outputs and          
-#       blocktest. Effectively, it*s the master list containing the minimum      
-#       casualties subzones.                                                     
-#     * Inputs.relays.OsiruSoft.com contains only insecure mail servers.         
-#     * Dialups.relays.OsiruSoft.com contains only sources of direct-to-mx       
-#       spam which are obviously in dynamic IP pools.                            
-#     * Spamsites.relays.OsiruSoft.com contains only sites from spamsites.org.   
-#     * Spamhaus.relays.OsiruSoft.com contains only sites from spamhaus.org.     
-#     * Spews.relays.OsiruSoft.com contains only sites from spews.org.           
-#     * Blocktest.relays.osirusoft.com is a stand-alone zone. It's meant to      
-#       block testers from testing a site or netblock for many different         
-#       reasons and has no practical value. It*s not to be interpreted any       
-#       other way than to prevent test software from testing other sites.        
-#     * Outputs.relays.osirusoft.com will also be a stand-alone zone, and even   
-#       though it will be created, it should only be used to warn the servers    
-#       listed.                                                                  
+#     * Relays.OsiruSoft.com contains all zones, except for outputs and
+#       blocktest. Effectively, it*s the master list containing the minimum
+#       casualties subzones.
+#     * Inputs.relays.OsiruSoft.com contains only insecure mail servers.
+#     * Dialups.relays.OsiruSoft.com contains only sources of direct-to-mx
+#       spam which are obviously in dynamic IP pools.
+#     * Spamsites.relays.OsiruSoft.com contains only sites from spamsites.org.
+#     * Spamhaus.relays.OsiruSoft.com contains only sites from spamhaus.org.
+#     * Spews.relays.OsiruSoft.com contains only sites from spews.org.
+#     * Blocktest.relays.osirusoft.com is a stand-alone zone.  It's meant to
+#       block testers from testing a site or netblock for many different
+#       reasons and has no practical value. It*s not to be interpreted any
+#       other way than to prevent test software from testing other sites.
+#     * Outputs.relays.osirusoft.com will also be a stand-alone zone, and even
+#       though it will be created, it should only be used to warn the servers
+#       listed.
 #
 OSIRUSOFT_ROOT="relays.osirusoft.com"
 BLOCKTEST_OSIRUSOFT_ROOT="blocktest.${OSIRUSOFT_ROOT}"
@@ -366,16 +371,16 @@ ALL_RBLS="${SPAMHAUS_ROOT} ${ALL_RBLS}"
 # WireHub.nl lists
 # <URL:http://basic.wirehub.nl/spamstats.html>
 #
-#     * Wirehub DynaBlocker (dynamic IP ranges; a lot of                                                              
-#       spam comes straight from dial-up users)                                                                       
+#     * Wirehub DynaBlocker (dynamic IP ranges; a lot of
+#       spam comes straight from dial-up users)
 #
 #	<URL:http://basic.wirehub.nl/dynablocker.html>
 #
 WIREHUB_DYNABLOCK_ROOT="dynablock.wirehub.net"
 ALL_RBLS="${WIREHUB_DYNABLOCK_ROOT} ${ALL_RBLS}"
 #
-#     * Wirehub DNSBL (IPs of persistent spammers, open                                                               
-#       relay scanners & abusers, spamvertized websites)                                                              
+#     * Wirehub DNSBL (IPs of persistent spammers, open
+#       relay scanners & abusers, spamvertized websites)
 #
 #	<URL:http://basic.wirehub.nl/blackholes.html>
 #
