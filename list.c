@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.17 2003-04-05 03:30:35 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.18 2003-04-05 22:22:39 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1547,17 +1547,17 @@ get_zone(name, inaddr, host)
 		ns_sin.sin_port = htons(NAMESERVER_PORT);
 		ns_sin.sin_addr = inaddr;
 
-		sock = _res_socket(AF_INET, SOCK_STREAM, 0);
+		sock = host_res_socket(AF_INET, SOCK_STREAM, 0);
 		if (sock < 0) {
-			_res_perror(&ns_sin, host, "socket()");
+			host_res_perror(&ns_sin, host, "socket()");
 			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
 
-		if (_res_connect(sock, &ns_sin, sizeof(ns_sin)) < 0) {
+		if (host_res_connect(sock, &ns_sin, sizeof(ns_sin)) < 0) {
 			if (verbose || debug)
-				_res_perror(&ns_sin, host, "connect()");
-			(void) _res_close(sock);
+				host_res_perror(&ns_sin, host, "connect()");
+			(void) host_res_close(sock);
 			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
@@ -1568,8 +1568,8 @@ get_zone(name, inaddr, host)
 		/*
 		 * Send the query buffer.
 		 */
-		if (_res_write(sock, &ns_sin, host, (char *) &query, (size_t) n) < 0) {
-			(void) _res_close(sock);
+		if (host_res_write(sock, &ns_sin, host, (char *) &query, (size_t) n) < 0) {
+			(void) host_res_close(sock);
 			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
@@ -1602,7 +1602,7 @@ get_zone(name, inaddr, host)
 			 */
 		} else {
 			/*
-			 * XXX this sould probably be something like _res_read_anslen() in send.c
+			 * XXX this sould probably be something like host_res_read_anslen() in send.c
 			 */
 			buffer = (char *) &len;
 			buflen = INT16SZ;
@@ -1614,8 +1614,8 @@ get_zone(name, inaddr, host)
 				buflen -= n;
 			}
 			if (buflen != 0) {
-				_res_perror(&ns_sin, host, "recv_sock(): error reading answer length");
-				(void) _res_close(sock);
+				host_res_perror(&ns_sin, host, "recv_sock(): error reading answer length");
+				(void) host_res_close(sock);
 				set_h_errno(TRY_AGAIN);
 				return (FALSE);
 			}
@@ -1634,11 +1634,11 @@ get_zone(name, inaddr, host)
 		 */
 		if (len == 0) {
 			set_errno(EINVAL);
-			_res_perror(&ns_sin, host, "answer has length of zero");
+			host_res_perror(&ns_sin, host, "answer has length of zero");
 			if (loading)
 				(void) cache_close(FALSE);
 			else
-				(void) _res_close(sock);
+				(void) host_res_close(sock);
 			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
@@ -1654,7 +1654,7 @@ get_zone(name, inaddr, host)
 			if (loading)
 				(void) cache_close(FALSE);
 			else
-				(void) _res_close(sock);
+				(void) host_res_close(sock);
 			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
@@ -1662,14 +1662,14 @@ get_zone(name, inaddr, host)
 		if (loading)
 			n = cache_read(answer, len);
 		else
-			n = _res_read_stream(sock, &ns_sin, host, answer, len);
+			n = host_res_read_stream(sock, &ns_sin, host, answer, len);
 
 		if (n < 0) {
-			/* _res_perror() already called */
+			/* host_res_perror() already called */
 			if (loading)
 				(void) cache_close(FALSE);
 			else
-				(void) _res_close(sock);
+				(void) host_res_close(sock);
 			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
@@ -1688,7 +1688,7 @@ get_zone(name, inaddr, host)
 			if (loading)
 				(void) cache_close(FALSE);
 			else
-				(void) _res_close(sock);
+				(void) host_res_close(sock);
 			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
@@ -1699,7 +1699,7 @@ get_zone(name, inaddr, host)
 			if (loading)
 				(void) cache_close(FALSE);
 			else
-				(void) _res_close(sock);
+				(void) host_res_close(sock);
 			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
@@ -1755,7 +1755,7 @@ get_zone(name, inaddr, host)
 			if (loading)
 				(void) cache_close(FALSE);
 			else
-				(void) _res_close(sock);
+				(void) host_res_close(sock);
 			return (FALSE);
 		}
 
@@ -1801,7 +1801,7 @@ get_zone(name, inaddr, host)
 		 * Dump data to cache if so requested.
 		 */
 		if (dumping && (cache_write(answer, (size_t) n) < 0)) {
-			(void) _res_close(sock);
+			(void) host_res_close(sock);
 			set_h_errno(CACHE_ERROR);
 			return (FALSE);
 		}
@@ -1821,7 +1821,7 @@ get_zone(name, inaddr, host)
 	 */
 	if (dumping && (cache_write(answer, 0) < 0)) {
 		assert(!loading);
-		(void) _res_close(sock);
+		(void) host_res_close(sock);
 		set_h_errno(CACHE_ERROR);
 		return (FALSE);
 	}
@@ -1831,7 +1831,7 @@ get_zone(name, inaddr, host)
 	if (loading)
 		(void) cache_close(FALSE);
 	else
-		(void) _res_close(sock);
+		(void) host_res_close(sock);
 
 	/*
 	 * Check for the anomaly that the whole transfer consisted of the

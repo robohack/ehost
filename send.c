@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.11 2003-04-04 04:10:48 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.12 2003-04-05 22:22:39 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -222,7 +222,7 @@ check_from()
 **	Note that connect() is the call that is allowed to fail
 **	under normal circumstances. All other failures generate
 **	an unconditional error message.
-**	Note that truncation is handled within _res_read().
+**	Note that truncation is handled within host_res_read().
 */
 
 static int
@@ -241,15 +241,15 @@ send_stream(addr, query, querylen, answer, anslen)
 	/*
 	 * Setup a virtual circuit connection.
 	 */
-	srvsock = _res_socket(AF_INET, SOCK_STREAM, 0);
+	srvsock = host_res_socket(AF_INET, SOCK_STREAM, 0);
 	if (srvsock < 0) {
-		_res_perror(addr, host, "socket");
+		host_res_perror(addr, host, "socket");
 		return (-1);
 	}
-	if (_res_connect(srvsock, addr, sizeof(*addr)) < 0) {
+	if (host_res_connect(srvsock, addr, sizeof(*addr)) < 0) {
 		if (bitset(RES_DEBUG, _res.options))
-			_res_perror(addr, host, "connect");
-		(void) _res_close(srvsock);
+			host_res_perror(addr, host, "connect");
+		(void) host_res_close(srvsock);
 		return (-1);
 	}
 	if (bitset(RES_DEBUG, _res.options)) {
@@ -259,8 +259,8 @@ send_stream(addr, query, querylen, answer, anslen)
 	/*
 	 * Send the query buffer.
 	 */
-	if (_res_write(srvsock, addr, host, (char *) query, querylen) < 0) {
-		(void) _res_close(srvsock);
+	if (host_res_write(srvsock, addr, host, (char *) query, querylen) < 0) {
+		(void) host_res_close(srvsock);
 		return (-1);
 	}
 
@@ -268,8 +268,8 @@ send_stream(addr, query, querylen, answer, anslen)
 	 * Read the answer buffer.
 	 */
 wait:
-	if ((n = _res_read(srvsock, addr, host, (char *) answer, anslen, 0)) < 0) {
-		(void) _res_close(srvsock);
+	if ((n = host_res_read(srvsock, addr, host, (char *) answer, anslen, 0)) < 0) {
+		(void) host_res_close(srvsock);
 		return (-1);
 	}
 
@@ -287,7 +287,7 @@ wait:
 	/*
 	 * Never leave the socket open.
 	 */
-	(void) _res_close(srvsock);
+	(void) host_res_close(srvsock);
 
 	return (n);
 }
@@ -332,14 +332,14 @@ send_dgram(addr, query, querylen, answer, anslen)
 	/*
 	 * Setup a connected (if possible) datagram socket.
 	 */
-	if ((srvsock = _res_socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		_res_perror(addr, host, "socket");
+	if ((srvsock = host_res_socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		host_res_perror(addr, host, "socket");
 		return (-1);
 	}
 	if (connected) {
 		if (connect(srvsock, (struct sockaddr *) addr, sizeof(*addr)) < 0) {
-			_res_perror(addr, host, "connect");
-			(void) _res_close(srvsock);
+			host_res_perror(addr, host, "connect");
+			(void) host_res_close(srvsock);
 			return (-1);
 		}
 	}
@@ -355,8 +355,8 @@ send_dgram(addr, query, querylen, answer, anslen)
 
 	if (n != querylen) {
 		if (bitset(RES_DEBUG, _res.options))
-			_res_perror(addr, host, "send");
-		(void) _res_close(srvsock);
+			host_res_perror(addr, host, "send");
+		(void) host_res_close(srvsock);
 		return (-1);
 	}
 
@@ -366,8 +366,8 @@ send_dgram(addr, query, querylen, answer, anslen)
 wait:
 	if ((n = recv_sock(srvsock, (char *) answer, anslen)) < 0) {
 		if (bitset(RES_DEBUG, _res.options))
-			_res_perror(addr, host, "recvfrom");
-		(void) _res_close(srvsock);
+			host_res_perror(addr, host, "recvfrom");
+		(void) host_res_close(srvsock);
 		return (-1);
 	}
 
@@ -397,7 +397,7 @@ wait:
 	/*
 	 * Never leave the socket open.
 	 */
-	(void) _res_close(srvsock);
+	(void) host_res_close(srvsock);
 
 	return (n);
 }
@@ -405,7 +405,7 @@ wait:
 #endif /*HOST_RES_SEND*/
 
 /*
-** _RES_SOCKET -- Obtain a socket and set additional parameters
+** HOST_RES_SOCKET -- Obtain a socket and set additional parameters
 ** ------------------------------------------------------------
 **
 **	Returns:
@@ -427,7 +427,7 @@ wait:
 */
 
 int
-_res_socket(family, type, protocol)
+host_res_socket(family, type, protocol)
 	input int family;
 	input int type;
 	input int protocol;
@@ -486,7 +486,7 @@ _res_socket(family, type, protocol)
 }
 
 /*
-** _RES_CLOSE -- close the socket
+** HOST_RES_CLOSE -- close the socket
 ** --------------------------------------------------------
 **
 **	Returns:
@@ -495,14 +495,14 @@ _res_socket(family, type, protocol)
 */
 
 int
-_res_close(sock)
+host_res_close(sock)
 	input int sock;
 {
 	return close(sock);
 }
 
 /*
-** _RES_BLOCKING -- Use blocking or non-blocking socket I/O
+** HOST_RES_BLOCKING -- Use blocking or non-blocking socket I/O
 ** --------------------------------------------------------
 **
 **	Returns:
@@ -517,7 +517,7 @@ _res_close(sock)
 */
 
 int
-_res_blocking(sock, blocking)
+host_res_blocking(sock, blocking)
 	input int sock;
 	input bool_t blocking;		/* indicate blocking or not */
 {
@@ -546,7 +546,7 @@ _res_blocking(sock, blocking)
 }
 
 /*
-** _RES_CONNECT -- Connect to a stream (virtual circuit) socket
+** HOST_RES_CONNECT -- Connect to a stream (virtual circuit) socket
 ** ------------------------------------------------------------
 **
 **	Returns:
@@ -569,7 +569,7 @@ timer(sig)
 }
 
 int
-_res_connect(sock, addr, addrlen)
+host_res_connect(sock, addr, addrlen)
 	input int sock;
 	input struct sockaddr_in *addr;		/* the server address to connect to */
 	input socklen_t addrlen;
@@ -596,7 +596,7 @@ _res_connect(sock, addr, addrlen)
 }
 
 /*
-** _RES_WRITE -- Write the query buffer via a stream socket
+** HOST_RES_WRITE -- Write the query buffer via a stream socket
 ** --------------------------------------------------------
 **
 **	Returns:
@@ -608,7 +608,7 @@ _res_connect(sock, addr, addrlen)
 */
 
 int
-_res_write(sock, addr, host, buf, bufsize)
+host_res_write(sock, addr, host, buf, bufsize)
 	input int sock;			/* socket FD to write to */
 	input struct sockaddr_in *addr;	/* the server address to connect to */
 	input char *host;		/* name of server to connect to */
@@ -632,7 +632,7 @@ _res_write(sock, addr, host, buf, bufsize)
 #endif
 
 	if (send(sock, (char *) &len, (sock_buflen_t) INT16SZ, 0) != INT16SZ) {
-		_res_perror(addr, host, "write query length");
+		host_res_perror(addr, host, "write query length");
 		return (-1);
 	}
 
@@ -640,20 +640,20 @@ _res_write(sock, addr, host, buf, bufsize)
 	 * Write the query buffer itself.
 	 */
 	if ((size_t) send(sock, buf, (sock_buflen_t) bufsize, 0) != bufsize) {
-		_res_perror(addr, host, "write query");
+		host_res_perror(addr, host, "write query");
 		return (-1);
 	}
 
 	/*
 	 * Use non-blocking I/O to read the answer.
 	 */
-	(void) _res_blocking(sock, FALSE);
+	(void) host_res_blocking(sock, FALSE);
 
 	return (bufsize);
 }
 
 /*
-** _RES_READ -- Read the answer buffer via a datagram socket
+** HOST_RES_READ -- Read the answer buffer via a datagram socket
 ** -------------------------------------------------------
 **
 **	Returns:
@@ -675,7 +675,7 @@ _res_write(sock, addr, host, buf, bufsize)
 */
 
 int
-_res_read(sock, addr, host, buf, bufsize)
+host_res_read(sock, addr, host, buf, bufsize)
 	input int sock;			/* socket FD to read from */
 	input struct sockaddr_in *addr;	/* the server address to connect to */
 	input char *host;		/* name of server to connect to */
@@ -702,7 +702,7 @@ _res_read(sock, addr, host, buf, bufsize)
 		buflen -= n;
 	}
 	if (buflen != 0) {
-		_res_perror(addr, host, "recv_sock(): error reading answer length");
+		host_res_perror(addr, host, "recv_sock(): error reading answer length");
 		return (-1);
 	}
 
@@ -716,7 +716,7 @@ _res_read(sock, addr, host, buf, bufsize)
 #endif
 	if (len == 0) {
 		errno = EINVAL;		
-		_res_perror(addr, host, "answer has length of zero");
+		host_res_perror(addr, host, "answer has length of zero");
 		return (0);
 	}
 
@@ -745,7 +745,7 @@ _res_read(sock, addr, host, buf, bufsize)
 		buflen -= n;
 	}
 	if (buflen != 0) {
-		_res_perror(addr, host, "recv_sock(): error reading answer");
+		host_res_perror(addr, host, "recv_sock(): error reading answer");
 		return (-1);
 	}
 
@@ -764,7 +764,7 @@ _res_read(sock, addr, host, buf, bufsize)
 			buflen = (reslen < sizeof(junkresbuf)) ? reslen : sizeof(junkresbuf);
 		}
 		if (reslen != 0) {
-			_res_perror(addr, host, "read residu");
+			host_res_perror(addr, host, "read residu");
 			return (-1);
 		}
 		if (bitset(RES_DEBUG, _res.options)) {
@@ -779,7 +779,7 @@ _res_read(sock, addr, host, buf, bufsize)
 }
 
 /*
-** _RES_READ_STREAM -- Read the answer buffer via a stream socket
+** HOST_RES_READ_STREAM -- Read the answer buffer via a stream socket
 ** --------------------------------------------------------------
 **
 **	Returns:
@@ -788,7 +788,7 @@ _res_read(sock, addr, host, buf, bufsize)
 **
 */
 int
-_res_read_stream(sock, addr, host, buf, bufsize)
+host_res_read_stream(sock, addr, host, buf, bufsize)
 	input int sock;			/* socket FD to read from */
 	input struct sockaddr_in *addr;	/* the server address to connect to */
 	input char *host;		/* name of server to connect to */
@@ -814,7 +814,7 @@ _res_read_stream(sock, addr, host, buf, bufsize)
 		buflen -= n;
 	}
 	if (buflen != 0) {
-		_res_perror(addr, host, "recv_sock(): error reading answer");
+		host_res_perror(addr, host, "recv_sock(): error reading answer");
 		return (-1);
 	}
 
@@ -923,7 +923,7 @@ reread:
 #endif /*BROKEN_SELECT*/
 
 /*
-** _RES_PERROR -- Issue perror message including host info
+** HOST_RES_PERROR -- Issue perror message including host info
 ** -------------------------------------------------------
 **
 **	Returns:
@@ -931,7 +931,7 @@ reread:
 */
 
 void
-_res_perror(addr, host, message)
+host_res_perror(addr, host, message)
 	input struct sockaddr_in *addr;	/* the server address to connect to */
 	input char *host;		/* name of server to connect to */
 	input char *message;		/* perror message string */
