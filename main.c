@@ -35,6 +35,8 @@
  * and to not re-distribute your own modifications to others.
  */
 
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.2 2002-01-12 08:05:47 -0800 woods Exp $"
+
 #ifndef lint
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
 #endif
@@ -179,13 +181,10 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
  * mentioned in an NS record does not exist when looking up its address.
  *
  * Primary nameserver.
- * This utility assumes that the first domain name in the RHS of the
- * SOA record for a zone contains the name of the primary nameserver
- * (or one of the primary nameservers) for that zone. Unfortunately,
- * this field has not been unambiguously defined. Nevertheless, many
- * hostmasters interpret the definitions given in RFC 1033 and 1035
- * as such, and therefore host will continue doing so. Interpretation
- * as the machine that holds the zone data disk file is pretty useless.
+ * This utility assumes that the first domain name in the first field of the
+ * RHS of the SOA record for a zone contains the name of the primary nameserver
+ * (or one of the primary nameservers) for that zone (as defined by RFC 1033
+ * and 1035, and clarified in RFC 2181.
  */
 
 /*
@@ -206,7 +205,7 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
  *
  * -l		special mode to generate zone listing for a zone
  * -L level	do recursive zone listing/checking this level deep
- * -p		use primary nameserver of zone for zone transfers
+ * -p		use primary nameserver of zone for queries
  * -P server	give priority to preferred servers for zone transfers
  * -N zone	do not perform zone transfer for these explicit zones
  * -S		print zone resource record statistics
@@ -216,6 +215,7 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
  * -D		same as -H but lists duplicate hosts in addition
  * -C		special mode to check SOA records for a zone
  * -A		special mode to check reverse mappings of host addresses
+ * -???		special mode to check internal and external delegations
  *
  * Miscellaneous options.
  * ---------------------
@@ -274,12 +274,13 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
 static char Usage[] =
 "\
 Usage:      host [-v] [-a] [-t querytype] [options]  name  [server]\n\
+Long Help:  host --help\n\
 Listing:    host [-v] [-a] [-t querytype] [options]  -l zone  [server]\n\
 Hostcount:  host [-v] [options] -H [-D] [-E] [-G] zone\n\
-Check soa:  host [-v] [options] -C zone\n\
+Check SOA:  host [-v] [options] -C zone\n\
 Addrcheck:  host [-v] [options] -A host\n\
-Listing options: [-L level] [-S] [-A] [-p] [-P prefserver] [-N skipzone]\n\
-Common options:  [-d] [-f|-F file] [-I chars] [-i|-n] [-q] [-Q] [-T] [-Z]\n\
+Listing options: [-L level] [-S] [-A] [-P prefserver] [-N skipzone]\n\
+Common options:  [-d] [-f|-F file] [-I chars] [-i|-n] [-p] [-q] [-Q] [-T] [-Z]\n\
 Other options:   [-c class] [-e] [-m] [-o] [-r] [-R] [-s secs] [-u] [-w]\n\
 Special options: [-O srcaddr] [-j minport] [-J maxport]\n\
 Extended usage:  [-x [name ...]] [-X server [name ...]]\
@@ -309,7 +310,8 @@ static char Help[] =
 	  --load[=cachedir]	load zone data from local disk cache\n\
 -r	  --norecurs		turn off recursion in nameserver queries\n\
 	  --nothing		no resource record output during zone listing\n\
--p	  --primary		get listing from soa primary nameserver only\n\
+	  --parent		use only the nameservers from the parent zone\n\
+-p	  --primary		get answers from soa primary nameserver only\n\
 -Q	  --quick		skip time consuming special checks\n\
 -q	  --quiet		suppress all non-fatal warning messages\n\
 	  --recursive		zone listing with infinite recursion level\n\
@@ -716,6 +718,9 @@ input char *argv[];
 	if (loadzone && (servername != NULL))
 		fatal("Conflicting options load and server");
 
+	if (parent && (servername != NULL))
+		fatal("Conflicting options --parent and server");
+
 	if (loadzone && dumpzone)
 		fatal("Conflicting options load and dump");
 
@@ -1074,6 +1079,12 @@ input char *optstring;			/* parameter from command line */
 		return("-");
 	}
 
+	if (sameword(optstring, "parent"))
+	{
+		parent = TRUE;
+		return("-");
+	}
+
 	if (sameword(optstring, "recursive"))
 	{
 		if (recursive == 0)
@@ -1292,6 +1303,11 @@ input char *name;			/* command line argument */
 	if (queryname[0] == '\0')
 		queryname = ".";
 
+#ifdef HAVE_INET_ATON
+	if (inet_aton(queryname, &inaddr))
+		queryaddr = htonl(inaddr.s_addr);
+	else
+#endif
 	if (sameword(queryname, "."))
 		queryaddr = NOT_DOTTED_QUAD;
 	else
@@ -1393,6 +1409,13 @@ input char *name;			/* command line argument */
 		return(EX_USAGE);
 	}
 
+	/* must have plain name with --parent */
+	if (parent && queryaddr != NOT_DOTTED_QUAD)
+	{
+		errmsg("Invalid query name %s", queryname);
+		return(EX_USAGE);
+	}
+
 	/* show what we are going to query about */
 	if (verbose)
 		show_types(queryname, querytype, queryclass);
@@ -1438,6 +1461,42 @@ input ipaddr_t addr;			/* explicit address of query */
 	{
 		result = list_zone(name);
 		return(result);
+	}
+
+/*
+ * If we're not doing test() or list_zone() then interpret '-p' as if the
+ * primary server were given as the servername (i.e. as -X or second arg).
+ */
+	if (primary && !parent)
+	{
+		char *primaryname;
+
+		primaryname = get_primary(name);
+		if (primaryname == NULL)
+		{
+			ns_error(name, T_NS, queryclass, server);
+			return(FALSE);
+		}
+		set_server(primaryname);
+		canonskip = 1;	/* the primary server may be non-recursive */
+	}
+/*
+ * If --parent was specified we try using the parent zone's nameservers instead
+ * of whatever's configured for the local resolver.
+ */
+	else if (parent)
+	{
+		char *parent_zone = strchr(name, '.');
+
+		if (!parent_zone || !*(parent_zone + 1)) {
+			errmsg("Unable to determine parent zone for %s", name);
+			return(FALSE);
+		}
+		if (use_servers(parent_zone + 1) == FALSE)
+			return(FALSE);
+		/* turn off nameserver recursion */
+		_res.options &= ~RES_RECURSE;
+		canonskip = 1;	/* the parent servers may be non-recursive */
 	}
 
 /*
