@@ -4,6 +4,8 @@
 **	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
 */
 
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.2 2002-01-11 22:30:08 -0800 woods Exp $"
+
 #if defined(__SVR4) || defined(__svr4__)
 #define SVR4
 #endif
@@ -36,6 +38,11 @@
 
 #if defined(bsdi) || defined(__bsdi__)
 #define SYSV_MALLOC
+#endif
+
+#if defined(__NetBSD__)
+#define SYSV_MALLOC
+#define SYSV_MEMSET
 #endif
 
 #if defined(NeXT)
