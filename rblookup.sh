@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.6 2003-06-04 06:30:47 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.7 2003-07-29 18:29:00 -0800 woods Exp $"
 #
 # rblookup - Lookup a dotted quad IP address, or hostname in one of many
 #		Reverse/Realtime DNS-based Lists
@@ -102,6 +102,93 @@ reversed=""
 #	http://openrbl.org/stats.htm
 #
 
+# Blitzed Open Proxy Monitor List
+# <URL:http://opm.blitzed.org/info>
+#
+#   WinGate      127.1.0.1
+#   SOCKS        127.1.0.2
+#   HTTP CONNECT 127.1.0.4
+#   Router       127.1.0.8
+#   HTTP POST    127.1.0.16
+#
+BLITZED_ALL_ROOT="opm.blitzed.org"
+ALL_RBLS="${BLITZED_ALL_ROOT} ${ALL_RBLS}"
+
+# dev.null.dk Open Relay List
+# <URL:http://dev.null.dk/bl.shtml>
+#
+DEVNULL_ROOT="dev.null.dk"
+ALL_RBLS="${DEVNULL_ROOT} ${ALL_RBLS}"
+
+# DNSRBL - 
+# <URL:http://www.dnsrbl.com/>
+#
+# 127.0.0.2	verified open relay
+# 127.0.0.3	dialup spam source
+# 127.0.0.4	confirmed spam source
+# 127.0.0.5	smart host
+# 127.0.0.6	a spamware software developer or spamvertized site
+# 127.0.0.7	a list server that opts in without confirmation
+# 127.0.0.8	an insecure formmail.cgi script
+# 127.0.0.9	open proxy servers
+#
+DNSRBL_ROOT="dun.dnsrbl.net spam.dnsrbl.net"
+ALL_RBLS="${DNSRBL_ROOT} ${ALL_RBLS}"
+
+# DORKSLAYERS - the second edition
+# <URL:http://www.dorkslayers.com/>
+#
+DORKSLAYERS_ROOT="relays.dorkslayers.com orbs.dorkslayers.com ztl.dorkslayers.com"
+ALL_RBLS="${DORKSLAYERS_ROOT} ${ALL_RBLS}"
+
+# DSBL - Distributed Sender Boycott List
+# <URL:http://www.dsbl.org/>
+#
+DSBL_ROOT="list.dsbl.org unconfirmed.dsbl.org multihop.dsbl.org"
+ALL_RBLS="${DSBL_ROOT} ${ALL_RBLS}"
+
+# Easynet.nl (formerly WireHub.nl) lists
+# <URL:http://abuse.easynet.nl/blackholes.html>
+# AUP at <URL:http://www.nl.easynet.net/pub/av/en/>
+#
+#     * Easynet DynaBlocker (dynamic IP ranges; a lot of
+#       spam comes straight from dial-up users)
+#
+#	<URL:http://dynablock.easynet.nl/>
+#
+EASYNET_DYNABLOCK_ROOT="dynablock.easynet.nl"
+ALL_RBLS="${EASYNET_DYNABLOCK_ROOT} ${ALL_RBLS}"
+#
+#     * Easynet DNSBL (IPs of persistent spammers, open
+#       relay scanners & abusers, spamvertized websites)
+#
+#	<URL:http://blackholes.easynet.nl/>
+#
+EASYNET_BLACKHOLES_ROOT="blackholes.easynet.nl"
+ALL_RBLS="${EASYNET_BLACKHOLES_ROOT} ${ALL_RBLS}"
+#
+#     * Easynet Proxies (IPs of open proxies)
+#
+#	<URL:http://proxies.blackholes.easynet.nl/>
+#
+EASYNET_PROXIES_ROOT="proxies.blackholes.easynet.nl"
+ALL_RBLS="${EASYNET_PROXIES_ROOT} ${ALL_RBLS}"
+
+# five-ten-sg.com blackholes
+# <URL:http://www.five-ten-sg.com/blackhole.php>
+#
+# 127.0.0.2	Lists direct spam sources.
+# 127.0.0.3	Lists spam sites before they get into DUL
+# 127.0.0.4	Lists bulk mailers that don't use confirmed opt-in
+# 127.0.0.5	Lists multi-stage open relays
+# 127.0.0.6	Lists single-stage open relays
+# 127.0.0.7	Lists IP ranges of companies that ignore spam complaints
+# 127.0.0.8	Lists servers running vulnerable web scripts that can send spam
+# 127.0.0.9	Lists servers with "other issues."
+#
+FIVETENSG_ROOT="blackholes.five-ten-sg.com"
+ALL_RBLS="${FIVETENSG_ROOT} ${ALL_RBLS}"
+
 # MAPS RBL: Mail Abuse Protection System Realtime Blackhole List
 # <URL:http://mail-abuse.org/rbl/>
 # 
@@ -137,6 +224,28 @@ MAPS_DUL_ROOT="dialups.mail-abuse.org"
 MAPS_RSS_ROOT="relays.mail-abuse.org"
 #ALL_RBLS="${RSS_ROOT} ${ALL_RBLS}"
 
+# Spam Filtering @ Monkeys.com
+# <URL:http://www.monkeys.com/anti-spam/filtering/formmail.html>
+# <URL:http://www.monkeys.com/anti-spam/filtering/proxies.html>
+#
+MONKEYSFORMMAIL_ROOT="formmail.relays.monkeys.com"
+ALL_RBLS="${MONKEYSFORMMAIL_ROOT} ${ALL_RBLS}"
+MONKEYSPROXIES_ROOT="proxies.relays.monkeys.com"
+ALL_RBLS="${MONKEYSPROXIES_ROOT} ${ALL_RBLS}"
+
+# Not Just Another Black List
+# <URL:http://njabl.org/>
+#
+# 127.0.0.2	lists open relays and known spam sources
+# 127.0.0.3	lists dial-up addresses
+# 127.0.0.4	lists spam sources
+# 127.0.0.5	lists multi-stage open relays
+# 127.0.0.8	lists servers with insecure formmail scripts
+# 127.0.0.9	lists open proxy sources
+#
+NJABL_ROOT="dnsbl.njabl.org"
+ALL_RBLS="${NJABL_ROOT} ${ALL_RBLS}"
+
 # ORBL: Open Relay Black List
 # <URL:http://www.orbl.org/>
 #
@@ -169,38 +278,11 @@ MAPS_RSS_ROOT="relays.mail-abuse.org"
 #ORBZ_ROOT="inputs.orbz.org outputs.orbz.org"
 #ALL_RBLS="${ORBZ_ROOT} ${ALL_RBLS}"
 
-# DSBL - Distributed Sender Boycott List
-# <URL:http://www.dsbl.org/>
-#
-DSBL_ROOT="list.dsbl.org unconfirmed.dsbl.org multihop.dsbl.org"
-ALL_RBLS="${DSBL_ROOT} ${ALL_RBLS}"
-
 # ORDB - third son of ORBS
 # <URL:http://www.ordb.org/>
 #
 ORDB_ROOT="relays.ordb.org "
 ALL_RBLS="${ORDB_ROOT} ${ALL_RBLS}"
-
-# DNSRBL - 
-# <URL:http://www.dnsrbl.com/>
-#
-# 127.0.0.2	verified open relay
-# 127.0.0.3	dialup spam source
-# 127.0.0.4	confirmed spam source
-# 127.0.0.5	smart host
-# 127.0.0.6	a spamware software developer or spamvertized site
-# 127.0.0.7	a list server that opts in without confirmation
-# 127.0.0.8	an insecure formmail.cgi script
-# 127.0.0.9	open proxy servers
-#
-DNSRBL_ROOT="dun.dnsrbl.net spam.dnsrbl.net"
-ALL_RBLS="${DNSRBL_ROOT} ${ALL_RBLS}"
-
-# DORKSLAYERS - the second edition
-# <URL:http://www.dorkslayers.com/>
-#
-DORKSLAYERS_ROOT="relays.dorkslayers.com orbs.dorkslayers.com ztl.dorkslayers.com"
-ALL_RBLS="${DORKSLAYERS_ROOT} ${ALL_RBLS}"
 
 # Osirusoft Open Relay Spam Stopper
 # <URL:http://relays.osirusoft.com/>
@@ -249,6 +331,30 @@ OUTPUTS_OSIRUSOFT_ROOT="outputs.${OSIRUSOFT_ROOT}"
 OSIRUSOFT_ALL="${OSIRUSOFT_ROOT} ${BLOCKTEST_OSIRUSOFT_ROOT} ${OUTPUTS_OSIRUSOFT_ROOT}"
 ALL_RBLS="${OSIRUSOFT_ALL} ${ALL_RBLS}"
 
+# reynolds boycott list
+# <URL:http://bl.reynolds.net.au/>
+#
+# ``comprises everything of "type 1", which is everything''
+#
+REYNOLDS_T1_BL_ROOT="t1.bl.reynolds.net.au"
+ALL_RBLS="${REYNOLDS_T1_BL_ROOT} ${ALL_RBLS}"
+
+# spambag.org spam List
+# <URL:http://www.spambag.org/>
+#
+# list of spam support service providers and such
+#
+# They also have a whitelist
+#
+SPAMBAG_ROOT="blacklist.spambag.org"
+ALL_RBLS="${SPAMBAG_ROOT} ${ALL_RBLS}"
+
+# SpamCop Blocking List
+# <URL:http://spamcop.net/bl.shtml>
+#
+SPAMCOP_ROOT="bl.spamcop.net"
+ALL_RBLS="${SPAMCOP_ROOT} ${ALL_RBLS}"
+
 # spam.exsilla.net blackholes
 # <URL:http://www.exsilia.net/>
 #
@@ -263,31 +369,6 @@ ALL_RBLS="${OSIRUSOFT_ALL} ${ALL_RBLS}"
 #
 SPAM_EXSILLA_ROOT="spam.exsilia.net"
 ALL_RBLS="${SPAM_EXSILLA_ROOT} ${ALL_RBLS}"
-
-# spamsources.fabel.dk blackholes
-# <URL:http://www.fabel.dk/relay/>
-#
-# They only do the most basic relay test with plain envelope addresses.
-#
-# 127.0.0.2	Lists direct spam sources.
-#
-SPAMSOURCES_FABEL_ROOT="spamsources.fabel.dk"
-ALL_RBLS="${SPAMSOURCES_FABEL_ROOT} ${ALL_RBLS}"
-
-# five-ten-sg.com blackholes
-# <URL:http://www.five-ten-sg.com/blackhole.php>
-#
-# 127.0.0.2	Lists direct spam sources.
-# 127.0.0.3	Lists spam sites before they get into DUL
-# 127.0.0.4	Lists bulk mailers that don't use confirmed opt-in
-# 127.0.0.5	Lists multi-stage open relays
-# 127.0.0.6	Lists single-stage open relays
-# 127.0.0.7	Lists IP ranges of companies that ignore spam complaints
-# 127.0.0.8	Lists servers running vulnerable web scripts that can send spam
-# 127.0.0.9	Lists servers with "other issues."
-#
-FIVETENSG_ROOT="blackholes.five-ten-sg.com"
-ALL_RBLS="${FIVETENSG_ROOT} ${ALL_RBLS}"
 
 # SpamGuard by Howard Leadmon
 # <URL:http://www.leadmon.net/spamguard/>
@@ -307,125 +388,6 @@ ALL_RBLS="${FIVETENSG_ROOT} ${ALL_RBLS}"
 SPAMGUARD_ROOT="spamguard.leadmon.net"
 ALL_RBLS="${SPAMGUARD_ROOT} ${ALL_RBLS}"
 
-# Spam Filtering @ Monkeys.com
-# <URL:http://www.monkeys.com/anti-spam/filtering/formmail.html>
-# <URL:http://www.monkeys.com/anti-spam/filtering/proxies.html>
-#
-MONKEYSFORMMAIL_ROOT="formmail.relays.monkeys.com"
-ALL_RBLS="${MONKEYSFORMMAIL_ROOT} ${ALL_RBLS}"
-MONKEYSPROXIES_ROOT="proxies.relays.monkeys.com"
-ALL_RBLS="${MONKEYSPROXIES_ROOT} ${ALL_RBLS}"
-
-# Not Just Another Black List
-# <URL:http://njabl.org/>
-#
-# 127.0.0.2	lists open relays and known spam sources
-# 127.0.0.3	lists dial-up addresses
-# 127.0.0.4	lists spam sources
-# 127.0.0.5	lists multi-stage open relays
-# 127.0.0.8	lists servers with insecure formmail scripts
-# 127.0.0.9	lists open proxy sources
-#
-NJABL_ROOT="dnsbl.njabl.org"
-ALL_RBLS="${NJABL_ROOT} ${ALL_RBLS}"
-
-# SpamCop Blocking List
-# <URL:http://spamcop.net/bl.shtml>
-#
-SPAMCOP_ROOT="bl.spamcop.net"
-ALL_RBLS="${SPAMCOP_ROOT} ${ALL_RBLS}"
-
-# dev.null.dk Open Relay List
-# <URL:http://dev.null.dk/bl.shtml>
-#
-DEVNULL_ROOT="dev.null.dk"
-ALL_RBLS="${DEVNULL_ROOT} ${ALL_RBLS}"
-
-# VISI.com Relay Stop List
-# <URL:http://relays.visi.com/>
-#
-# Only list confirmed open relays that have sent spam, and
-# automatically de-list after 90 days.  Apparently they'll gladly
-# remove any listing on request too.
-#
-# Not functional since since 2002/12/16.  They are apparently planning
-# to re-write their software and database and start up again sometime
-# in the future.
-#
-#VISI_ROOT="relays.visi.com"
-#ALL_RBLS="${VISI_ROOT} ${ALL_RBLS}"
-
-# spambag.org spam List
-# <URL:http://www.spambag.org/>
-#
-# list of spam support service providers and such
-#
-# They also have a whitelist
-#
-SPAMBAG_ROOT="blacklist.spambag.org"
-ALL_RBLS="${SPAMBAG_ROOT} ${ALL_RBLS}"
-
-# SPAMHAUS
-# <URL:http://www.spamhaus.org/sbl/index.lasso>
-#
-SPAMHAUS_ROOT="sbl.spamhaus.org"
-ALL_RBLS="${SPAMHAUS_ROOT} ${ALL_RBLS}"
-
-# SUMMIT
-# <URL:http://www.2mbit.com/sbl.php>
-#
-# Dead as of about May 21, 2002
-#
-#SUMMIT_ROOT="blackholes.s2mbit.com"
-#ALL_RBLS="${SUMMIT_ROOT} ${ALL_RBLS}"
-
-# Easynet.nl (formerly WireHub.nl) lists
-# <URL:http://abuse.easynet.nl/blackholes.html>
-# AUP at <URL:http://www.nl.easynet.net/pub/av/en/>
-#
-#     * Easynet DynaBlocker (dynamic IP ranges; a lot of
-#       spam comes straight from dial-up users)
-#
-#	<URL:http://dynablock.easynet.nl/>
-#
-EASYNET_DYNABLOCK_ROOT="dynablock.easynet.nl"
-ALL_RBLS="${EASYNET_DYNABLOCK_ROOT} ${ALL_RBLS}"
-#
-#     * Easynet DNSBL (IPs of persistent spammers, open
-#       relay scanners & abusers, spamvertized websites)
-#
-#	<URL:http://blackholes.easynet.nl/>
-#
-EASYNET_BLACKHOLES_ROOT="blackholes.easynet.nl"
-ALL_RBLS="${EASYNET_BLACKHOLES_ROOT} ${ALL_RBLS}"
-#
-#     * Easynet Proxies (IPs of open proxies)
-#
-#	<URL:http://proxies.blackholes.easynet.nl/>
-#
-EASYNET_PROXIES_ROOT="proxies.blackholes.easynet.nl"
-ALL_RBLS="${EASYNET_PROXIES_ROOT} ${ALL_RBLS}"
-
-# Blitzed Open Proxy Monitor List
-# <URL:http://opm.blitzed.org/info>
-#
-#   WinGate      127.1.0.1
-#   SOCKS        127.1.0.2
-#   HTTP CONNECT 127.1.0.4
-#   Router       127.1.0.8
-#   HTTP POST    127.1.0.16
-#
-BLITZED_ALL_ROOT="opm.blitzed.org"
-ALL_RBLS="${BLITZED_ALL_ROOT} ${ALL_RBLS}"
-
-# reynolds boycott list
-# <URL:http://bl.reynolds.net.au/>
-#
-# ``comprises everything of "type 1", which is everything''
-#
-REYNOLDS_T1_BL_ROOT="t1.bl.reynolds.net.au"
-ALL_RBLS="${REYNOLDS_T1_BL_ROOT} ${ALL_RBLS}"
-
 # Spamhaus Block List
 # <URL:http://www.spamhaus.org/sbl/index.lasso>
 #
@@ -433,6 +395,16 @@ ALL_RBLS="${REYNOLDS_T1_BL_ROOT} ${ALL_RBLS}"
 #
 SPAMHAUS_BL_ROOT="sbl.spamhaus.org"
 ALL_RBLS="${SPAMHAUS_BL_ROOT} ${ALL_RBLS}"
+
+# spamsources.fabel.dk blackholes
+# <URL:http://www.fabel.dk/relay/>
+#
+# They only do the most basic relay test with plain envelope addresses.
+#
+# 127.0.0.2	Lists direct spam sources.
+#
+SPAMSOURCES_FABEL_ROOT="spamsources.fabel.dk"
+ALL_RBLS="${SPAMSOURCES_FABEL_ROOT} ${ALL_RBLS}"
 
 # SORBS: Spam and Open Relay Blocking System
 # <URL:http://www.dnsbl.sorbs.net/>
@@ -447,6 +419,28 @@ ALL_RBLS="${SPAMHAUS_BL_ROOT} ${ALL_RBLS}"
 #
 SORBS_ROOT="dnsbl.sorbs.net"
 ALL_RBLS="${SORBS_ROOT} ${ALL_RBLS}"
+
+# SUMMIT
+# <URL:http://www.2mbit.com/sbl.php>
+#
+# Dead as of about May 21, 2002
+#
+#SUMMIT_ROOT="blackholes.s2mbit.com"
+#ALL_RBLS="${SUMMIT_ROOT} ${ALL_RBLS}"
+
+# VISI.com Relay Stop List
+# <URL:http://relays.visi.com/>
+#
+# Only list confirmed open relays that have sent spam, and
+# automatically de-list after 90 days.  Apparently they'll gladly
+# remove any listing on request too.
+#
+# Not functional since since 2002/12/16.  They are apparently planning
+# to re-write their software and database and start up again sometime
+# in the future.
+#
+#VISI_ROOT="relays.visi.com"
+#ALL_RBLS="${VISI_ROOT} ${ALL_RBLS}"
 
 # ----------------------------------------------------------------------
 # Exit codes from <sysexits.h>, just in case we are called from a mailer
