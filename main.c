@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.16 2003-04-06 03:18:57 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.17 2003-05-17 00:59:21 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -691,11 +691,11 @@ main(argc, argv)
 				break;
 
 			case 'V' :
-#if defined(__NAMESER) && defined(BIND_RES_SEND)
+#if defined(__NAMESER) && !defined(HOST_RES_SEND)
 				printf("Host version %s, BIND-8 resolver API version: %d\n", version, __NAMESER);
-#elif defined(__BIND) && defined(BIND_RES_SEND)
+#elif defined(__BIND) && !defined(HOST_RES_SEND)
 				printf("Host version %s, BIND-4 resolver API version: %d\n", version, __BIND);
-#elif defined(BIND_4_8) && defined(BIND_RES_SEND)
+#elif defined(BIND_4_8) && !defined(HOST_RES_SEND)
 				printf("Host version %s, BIND 4.8.x resolver\n", version);
 #elif defined(__NAMESER) && defined(HOST_RES_SEND)
 				printf("Host version %s, using private res_send() with BIND-8 resolver API version %d\n", version, __NAMESER);
