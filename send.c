@@ -18,7 +18,7 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 960511";
+static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 961013";
 #endif
 
 #if defined(apollo) && defined(lint)
@@ -47,7 +47,7 @@ static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 960511";
 #define output			/* modified output parameter */
 
 #define bitset(a,b)	(((a) & (b)) != 0)
-#define setalarm(n)	(void) alarm((unsigned int)n)
+#define setalarm(n)	(void) alarm((unsigned int)(n))
 
 extern int errno;
 extern res_state_t _res;	/* defined in res_init.c */
@@ -58,13 +58,13 @@ static int timeout;		/* connection read timeout */
 static struct sockaddr_in from;	/* address of inbound packet */
 static struct sockaddr *from_sa = (struct sockaddr *)&from;
 
-/* extern */
 char *inet_ntoa		PROTO((struct in_addr));
+unsigned int alarm	PROTO((unsigned int));
 
-/* send.c */
 #ifdef HOST_RES_SEND
 int res_send		PROTO((CONST qbuf_t *, int, qbuf_t *, int));
 void _res_close		PROTO((void));
+static int check_from	PROTO((void));
 static int send_stream	PROTO((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
 static int send_dgram	PROTO((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
 #endif /*HOST_RES_SEND*/
@@ -242,6 +242,44 @@ _res_close()
 
 	/* restore state */
 	errno = save_errno;
+}
+
+/*
+** CHECK_FROM -- Make sure the response comes from a known server
+** --------------------------------------------------------------
+**
+**	Returns:
+**		Nonzero if the source address is known.
+**		Zero otherwise.
+*/
+
+static int
+check_from()
+{
+	struct sockaddr_in *addr;
+	register int ns;
+
+	for (ns = 0; ns < _res.nscount; ns++)
+	{
+		/* fetch server address */
+		addr = &nslist(ns);
+
+		if (from.sin_family != addr->sin_family)
+			continue;
+
+		if (from.sin_port != addr->sin_port)
+			continue;
+
+		/* this allows a reply from any responding server */
+		if (addr->sin_addr.s_addr == INADDR_ANY)
+			return(1);
+
+		if (from.sin_addr.s_addr == addr->sin_addr.s_addr)
+			return(1);
+	}
+
+	/* matches none of the known addresses */
+	return(0);
 }
 
 /*
@@ -428,6 +466,19 @@ wait:
 	}
 
 /*
+ * Make sure it comes from a known server.
+ */
+	if (!check_from())
+	{
+		if (bitset(RES_DEBUG, _res.options))
+		{
+			printf("%sunknown server %s:\n", dbprefix, inet_ntoa(from.sin_addr));
+			pr_query(answer, (n > anslen) ? anslen : n, stdout);
+		}
+		goto wait;
+	}
+
+/*
  * Never leave the socket open.
  */
 	_res_close();
@@ -568,7 +619,7 @@ input int bufsize;			/* maximum size of answer buffer */
 	register int n;
 
 	/* set stream timeout for recv_sock() */
-	timeout = 60;
+	timeout = READTIMEOUT;
 
 /*
  * Read the length of answer buffer.
@@ -666,14 +717,11 @@ input int bufsize;			/* maximum size of answer buffer */
 **	Returns:
 **		Length of buffer if successfully received.
 **		-1 in case of failure or timeout.
-**
 **	Inputs:
 **		The global variable ``timeout'' should have been
 **		set with the desired timeout value in seconds.
-**
 **	Outputs:
-**		Sets global ``from'' to the address from which we
-**		received the packet.
+**		Sets ``from'' to the address of the packet sender.
 */
 
 static int
@@ -689,7 +737,7 @@ input int buflen;			/* remaining buffer size */
 
 	wait.tv_sec = timeout;
 	wait.tv_usec = 0;
-
+rewait:
 	/* FD_ZERO(&fds); */
 	bzero((char *)&fds, sizeof(fds));
 	FD_SET(sock, &fds);
@@ -698,14 +746,18 @@ input int buflen;			/* remaining buffer size */
 	n = select(FD_SETSIZE, &fds, (fd_set *)NULL, (fd_set *)NULL, &wait);
 	if (n <= 0)
 	{
+		if (n < 0 && errno == EINTR)
+			goto rewait;
 		if (n == 0)
 			errno = ETIMEDOUT;
 		return(-1);
 	}
-
+reread:
 	/* fake an error if nothing was actually read */
 	fromlen = sizeof(from);
 	n = recvfrom(sock, buffer, buflen, 0, from_sa, &fromlen);
+	if (n < 0 && errno == EINTR)
+		goto reread;
 	if (n == 0)
 		errno = ECONNRESET;
 	return(n);
@@ -742,10 +794,12 @@ input int buflen;			/* remaining buffer size */
 
 	(void) signal(SIGALRM, timer);
 	setalarm(timeout);
-
+reread:
 	/* fake an error if nothing was actually read */
 	fromlen = sizeof(from);
 	n = recvfrom(sock, buffer, buflen, 0, from_sa, &fromlen);
+	if (n < 0 && errno == EINTR)
+		goto reread;
 	if (n == 0)
 		errno = ECONNRESET;
 	setalarm(0);
