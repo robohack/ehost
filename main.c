@@ -35,7 +35,7 @@
  * and to not re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.2 2002-01-12 08:05:47 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.3 2003-03-21 18:49:37 -0800 woods Exp $"
 
 #ifndef lint
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1035,6 +1035,12 @@ input char *optstring;			/* parameter from command line */
 		return("-");
 	}
 
+	if (sameword(optstring, "canonskip"))
+	{
+		canonskip = TRUE;
+		return("-");
+	}
+
 	if (sameword(optstring, "cnamecheck"))
 	{
 		cnamecheck = TRUE;
@@ -1284,6 +1290,9 @@ execute_name(name)
 input char *name;			/* command line argument */
 {
 	bool result;			/* result status of action taken */
+#ifdef HAVE_INET_ATON
+	struct in_addr inaddr;
+#endif
 
 	/* check for nonsense input name */
 	if (strlength(name) > MAXDNAME)
@@ -1305,7 +1314,7 @@ input char *name;			/* command line argument */
 
 #ifdef HAVE_INET_ATON
 	if (inet_aton(queryname, &inaddr))
-		queryaddr = htonl(inaddr.s_addr);
+		queryaddr = inaddr.s_addr;
 	else
 #endif
 	if (sameword(queryname, "."))
