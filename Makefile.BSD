@@ -5,7 +5,7 @@
 #
 #	make -f Makefile.BSD __NetBSD__=1 __GNUC__=2
 #
-#ident	"@(#)newsyslog:$Name:  $:$Id: Makefile.BSD,v 1.2 2003-03-31 21:15:50 -0800 woods Exp $"
+#ident	"@(#)newsyslog:$Name:  $:$Id: Makefile.BSD,v 1.3 2003-04-03 16:32:47 -0800 woods Exp $"
 #
 
 .if defined(HOSTNAME) && $(HOSTNAME) == "proven"
@@ -85,7 +85,9 @@ CWARNFLAGS += -Wconversion
 CWARNFLAGS += -Wmissing-declarations
 CWARNFLAGS += -Wmissing-prototypes
 CWARNFLAGS += -Wno-format-extra-args
-# the rest aren't in the manual, but work on at least 2.9x
+# the rest aren't in the manual, but work on at least 2.9x.x
+# -Wundef isn't in 2.7.2, but if you're still using 2.7.2 you may be
+# suffering from far more bugs and problems than you might know!
 CWARNFLAGS += -Wundef
 CWARNFLAGS += -Wlarger-than-65536
 CWARNFLAGS += -Wbad-function-cast
