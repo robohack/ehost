@@ -7,6 +7,8 @@
 **	@(#)rrec.h              e07@nikhef.nl (Eric Wassenaar) 990607
 */
 
+#ident "@(#)host:$Name:  $:$Id: rrec.h,v 1.2 2002-01-11 22:15:31 -0800 woods Exp $"
+
 #define MAXSTRING 255		/* maximum size of single encoded string */
 #define MAXSTRLEN MAXDLEN	/* maximum size of multiple substrings */
 

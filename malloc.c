@@ -35,6 +35,8 @@
  * - The strictest alignment for memalign is the page size.
  */
 
+#ident "@(#)host:$Name:  $:$Id: malloc.c,v 1.2 2002-01-11 22:15:31 -0800 woods Exp $"
+
 #ifndef lint
 static char Version[] = "@(#)malloc.c	e07@nikhef.nl (Eric Wassenaar) 970519";
 #endif

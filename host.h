@@ -4,6 +4,8 @@
 **	@(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.2 2002-01-11 22:15:31 -0800 woods Exp $"
+
 #if defined(apollo) && defined(lint)
 #define __attribute(x)
 #endif

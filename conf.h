@@ -4,6 +4,8 @@
 **	@(#)conf.h              e07@nikhef.nl (Eric Wassenaar) 961013
 */
 
+#ident "@(#)host:$Name:  $:$Id: conf.h,v 1.2 2002-01-11 22:15:31 -0800 woods Exp $"
+
 /*
  * A special version of res_send() is included, which returns additional
  * errno statuses, and which corrects some flaws in the BIND 4.8 version.

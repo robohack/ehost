@@ -17,6 +17,8 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.2 2002-01-11 22:15:31 -0800 woods Exp $"
+
 #ifndef lint
 static char Version[] = "@(#)addr.c	e07@nikhef.nl (Eric Wassenaar) 990605";
 #endif

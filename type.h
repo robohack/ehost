@@ -10,6 +10,8 @@
 **	@(#)type.h              e07@nikhef.nl (Eric Wassenaar) 991527
 */
 
+#ident "@(#)host:$Name:  $:$Id: type.h,v 1.2 2002-01-11 22:15:31 -0800 woods Exp $"
+
 	/* never used in practice */
 
 #ifndef C_CSNET
