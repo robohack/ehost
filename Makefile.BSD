@@ -1,14 +1,15 @@
 #
-#	Makefile.BSD - input for pmake (for use in base OS or for packages)
+#	Makefile.BSD - input for BSD Pmake (for use in base OS or for packages)
 #
 # Define control variables on the command-line as necessary.
 #
 #	make -f Makefile.BSD __NetBSD__=1 __GNUC__=2 __GNULD__=2
 #
-#ident	"@(#)host:$Name:  $:$Id: Makefile.BSD,v 1.11 2004-08-12 19:31:41 -0800 woods Exp $"
+#ident	"@(#)host:$Name:  $:$Id: Makefile.BSD,v 1.12 2004-08-12 20:30:04 -0800 woods Exp $"
 #
 
-# are we running in the full NetBSD build environment?
+# is the build happening in the full NetBSD build environment?
+#
 # (These are all set in the environment by the
 # ${TOOLDIR}/nbmake-${MACHINE} wrapper)
 #
@@ -18,7 +19,7 @@ __NetBSD__ = 1
 __GNUC__ = 2
 __GNULD__ = 2
 
-.elif defined(HOSTNAME) && $(HOSTNAME) == "proven"
+.elif defined(HOSTNAME) && ${HOSTNAME} == "proven"
 
 PREFIX ?= /usr/pkg
 CC = PATH=/usr/pkg/gcc-ssp/bin:$$PATH /usr/pkg/gcc-ssp/bin/cc
@@ -27,13 +28,13 @@ __NetBSD__ = 1
 __GNUC__ = 2
 __GNULD__ = 2
 
-.elif defined(HOSTNAME) && $(HOSTNAME) == "proven-bind8"
+.elif defined(HOSTNAME) && ${HOSTNAME} == "proven-bind8"
 
 PREFIX ?= /usr/pkg
 CC = PATH=/usr/pkg/gcc-ssp/bin:$$PATH /usr/pkg/gcc-ssp/bin/cc
 CFLAGS += -pipe -fstack-protector
-CPPFLAGS += -I$(PREFIX)/bind/include -DHOST_RES_SEND
-LDFLAGS += -L$(PREFIX)/lib
+CPPFLAGS += -I${PREFIX}/bind/include -DHOST_RES_SEND
+LDFLAGS += -L${PREFIX}/lib
 LDADD += -lbind
 __NetBSD__ = 1
 __GNUC__ = 2
@@ -85,17 +86,28 @@ MANS =	host.1
 DOCS =	RELEASE_NOTES ToDo
 MISCS = malloc.c README_NT
 
-ALL_FILES = Makefile Makefile.BSD $(DOCS) $(HDRS) $(SRCS) $(MANS) $(MISCS)
+ALL_FILES = Makefile Makefile.BSD ${DOCS} ${HDRS} ${SRCS} ${MANS} ${MISCS}
 
-# GCC apparently has buggy parameter width detection
+# on NetBSD/i386 some functions want "short int" parameters but they
+# somehow don't get declared properly and we end up with the likes of
+# "passing arg 1 of `__byte_swap_word_variable' with different width
+# due to prototype".
+#
+# We also have a a few unused parameters that GCC is _way_ too
+# pedantic about and without giving us any per-instance "lint" comment
+# way of saying "yeah, we know".
+#
+# Some versions of GCC also get the "integer constant" signed/unsigned
+# check completely wrong on some platforms (e.g. i386).
+#
 NOGCCERROR = 1
 NO_WERROR = 1
 
-# Take control of our own warning flags (WARNS=2 is not yet appropriate)
+# Take control of our own warning flags (WARNS=2 would be OK, but incomplete)
 WARNS = 0
 
 __GNUC__ ?= 1
-.if $(__GNUC__) >= 1
+.if ${__GNUC__} >= 1
 # no, we're not that pedantic!
 #CWARNFLAGS += -pedantic
 #
@@ -123,7 +135,7 @@ CWARNFLAGS += -Wshadow
 CWARNFLAGS += -Wstrict-prototypes
 .endif
 
-.if $(__GNUC__) >= 2
+.if ${__GNUC__} >= 2
 CWARNFLAGS += -Waggregate-return
 CWARNFLAGS += -Wcast-align
 CWARNFLAGS += -Wchar-subscripts
@@ -137,30 +149,22 @@ CWARNFLAGS += -Wformat-extra-args
 # you may be suffering from far more code generation bugs and other
 # compiler problems than you might know!
 CWARNFLAGS += -Wundef
-CWARNFLAGS += -Wlarger-than-65536
+# we do intentionally have a couple of large arrays
+#CWARNFLAGS += -Wlarger-than-65536
 CWARNFLAGS += -Wbad-function-cast
 .endif
 
-.if $(__GNUC__) >= 3
+.if ${__GNUC__} >= 3
 # Yuck:  this is broken in at least 3.2.2...
 #CWARNFLAGS += -Wunreachable-code
 .endif
 
-#WFORMAT = 0
-.if defined(__NetBSD__) && defined(__GNUC__) && $(CC) == "cc"
-# Some magic is missing -- I can't get this to shut up....
-#CWARNFLAGS += -Wnetbsd-format-audit
-.elif defined(__FreeBSD__) && defined(__GNUC__)
-# Some magic is missing -- I can't get this to shut up....
-#CWARNFLAGS += -Wnon-const-format
-.endif
-
 .if !defined(__NetBSD__) && !defined(__FreeBSD__)
-CFLAGS += $(CWARNFLAGS)
+CFLAGS += ${CWARNFLAGS}
 .endif
 
 __GNULD__ ?= 1
-.if $(__GNULD__) >= 1
+.if ${__GNULD__} >= 1
 LDFLAGS += -W
 LDFLAGS += -Wall
 LDFLAGS += -Wid-clash-30
@@ -175,7 +179,7 @@ SOELIM = soelim
 
 .sh:
 	@rm -f $@
-	sed -e 's,@CONFDIR@,$(CONFDIR),g' < ${.CURDIR}/$@.sh > $@
+	sed -e 's,@CONFDIR@,${CONFDIR},g' < ${.CURDIR}/$@.sh > $@
 	chmod +x $@
 
 .if !target(clobber)
@@ -191,10 +195,10 @@ ALL_SOURCES =	${DOCS}				\
 		${HEADERS}			\
 		${SCRIPT_SRCS}
 
-SRCINSTDIR ?=	$(BSDSRCDIR)/usr.bin/host
+SRCINSTDIR ?=	${BSDSRCDIR}/usr.bin/host
 
 .PHONY: host2netbsd
 host2netbsd: ${ALL_SOURCES} Makefile
 	${INSTALL_DIR} ${SRCINSTDIR}
 	cp Makefile.BSD ${SRCINSTDIR}/Makefile
-	cp $(ALL_SOURCES) ${SRCINSTDIR}
+	cp ${ALL_SOURCES} ${SRCINSTDIR}
