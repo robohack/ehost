@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.20 2003-12-04 03:38:55 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.21 2003-12-04 03:51:58 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1829,7 +1829,7 @@ usage_error(fmt, va_alist)
 	(void) vfprintf(stderr, fmt, ap);
 	va_end(ap);
 	if (fmt[strlen(fmt) - 1] != '\n')
-		(void) fputc("\n", stderr);
+		(void) fputc('\n', stderr);
 
 	exit(EX_USAGE);
 }
