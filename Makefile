@@ -1,18 +1,26 @@
-#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 991515
-
-#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.9 2003-03-21 19:12:04 -0800 woods Exp $"
+#
+#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.10 2003-03-31 21:16:24 -0800 woods Exp $"
+#
+# from:	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 991515
 
 # ----------------------------------------------------------------------
 # Adapt the installation directories to your local standards.
+#
+# (It's really sad that Stu Feldman's original Seventh Edition UNIX
+# Make implementation didn't have the most useful "?=" and "+="
+# assignment operators....)
 # ----------------------------------------------------------------------
 
 PREFIX = /usr/local
+SHARE = /share
 
 # This is where the 'host' executable will be referenced.
 BINDIR = ${PREFIX}/bin
 
 # This is where manual pages will be referenced.
-MANDIR = ${PREFIX}/man/man1
+MANDIR = ${PREFIX}${SHARE}/man/man1
+CATMANDIR = ${PREFIX}${SHARE}/man/cat1
+CATMANSUF = .1
 
 # This is where the rblookup, etc. config file(s) will be referenced.
 CONFDIR= ${PREFIX}/etc
@@ -23,6 +31,9 @@ DESTBIN = ${DESTDIR}/${BINDIR}
 # This is where the 'host' manual page will be installed.
 DESTMAN = ${DESTDIR}/${MANDIR}
 
+# This is where the 'host' manual page will be installed.
+DESTCATMAN = ${DESTDIR}/${CATMANDIR}
+
 # This is where the config files will be installed.
 DESTCONF = ${DESTDIR}/${CONFDIR}
 
@@ -32,96 +43,142 @@ DESTCONF = ${DESTDIR}/${CONFDIR}
 # ----------------------------------------------------------------------
 
 #if defined(_AIX)
-SYSDEFS = -D_BSD -D_BSD_INCLUDES -U__STR__ -DBIT_ZERO_ON_LEFT -DHAVE_INET_ATON
+#SYSDEFS = -D_BSD -D_BSD_INCLUDES -U__STR__ -DBIT_ZERO_ON_LEFT
 #endif
 
 #if defined(SCO) && You have either OpenDeskTop 3 or OpenServer 5
-SYSDEFS = -DSYSV
+#SYSDEFS = -DSYSV
 #endif
 
 #if defined(ultrix) && You are using the default ultrix <resolv.h>
-SYSDEFS = -DULTRIX_RESOLV
-#endif
-
-#if defined(solaris) && You do not want to use BSD compatibility mode
-SYSDEFS = -DSYSV -DHAVE_INET_ATON
+#SYSDEFS = -DULTRIX_RESOLV
 #endif
 
 #if defined(solaris) && You are using its default broken resolver library
-SYSDEFS = -DNO_YP_LOOKUP
+#SYSDEFS = -DNO_YP_LOOKUP
 #endif
 
-#if defined(NetBSD) && you have not removed support for $HOSTALIASES
-SYSDEFS = ${ALLOW_HOSTALIASES}
-
-#if you have a sane, modern, system
-SYSDEFS = -DHAVE_INET_ATON
+#if you have a sane, modern, system this should be all you need!
+#SYSDEFS = 
+#endif
 
 # ----------------------------------------------------------------------
 # Configuration definitions.
 # See also the header file conf.h for more configuration definitions.
 # ----------------------------------------------------------------------
 
-#if defined(BIND_49) && __res_state is still shipped as struct state
-CONFIGDEFS = -DOLD_RES_STATE
+#if defined(BIND_4_9) && __res_state is still shipped as struct state
+#CONFIGDEFS = -DOLD_RES_STATE
 #endif
 
-#if defined(BIND_48) && You want to use the default bind res_send()
+#if defined(BIND_4_8) && You want to use the default bind res_send()
+#CONFIGDEFS = -DBIND_RES_SEND
+#endif
+
+#if defined(BIND_4_9) || newer && You want to use the special host res_send()
+#CONFIGDEFS = -DHOST_RES_SEND
+#endif
+
+# By default we want to use the latest avaliable resolver API.
+#
+# Keep in mind that if your resolver library has hooks for using
+# non-DNS naming systems (YP, HESIOD, etc.), and if your target
+# system(s) might make use of those hooks, then using the system
+# resolver will cause grief to "host" users who expect only to query
+# the DNS!  Either install a pure BIND resolver library to avoid this,
+# or switch to the HOST_RES_SEND option above.
+#
 CONFIGDEFS = -DBIND_RES_SEND
-#endif
-
-#if defined(BIND_49) && You want to use the special host res_send()
-CONFIGDEFS = -DHOST_RES_SEND
-#endif
-
-# This is the default in either case if you compile stand-alone.
-CONFIGDEFS = -DBIND_RES_SEND
-CONFIGDEFS = -DHOST_RES_SEND
-CONFIGDEFS = 
 
 # ----------------------------------------------------------------------
 # Include file directories.
-# This program must be compiled with the same include files that
+#
+# This program _must_ be compiled with the same include files that
 # were used to build the resolver library you are linking with.
 # ----------------------------------------------------------------------
 
-INCL = ../../include
-INCL = .
-#INCL = /usr/local/bind/include
+#if defined(LOCAL_LIBBIND)
+#RES_INCL = -I/usr/local/bind/include
+#endif
+#if defined(SYSTEM_LIBBIND)
+#RES_INCL = -I/usr/include/bind
+#endif
 
-COMPINCL = ../../compat/include
-COMPINCL = .
+# compatability headers...
+#COMPAT_INCL = -I/usr/local/include/compat
 
-INCLUDES = -I$(INCL) -I$(COMPINCL)
+INCLUDES = $(RES_INCL) $(COMPAT_INCL)
 
 # ----------------------------------------------------------------------
 # Compilation definitions.
 # ----------------------------------------------------------------------
 
-DEBUGDEFS= -DDEBUG
+DEBUGDEFS = -DDEBUG
 
 DEFS = $(CONFIGDEFS) $(DEBUGDEFS) $(SYSDEFS) $(INCLUDES)
 
 COPTS = -pipe
 
-COPTIM= -O2
-COPTIM= -O
+COPTIM = -O2
+COPTIM = -O
 
-CDEBUG= -g
+CDEBUG = -g
 
-CWARN= -Wall -Wshadow -Wswitch -Wreturn-type -Wpointer-arith -Wconversion -Wimplicit -Wmissing-declarations -Wmissing-prototypes -Wstrict-prototypes
+# GCC lint-like warnings -- any warnings are likely bugs in the
+# platform headers or in gcc itself....
+#
+#if $(__GNUC__) >= 1
+GCCWARNFLAGS = -W \
+ -Wall \
+ -Wimplicit \
+ -Wreturn-type \
+ -Wswitch \
+ -Wcomment \
+ -Wcast-qual \
+ -Wid-clash-30 \
+ -Wpointer-arith \
+ -Wshadow
+#endif
 
-CFLAGS = $(COPTS) $(CDEBUG) $(COPTIM) $(CWARN) $(DEFS)
+#if $(__GNUC__) >= 2
+GCC2WARNFLAGS = -Waggregate-return \
+ -Wcast-align \
+ -Wchar-subscripts \
+ -Wconversion \
+ -Wmissing-declarations \
+ -Wmissing-prototypes \
+ -Wno-format-extra-args \
+ -Wundef \
+ -Wlarger-than-65536 \
+ -Wbad-function-cast
+#endif
 
-# Select your favorite compiler.
-CC = /usr/ucb/cc			#if defined(solaris) && BSD
-CC = /bin/cc -arch m68k -arch i386	#if defined(next)
-CC = /bin/cc -Olimit 1000		#if defined(ultrix)
-CC = /bin/cc
-CC = cc
+#if $(__GNUC__) >= 3
+# Yuck:  this is broken in at least 3.2.2...
+#GCC3WARNFLAGS = -Wunreachable-code
+#endif
+
+CPPFLAGS = $(DEFS)
+CFLAGS = $(COPTS) $(CDEBUG) $(COPTIM) $(GCCWARNFLAGS) $(GCC2WARNFLAGS) $(GCC3WARNFLAGS)
+
+# Select your favorite compiler if make doesn't already know it...
+#if defined(next)
+#CC = cc -arch m68k -arch i386
+#else f defined(ultrix)
+#CC = cc -Olimit 1000
+#else if gcc != cc
+#CC = gcc
+#endif
 
 # ----------------------------------------------------------------------
 # Linking definitions.
+#
+# WARNING!!!
+# WARNING!!! Old resolver libraries have remotely exploitable bugs!
+# WARNING!!!
+# WARNING!!! DO NOT use older resolver libraries with untrusted data!
+# WARNING!!!
+#
 # libresolv.a should contain the resolver library of BIND 4.8.2 or later.
 # Link it in only if your default library is different.
 # SCO keeps its own default resolver library inside libsocket.a
@@ -132,36 +189,55 @@ CC = cc
 # libnet.a contains the getnet...() getserv...() getproto...() calls.
 # It is safe to leave it out and use your default library.
 # With BIND 4.9.3 the getnet...() calls are in the resolver library.
+#
+# This program _must_ be linked with the resolver library associated
+# with the header files you compiled with.
 # ----------------------------------------------------------------------
 
-RES = -lsocket				#if defined(SCO) && default
-RES = ../../res/libresolv.a
-RES = -lresolv
-RES = -L/usr/local/bind/lib -lbind
-RES =					#if BSD
+#if defined(SCO) && default
+#RES_LIB = -lsocket
+#endif
+#if defined(NEED_LIBRESOLV) || (sunos5.x)
+#RES_LIB = -lresolv
+#endif
+#if defined(LOCAL_LIBBIND) || (sunos5.x < 5.9)
+#RES_LIB = -L/usr/local/bind/lib -lbind
+#endif
+#if defined(SYSTEM_LIBBIND)
+#RES_LIB = -lbind
+#endif
 
-COMPLIB = ../../compat/lib/lib44bsd.a
-COMPLIB = -lnet
-COMPLIB =
+#if defined(NEED_LIBNET)
+#COMPAT_LIB = -lnet
+#endif
+#if defined(NEED_LIB44BSD)
+#COMPAT_LIB = -l44bsd
+#endif
 
-LIBS = -lsocket -lnsl			#if defined(solaris) && not BSD
-LIBS =
+#if defined(sunos5.x)
+#SYS_LIBS = -lsocket -lnsl
+#endif
 
-LIBRARIES = $(RES) $(COMPLIB) $(LIBS)
+LIBRARIES = $(RES_LIB) $(COMPAT_LIB) $(SYS_LIBS)
 
+# host may often be invoked by "root" -- it's safest to static-link it
+#
+# Unfortunately SunOS-5.9 has only libresolv.so !!!
+#
+#if defined(NEED_LIBRESOLV) && !defined(sunos5.x)
 LDFLAGS = -static
+#endif
 
 # ----------------------------------------------------------------------
 # Miscellaneous definitions.
 # ----------------------------------------------------------------------
 
+#
 MAKE = make $(MFLAGS)
-
-# This assumes the BSD install.
-INSTALL = install -c
-
-# Grrr
 SHELL = /bin/sh
+
+# This assumes a BSD-compatible install(1)
+INSTALL = install -c
 
 # ----------------------------------------------------------------------
 # Files.
@@ -173,57 +249,72 @@ SRCS =	main.c info.c list.c addr.c geth.c util.c misc.c test.c \
 	file.c send.c vers.c
 OBJS =	main.o info.o list.o addr.o geth.o util.o misc.o test.o \
 	file.o send.o vers.o
-MANS =	host.1
+MAN =	host.1
+MANCAT = host.cat1
 DOCS =	RELEASE_NOTES
 
-# the scripts need to be renamed with a ".sh" extension so that their
-# generated targets can be created with no extension, ready for
-# installation....
-#
 UTILS = nscheck.sh nslookup.sh mxlookup.sh rblookup.sh
 UTIL_PROGS = nscheck nslookup mxlookup rblookup
 
 MISCS = malloc.c README_NT
 
-FILES = Makefile $(DOCS) $(HDRS) $(SRCS) $(MANS) $(UTILS) $(MISCS)
+FILES = Makefile $(DOCS) $(HDRS) $(SRCS) $(MAN) $(UTILS) $(MISCS)
 
-PACKAGE = host
-TARFILE = $(PACKAGE).tar
-
-CLEANUP = $(OBJS) $(TARFILE) $(TARFILE).Z
+CLEANUP = $(OBJS)
 
 # ----------------------------------------------------------------------
-# Rules for installation.
+# install options
 # ----------------------------------------------------------------------
 
 BINOWN = root
 BINGRP = staff
-BINMODE  = 755
-STRIPFLAG = -s
+BINMODE = 755
+#STRIPFLAG = -s
 
+# ----------------------------------------------------------------------
+# basic rules for building and installing a program and its docs
+# ----------------------------------------------------------------------
+
+.PHONY: all
 all: $(PROG) $(UTIL_PROGS)
-
-$(OBJS): $(HDRS)
 
 $(PROG): $(OBJS)
 	$(CC) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBRARIES)
 
-install: $(PROG)
+.PHONY: install
+install: install-prog install-utils install-man
+
+.PHONY: install-prog
+install-prog: $(PROG)
 	$(INSTALL) -m $(BINMODE) -o $(BINOWN) -g $(BINGRP) $(STRIPFLAG) $(PROG) $(DESTBIN)
 
+.PHONY: install-utils
 install-utils: $(UTIL_PROGS)
 	$(INSTALL) -m $(BINMODE) -o $(BINOWN) -g $(BINGRP) $(UTIL_PROGS) $(DESTBIN)
 
-install-man: $(MANS)
-	$(INSTALL) -m 444 host.1 $(DESTMAN)
+.PHONY: install-man
+install-man: $(MAN)
+	$(INSTALL) -m 444 $(MAN) $(DESTMAN)
 
+# Note: this target is not automatically depended upon....
+.PHONY: install-catman
+install-catman: $(MANCAT)
+	$(INSTALL) -m 444 $(MANCAT) $(DESTCATMAN)/host$(CATMANSUF)
+
+.PHONY: clean
 clean:
 	rm -f $(CLEANUP) *.o a.out core
 
+.PHONY: clobber
 clobber: clean
-	rm -f $(PROG) $(UTIL_PROGS) *.tmp
+	rm -f $(PROG) $(UTIL_PROGS) $(MANCAT) host.0 .depend
 
-.SUFFIXES: .tmp
+# You might need this rule if your default Make rules are too old and
+# broken and don't include $(CPPFLAGS)...
+#.c.o:
+#	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
+
+.SUFFIXES: .sh
 
 .sh:
 	@rm -f $@
@@ -235,14 +326,14 @@ clobber: clean
 # A few frequently used abbreviations are handy.
 # ----------------------------------------------------------------------
 
-ABBREVIATIONS = a ns cname soa wks ptr hinfo mx txt	# standard
-ABBREVIATIONS = mb mg mr minfo				# deprecated
-ABBREVIATIONS = md mf null gpos				# obsolete
-ABBREVIATIONS = rp afsdb x25 isdn rt nsap nsap-ptr	# new
-ABBREVIATIONS = sig key px aaaa loc nxt srv kx cert	# very new
-ABBREVIATIONS = eid nimloc atma naptr			# draft
-ABBREVIATIONS = uinfo uid gid unspec			# nonstandard
-ABBREVIATIONS = maila mailb any				# filters
+#ABBREVIATIONS = a ns cname soa wks ptr hinfo mx txt	# standard
+#ABBREVIATIONS = mb mg mr minfo				# deprecated
+#ABBREVIATIONS = md mf null gpos 			# obsolete
+#ABBREVIATIONS = rp afsdb x25 isdn rt nsap nsap-ptr	# new
+#ABBREVIATIONS = sig key px aaaa loc nxt srv kx cert	# very new
+#ABBREVIATIONS = eid nimloc atma naptr			# draft
+#ABBREVIATIONS = uinfo uid gid unspec			# nonstandard
+#ABBREVIATIONS = maila mailb any 			# filters
 
 ABBREVIATIONS = mx ns soa zone
 
@@ -256,21 +347,14 @@ links:
 # ----------------------------------------------------------------------
 
 lint:
-	lint $(DEFS) $(SRCS)
-
-alint:
-	alint $(DEFS) $(SRCS)
+	lint -aa -c -h -p -r -s $(DEFS) $(SRCS)
 
 llint:
-	lint $(DEFS) $(SRCS) -lresolv
+	lint -aa -c -h -p -r -s $(DEFS) $(SRCS) -lresolv
 
-print:
-	lpr -J $(PACKAGE) -p Makefile $(DOCS) $(HDRS) $(SRCS)
-
-dist:
-	tar cf $(TARFILE) $(FILES)
-	compress $(TARFILE)
-
-# Keep it simple....
+# ----------------------------------------------------------------------
+# Dependencies.
+# ----------------------------------------------------------------------
+# Keep it simple....  it's not that big a program!
 #
 $(OBJS): $(HDRS)
