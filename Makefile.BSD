@@ -5,12 +5,23 @@
 #
 #	make -f Makefile.BSD __NetBSD__=1 __GNUC__=2
 #
-#ident	"@(#)newsyslog:$Name:  $:$Id: Makefile.BSD,v 1.1 2003-03-30 20:56:01 -0800 woods Exp $"
+#ident	"@(#)newsyslog:$Name:  $:$Id: Makefile.BSD,v 1.2 2003-03-31 21:15:50 -0800 woods Exp $"
 #
+
+.if defined(HOSTNAME) && $(HOSTNAME) == "proven"
+PREFIX ?= /usr/pkg
+CC = PATH=/usr/pkg/gcc-ssp/bin:$$PATH /usr/pkg/gcc-ssp/bin/cc
+CFLAGS += -pipe -fstack-protector
+__NetBSD__ = 1
+__GNUC__ = 2
+.endif
 
 CPPFLAGS += -DDEBUG
 
 PREFIX ?= /usr
+
+LDSTATIC = -static
+NOSHARED = YES
 
 BINDIR ?= ${PREFIX}/bin
 BINOWN ?= root
@@ -40,32 +51,57 @@ NO_WERROR = 1
 
 # Take control of our own warning flags (WARNS=2 is not yet appropriate)
 WARNS = 0
+
+# no, we're not that pedantic!
+#CWARNFLAGS += -pedantic
+#
+CWARNFLAGS += -W
 CWARNFLAGS += -Wall
-CWARNFLAGS += -Wshadow
-CWARNFLAGS += -Wswitch
-CWARNFLAGS += -Wreturn-type
-CWARNFLAGS += -Wpointer-arith
+#
+# these aren't always in "-Wall"
 CWARNFLAGS += -Wimplicit
+CWARNFLAGS += -Wreturn-type
+CWARNFLAGS += -Wswitch
+CWARNFLAGS += -Wcomment
+#
+# in addition to -Wall
 CWARNFLAGS += -Wcast-qual
-CWARNFLAGS += -Wstrict-prototypes
-# not ready for full const-ification yet...
+# -Wid-clash-LEN is sadly no longer supported in 3.2.2
+CWARNFLAGS += -Wid-clash-30
+CWARNFLAGS += -Wpointer-arith
+CWARNFLAGS += -Wshadow
+#
+# we're not quite ready for full const-ification yet...
 #CWARNFLAGS += -Wwrite-strings
+#
+# this isn't mentioned in 1.42's manual but causes no error
+CWARNFLAGS += -Wstrict-prototypes
 
 __GNUC__ ?= 1
 .if $(__GNUC__) >= 2
+CWARNFLAGS += -Waggregate-return
+CWARNFLAGS += -Wchar-subscripts
 CWARNFLAGS += -Wconversion
 CWARNFLAGS += -Wmissing-declarations
 CWARNFLAGS += -Wmissing-prototypes
 CWARNFLAGS += -Wno-format-extra-args
+# the rest aren't in the manual, but work on at least 2.9x
+CWARNFLAGS += -Wundef
+CWARNFLAGS += -Wlarger-than-65536
+CWARNFLAGS += -Wbad-function-cast
+.endif
+.if $(__GNUC__) >= 3
+# Yuck:  this is broken in at least 3.2.2...
+#CWARNFLAGS += -Wunreachable-code
 .endif
 
 WFORMAT = 0
-.if defined(__NetBSD__)
+.if defined(__NetBSD__) && $(CC) == "cc"
 # Some magic is missing -- I can't get this to shut up....
-#CWARNFLAGS += -Wnetbsd-format-audit
+CWARNFLAGS += -Wnetbsd-format-audit
 .elif defined(__FreeBSD__)
 # Some magic is missing -- I can't get this to shut up....
-#CWARNFLAGS += -Wnon-const-format
+CWARNFLAGS += -Wnon-const-format
 .endif
 
 .if defined(__bsdi__) || defined(bsd4_4)
