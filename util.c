@@ -17,6 +17,8 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.2 2002-01-11 22:31:58 -0800 woods Exp $"
+
 #ifndef lint
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
 #endif
@@ -776,21 +778,26 @@ input int rcode;			/* error code from bp->rcode */
 */
 
 void
-print_answer(answerbuf, answerlen)
+print_answer(answerbuf, answerlen, type)
 input querybuf *answerbuf;		/* location of answer buffer */
 input int answerlen;			/* length of answer buffer */
+input int type;				/* type of query we made */
 {
 	HEADER *bp;
 	int ancount;
+	int nscount;
 	bool failed;
 
 	bp = (HEADER *)answerbuf;
 	ancount = ntohs((u_short)bp->ancount);
-	failed = (bp->rcode != NOERROR || ancount == 0);
+	nscount = ntohs((u_short)bp->nscount);
+	failed = (bp->rcode != NOERROR ||
+		  (type != T_NS && ancount == 0) ||
+		  (type == T_NS && (nscount == 0 && ancount == 0)));
 
 	printf("%s", verbose ? "" : dbprefix);
 
-	printf("Query %s", failed ? "failed" : "done");
+	printf("Query for %s records %s", pr_type(type), failed ? "failed" : "done");
 
 	if (bp->tc || (answerlen > PACKETSZ))
 		printf(", %d byte%s", answerlen, plural(answerlen));
@@ -803,9 +810,9 @@ input int answerlen;			/* length of answer buffer */
 			printf(" (truncated)");
 	}
 
-	printf(", %d answer%s", ancount, plural(ancount));
+	printf(", %d answer%s", type == T_NS ? nscount : ancount, plural(type == T_NS ? nscount : ancount));
 
-	printf(", %s", bp->aa ? "authoritative " : "");
+	printf(", %s", bp->aa ? "authoritative, " : "");
 
 	printf("status: %s\n", decode_error((int)bp->rcode));
 }
