@@ -4,7 +4,7 @@
 ** from: @(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: host.h,v 1.13 2003-06-04 20:09:36 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.14 2003-06-05 01:01:03 -0800 woods Exp $"
 
 #if defined(apollo) && defined(lint)
 # define __attribute(x)		/* XXX ??? */
@@ -26,7 +26,7 @@
 # define __USE_FIXED_PROTOTYPES__
 #endif
 
-#if defined(BSD) || defined(__bsdi__) || defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__)
+#if defined(BSD) || defined(__bsdi__) || defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__linux__)
 # ifndef TIME_WITH_SYS_TIME
 #  define TIME_WITH_SYS_TIME	1
 # endif
