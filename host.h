@@ -1,7 +1,7 @@
 /*
 ** Master include file of the host utility.
 **
-**	@(#)host.h              e07@nikhef.nl (Eric Wassenaar) 971222
+**	@(#)host.h              e07@nikhef.nl (Eric Wassenaar) 980903
 */
 
 #if defined(apollo) && defined(lint)
@@ -85,6 +85,9 @@ typedef union {
 #define STDIN	0
 #define STDOUT	1
 #define STDERR	2
+
+#define MAXINT8		255
+#define MAXINT16	65535
 
 #ifdef lint
 #define EXTERN

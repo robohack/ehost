@@ -1,4 +1,4 @@
-	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 980531
+	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 980903
 
 	URL	ftp://ftp.nikhef.nl/pub/network/host.tar.Z
 
@@ -11,6 +11,20 @@ MISC		Miscellaneous reminders
 # ----------------------------------------------------------------------
 # Description of changes per release
 # ----------------------------------------------------------------------
+
+980903
+	New option to define source address port.
+		Queries to nameservers normally originate from a random
+		source port on the client machine, chosen by the kernel.
+		The new options -j and -J allow to define an explicit
+		source port, or a range of such ports (-j min -J max).
+		The nameserver reply packets will arrive on these ports.
+		Useful if you are behind a firewall that filters random
+		port numbers on incoming traffic.
+		Works only if you compile with HOST_RES_SEND (default).
+		Requested by Juergen Georgi <georgi@belwue.de>
+	Miscellaneous changes.
+		Restructure handling of numeric command line options.
 
 980531
 	New resource records and query types.
