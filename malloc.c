@@ -1,5 +1,5 @@
 /*
- * malloc/free/realloc memory management routines.
+ * malloc(), free(), realloc() memory management routines.
  *
  * This is a very simple, but fast storage allocator.  It allocates blocks
  * of a small number of different sizes, and keeps free lists of each size.
@@ -8,37 +8,45 @@
  *
  * In this implementation, the available sizes are (2^(i+4))-8 bytes long.
  *
- * This is designed for use in a single-threaded virtual memory environment.
+ * This implementation is designed strictly for use in a single-threaded
+ * virtual memory environment.
  *
- * This version is derived from: malloc.c (Caltech) 2/21/82, Chris Kingsley,
- * kingsley@cit-20, and a similar version of Larry Wall, used by perl.
+ * This version is derived from:  malloc.c (Caltech) 1982/2/21, by Chris
+ * Kingsley, <kingsley@cit-20>; and from a similar version by Larry Wall, used
+ * in perl.
  *
  * Rewritten by Eric Wassenaar, Nikhef-H, <e07@nikhef.nl>
  *
- * Not only varies the vendor-supplied implementation of this package greatly
- * for different platforms, there are also many subtle semantic differences,
- * especially for anomalous conditions.  This makes it risky to use a separate
- * package, in case other library routines depend on those special features.
- * Nevertheless, we assume that external routines under normal circumstances
- * just need the basic malloc/free/realloc functionality.
+ * The vendor-supplied implementations of the subroutines in this package vary
+ * greatly for different platforms and there are many subtle semantic
+ * differences between these routines and vendor implementations, especially
+ * for anomalous conditions.  This makes it risky to use these routines, such
+ * as the in cases where other library routines may depend on those
+ * differences.  We assume that external routines under normal circumstances
+ * just need the basic malloc(), free(), realloc(), and calloc() APIs.
  *
- * To avoid possible conflicts, included in this package are some auxiliary
- * functions: memalign, calloc/cfree, valloc/vfree, because they are closely
- * related to and built upon the basic functions.
+ * This package are some auxiliary functions:  memalign() and valloc(), because
+ * they are closely related to and built upon the basic functions and may be
+ * needed to satisfy possible uses in some other system library routines.
  *
- * Not supported are special functions: mallopt/mallinfo/mstats, and those
- * which are found on specific platforms only: mallocblksize/recalloc (sgi),
- * malloc_debug/malloc_verify (sun), malloc_size/malloc_error (next).
+ * Not supported are these special functions:  mallopt(), mallinfo(), mstats(),
+ * as well as those which are found only on specific platforms, such as:
+ * mallocblksize(), recalloc() [sgi], malloc_debug(), malloc_verify() [sun],
+ * malloc_size(), malloc_error() [next].
  *
- * The simplicity of this package imposes the following limitations:
+ * The simplicity of this implementations imposes the following limitations:
+ *
  * - Memory once allocated is never returned to the system, but is put on
- *   free lists for subsequent use. The process size grows monotonously.
+ *   free lists for subsequent use.  The process size grows monotonously.
+ *
  * - Allocating zero-size data blocks is not an error.
- * - In case realloc fails, the old block may no longer be allocated.
- * - The strictest alignment for memalign is the page size.
+ *
+ * - In case realloc() fails, the old block may no longer be allocated.
+ *
+ * - The strictest alignment for memalign() is the page size.
  */
 
-#ident "@(#)host:$Name:  $:$Id: malloc.c,v 1.5 2003-03-28 22:19:57 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: malloc.c,v 1.6 2003-03-31 21:03:51 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)malloc.c	e07@nikhef.nl (Eric Wassenaar) 970519";
@@ -55,29 +63,19 @@ static char Version[] = "@(#)malloc.c	e07@nikhef.nl (Eric Wassenaar) 970519";
 
 #include "port.h"
 
-#ifdef lint
-# define EXTERN
-#else
-# define EXTERN		extern
-#endif
-
-EXTERN int errno;
+extern int errno;
 
 /*
  * Portability definitions. These are probably too primitive, but the
  * semantics on various platforms are too chaotic to do it correctly.
  */
 
-#ifdef SYSV_MALLOC
+#ifdef HAVE_VOID_MALLOC
 # define free_return(x)	return
 #else
 # define free_return(x)	return (x)
 #endif
 
-#ifdef SYSV_MEMSET
-# define bzero(a, n)	(void) memset(a,'\0',n)
-# define bcopy(a, b, n)	(void) memcpy(b,a,n)
-#endif
 
 /*
  * The page size used to request blocks of system memory.
@@ -190,9 +188,13 @@ ptr_t *memalign		__P((size_t, size_t));
 free_t free		__P((ptr_t *));
 ptr_t *realloc		__P((ptr_t *, size_t));
 ptr_t *calloc		__P((size_t, size_t));
+#if obsolete
 free_t cfree		__P((ptr_t *));
+#endif
 ptr_t *valloc		__P((size_t));
+#if obsolete
 free_t vfree		__P((ptr_t *));
+#endif
 
 extern ptr_t *sbrk	__P((int));
 
@@ -567,9 +569,12 @@ realloc(oldbuf, size)
 ** CALLOC -- Allocate memory for number of elements, and clear it
 ** --------------------------------------------------------------
 **
-**	This is a wrapper for malloc to request memory for a number
-**	of consecutive elements of certain length.
-**	As a side effect, the entire memory block obtained is cleared.
+**	This is a wrapper for malloc() to request memory for a number of
+**	consecutive elements of a certain length and clear that storage for use
+**	by the caller.
+**
+**	As a side effect, the entire memory block obtained is actually filled
+**	with NUL bytes.
 */
 
 ptr_t *
@@ -585,15 +590,16 @@ calloc(count, length)
 	if (newbuf == NULL)
 		return (NULL);
 
-	bzero(newbuf, size);
+	memset(newbuf, (int) '\0', size);
 
 	return (newbuf);
 }
 
 
+#if obsolete
 /*
-** CFREE -- Put unneeded memory on the free list
-** ---------------------------------------------
+** CFREE -- Put unneeded memory from calloc() onto the free list
+** -------------------------------------------------------------
 */
 
 free_t
@@ -604,6 +610,7 @@ cfree(oldbuf)
 
 	free_return(free_status);
 }
+#endif
 
 /*
 ** VALLOC -- Allocate memory on a page boundary
@@ -627,9 +634,10 @@ valloc(size)
 }
 
 
+#if obsolete
 /*
-** VFREE -- Put unneeded memory on the free list
-** ---------------------------------------------
+** VFREE -- Put unneeded memory from valloc() onto the free list
+** -------------------------------------------------------------
 */
 
 free_t
@@ -640,3 +648,4 @@ vfree(oldbuf)
 
 	free_return(free_status);
 }
+#endif
