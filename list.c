@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.18 2003-04-05 22:22:39 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.19 2003-04-06 03:14:29 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -131,7 +131,6 @@ int soacount = 0;		/* count of SOA records during listing */
  */
 
 int nsrank[MAXNSNAME];		/* nameserver ranking after sorting */
-int nspref[MAXNSNAME];		/* nameserver preference value */
 
 /*
 ** LIST_ZONE -- Basic routine to do complete zone listing and checking
@@ -988,16 +987,32 @@ get_nsinfo(answerbuf, answerlen, name, qtype, qclass)
 ** SORT_SERVERS -- Sort set of nameservers according to preference
 ** ---------------------------------------------------------------
 **
+**	XXX This is probably a waste of time.  The only thing that really makes
+**	sense here is to prefer NS target host addresses that are on the same
+**	network as some interface address and to leave the rest the way they
+**	came.
+**
 **	Returns:
 **		None.
 **
 **	Inputs:
-**		Set of nameservers as determined by find_servers().
-**		The global variable ``prefserver'', if set, contains
-**		a list of preferred server domains to compare against.
+**		Set of nameservers as determined by find_servers() and stored
+**		in the global variable ``nsname[]''.
 **
-**	Outputs:
-**		Stores the preferred nameserver order in nsrank[].
+**		The global variable ``prefserver'', if set, contains a list of
+**		preferred server domains to compare against so priority for
+**		zone transfers can be given to to "preferred" servers,
+**		i.e. those residing in domains given.  The more domain
+**		component labels match, the higher the priority.  By default
+**		priority is given to servers within your own domain or parent
+**		domains under the assumption that such servers will either be
+**		closer in the network topology or more likely to allow
+**		transfers, or both, since the order in which NS records are
+**		found in an NS answer may be random.
+**
+**	Side effects:
+**		Stores the preferred nameserver order in the global variable
+**		``nsrank[]''.
 */
 
 void
@@ -1006,6 +1021,7 @@ sort_servers()
 	register int i, j;
 	register int n, pref;
 	register char *p, *q;
+	int nspref[MAXNSNAME];		/* nameserver preference value */
 
 	/*
 	 * Initialize the default ranking.
@@ -1014,6 +1030,9 @@ sort_servers()
 		nsrank[n] = n;
 		nspref[n] = 0;
 	}
+
+	if (!prefserver)
+		return;			/* leave everything as-is */
 
 	/*
 	 * Determine the nameserver preference.
@@ -1530,13 +1549,13 @@ get_zone(name, inaddr, host)
 				(rrec_t *) NULL, (qbuf_t *) &query, sizeof(querybuf_t));
 		if (n < 0) {
 			if (debug)
-				printf("%sres_mkquery failed\n", dbprefix);
+				printf("%sres_mkquery failed\n", debug_prefix);
 			set_h_errno(NO_RECOVERY);
 			return (FALSE);
 		}
 
 		if (debug) {
-			printf("%sget_zone()\n", dbprefix);
+			printf("%sget_zone()\n", debug_prefix);
 			pr_query((qbuf_t *) &query, n, stdout);
 		}
 
@@ -1644,13 +1663,13 @@ get_zone(name, inaddr, host)
 		}
 
 		if (debug > 2)
-			printf("%sexpecting an answer of %d bytes\n", dbprefix, len);
+			printf("%sexpecting an answer of %d bytes\n", debug_prefix, len);
 
 		if (!(answer = (answer) ?
 		      realloc(answer, len) : /* XXX is realloc() really cheaper? */
 		      malloc(len))) {
 			sys_error("unable to allocate %s byte buffer to hold %s for %s from %s",
-				 dtoa(len), pr_type(T_AXFR), name, host);
+				  dtoa(len), pr_type(T_AXFR), name, host);
 			if (loading)
 				(void) cache_close(FALSE);
 			else
@@ -1676,7 +1695,7 @@ get_zone(name, inaddr, host)
 
 		if (n == 0) {
 			if (debug > 1)
-				printf("%sgot EOF\n", dbprefix);
+				printf("%sgot EOF\n", debug_prefix);
 			break;
 		}
 
@@ -1705,7 +1724,7 @@ get_zone(name, inaddr, host)
 		}
 
 		if (debug > 2)
-			printf("%sgot an answer of %d bytes\n", dbprefix, n);
+			printf("%sgot an answer of %d bytes\n", debug_prefix, n);
 
 		if (debug)
 			pr_query((qbuf_t *) answer, n, stdout);
