@@ -1,6 +1,6 @@
 # -*-indented-text-*-
 #
-#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.8 2003-05-27 19:38:56 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.9 2003-06-05 01:14:12 -0800 woods Exp $"
 #
 
 	URL:		ftp://ftp.weird.com/pub/local/host.tar.gz
@@ -20,6 +20,16 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 # ----------------------------------------------------------------------
 # Description of important user-visible changes per release
 # ----------------------------------------------------------------------
+
+2003/06/04
+
+	- bug fixes for zone transfer read timeout handling.
+
+	- more minor portability fixes for FreeBSD.
+
+	- more portability fixes for GNU/Linux/GNU LibC, though not much
+          more can be done without some way of forcing use of libbind
+          from BIND-8.4.0 or newer.
 
 2003/05/27
 
