@@ -18,12 +18,14 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 980903";
+static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
 #endif
 
 #include "host.h"
 
 char *dbprefix = DBPREFIX;	/* prefix for debug messages to stdout */
+
+ipaddr_t srcaddr = INADDR_ANY;	/* explicit source ip address */
 
 int minport = 0;		/* first source port in explicit range */
 int maxport = 0;		/* last  source port in explicit range */
@@ -112,8 +114,11 @@ input int anslen;			/* maximum size of answer buffer */
 		addr = &nslist(ns);
 retry:
 		if (bitset(RES_DEBUG, _res.options))
-			printf("%sQuerying server (# %d) %s address = %s\n", dbprefix,
-			    ns+1, v_circuit ? "tcp" : "udp", inet_ntoa(addr->sin_addr));
+		{
+			printf("%sQuerying server (# %d) %s address = %s\n",
+				dbprefix, ns+1, v_circuit ? "tcp" : "udp",
+				inet_ntoa(addr->sin_addr));
+		}
 
 		if (v_circuit)
 		{
@@ -139,7 +144,10 @@ retry:
 			if ((n > 0) && bp->tc)
 			{
 				if (bitset(RES_DEBUG, _res.options))
-					printf("%struncated answer, %d bytes\n", dbprefix, n);
+				{
+					printf("%struncated answer, %d bytes\n",
+						dbprefix, n);
+				}
 
 				if (!bitset(RES_IGNTC, _res.options))
 				{
@@ -295,7 +303,10 @@ input int anslen;			/* maximum size of answer buffer */
 	}
 
 	if (bitset(RES_DEBUG, _res.options))
-		printf("%sconnected to %s\n", dbprefix, inet_ntoa(addr->sin_addr));
+	{
+		printf("%sconnected to %s\n",
+			dbprefix, inet_ntoa(addr->sin_addr));
+	}
 
 /*
  * Send the query buffer.
@@ -384,11 +395,14 @@ input int anslen;			/* maximum size of answer buffer */
 		return(-1);
 	}
 
-	if (connected && connect(srvsock, (struct sockaddr *)addr, sizeof(*addr)) < 0)
+	if (connected)
 	{
-		_res_perror(addr, host, "connect");
-		_res_close();
-		return(-1);
+		if (connect(srvsock, (struct sockaddr *)addr, sizeof(*addr)) < 0)
+		{
+			_res_perror(addr, host, "connect");
+			_res_close();
+			return(-1);
+		}
 	}
 
 /*
@@ -399,6 +413,7 @@ input int anslen;			/* maximum size of answer buffer */
 	else
 		n = sendto(srvsock, (char *)query, querylen, 0,
 			(struct sockaddr *)addr, sizeof(*addr));
+
 	if (n != querylen)
 	{
 		if (bitset(RES_DEBUG, _res.options))
@@ -440,7 +455,8 @@ wait:
 	{
 		if (bitset(RES_DEBUG, _res.options))
 		{
-			printf("%sunknown server %s:\n", dbprefix, inet_ntoa(from.sin_addr));
+			printf("%sunknown server %s:\n",
+				dbprefix, inet_ntoa(from.sin_addr));
 			pr_query(answer, (n > anslen) ? anslen : n, stdout);
 		}
 		goto wait;
@@ -472,6 +488,9 @@ wait:
 **	In the case of a stream (tcp) socket, we could have set
 **	the SO_REUSEADDR socket option, but this has side-effects.
 **	Therefore a single explicit tcp port cannot be used.
+**
+**	An explicit source IP address may be necessary in case of
+**	multi-homed hosts with asymmetric routing policy.
 */
 
 int
@@ -489,40 +508,50 @@ input int protocol;
 	if (sock < 0)
 		return(-1);
 
-	/* set an explicit source port if so requested */
-	for (port = minport; port > 0 && port <= maxport; port++)
+	/* set an explicit source address/port if so requested */
+	for (port = minport; port > 0 || srcaddr != INADDR_ANY; port++)
 	{
 		/* setup source address */
 		bzero((char *)&sin, sizeof(sin));
 
 		sin.sin_family = family;
-		sin.sin_addr.s_addr = INADDR_ANY;
+		sin.sin_addr.s_addr = srcaddr;
 		sin.sin_port = htons((u_short)port);
 
 		if (bind(sock, (struct sockaddr *)&sin, sizeof(sin)) < 0)
 		{
 			int save_errno = errno;
-			if (errno == EADDRINUSE)
+			if (port > 0 && errno == EADDRINUSE)
 			{
 				/* save_errno = EAGAIN; */
 				if (port < maxport)
 					continue;
 			}
 
-			/* no free port numbers available */
+			/* bad source address, or no free port numbers */
 			(void) close(sock);
 			seterrno(save_errno);
 			return(-1);
 		}
 
 		if (bitset(RES_DEBUG, _res.options))
-			printf("%susing source port %d\n", dbprefix, port);
+		{
+			if (srcaddr == INADDR_ANY)
+				printf("%susing source port %d\n",
+					dbprefix, port);
+			else if (port == 0)
+				printf("%susing source address %s\n",
+					dbprefix, inet_ntoa(sin.sin_addr));
+			else
+				printf("%susing source address %s port %d\n",
+					dbprefix, inet_ntoa(sin.sin_addr), port);
+		}
 
-		/* socket with well-defined source port */
+		/* socket with well-defined source address/port */
 		return(sock);
 	}
 
-	/* socket with random source port */
+	/* socket with random source address/port */
 	return(sock);
 }
 
@@ -642,6 +671,11 @@ input char *buf;			/* location of formatted query buffer */
 input int bufsize;			/* length of query buffer */
 {
 	u_short len;
+
+/*
+ * Protect against remote peer prematurely closing the connection.
+ */
+	/* setsignal(SIGPIPE, SIG_IGN); done in main() */
 
 /*
  * Write the length of the query buffer.
@@ -788,7 +822,10 @@ input int bufsize;			/* maximum size of answer buffer */
 		}
 
 		if (bitset(RES_DEBUG, _res.options))
-			printf("%sresponse truncated to %d bytes\n", dbprefix, bufsize);
+		{
+			printf("%sresponse truncated to %d bytes\n",
+				dbprefix, bufsize);
+		}
 
 		/* set truncation flag */
 		bp->tc = 1;

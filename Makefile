@@ -1,4 +1,4 @@
-#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 990629
+#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 991515
 
 # ----------------------------------------------------------------------
 # Adapt the installation directories to your local standards.
@@ -148,12 +148,14 @@ SHELL = /bin/sh
 # Files.
 # ----------------------------------------------------------------------
 
-PROG = host
-HDRS = port.h conf.h exit.h type.h rrec.h defs.h host.h glob.h
-SRCS = main.c info.c list.c addr.c geth.c util.c misc.c send.c vers.c
-OBJS = main.o info.o list.o addr.o geth.o util.o misc.o send.o vers.o
-MANS = host.1
-DOCS = RELEASE_NOTES
+PROG =	host
+HDRS =	port.h conf.h exit.h type.h rrec.h defs.h host.h glob.h
+SRCS =	main.c info.c list.c addr.c geth.c util.c misc.c test.c \
+	file.c send.c vers.c
+OBJS =	main.o info.o list.o addr.o geth.o util.o misc.o test.o \
+	file.o send.o vers.o
+MANS =	host.1
+DOCS =	RELEASE_NOTES
 
 UTILS = nslookup mxlookup rblookup
 MISCS = malloc.c README_NT

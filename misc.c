@@ -18,7 +18,7 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)misc.c	e07@nikhef.nl (Eric Wassenaar) 990605";
+static char Version[] = "@(#)misc.c	e07@nikhef.nl (Eric Wassenaar) 991529";
 #endif
 
 #include "host.h"
@@ -593,4 +593,80 @@ input int value;			/* the precision to be converted */
 	(void) sprintf(buf, "%d.%02d", meters, centimeters);
 #endif
 	return(buf);
+}
+
+/*
+** CONVTIME -- Decode a time period from input string
+** --------------------------------------------------
+**
+**	Returns:
+**		Non-negative numeric value of time period (in seconds).
+**		-1 in case of invalid time specification.
+**
+**	Only rudimentary syntax errors are checked.
+**	It is easy to fool this routine to yield bizarre results.
+**	If the result is negative, it should not be trusted.
+*/
+
+int
+convtime(string, defunits)
+input char *string;			/* time specification in ascii */
+input char defunits;			/* default units if none specified */
+{
+	int period = 0;			/* overall result value */
+	register int value;		/* intermediate value of component */
+	register char units;
+	register char *p = string;
+
+	while (*p != '\0')
+	{
+		/* must start with numeric value */
+		if (!is_digit(*p))
+			return(-1);
+
+		/* assemble numeric value */
+		for (value = 0; is_digit(*p); p++)
+			value = (value * 10) + (*p - '0');
+
+		/* fetch units -- use default when omitted */
+		if (*p != '\0')
+			units = *p++;
+		else
+			units = defunits;
+
+		switch (lowercase(units))
+		{
+		    case 'w':		/* weeks */
+			value *= 7;
+			/*FALLTHROUGH*/
+
+		    case 'd':		/* days */
+			value *= 24;
+			/*FALLTHROUGH*/
+
+		    case 'h':		/* hours */
+			value *= 60;
+			/*FALLTHROUGH*/
+
+		    case 'm':		/* minutes */
+			value *= 60;
+			/*FALLTHROUGH*/
+
+		    case 's':		/* seconds */
+			break;
+
+		    default:		/* unknown */
+			value = -1;
+			break;
+		}
+
+		/* must be reasonable */
+		if (value < 0)
+			return(-1);
+
+		/* accumulate total */
+		period += value;
+	}
+
+	return(period);
 }

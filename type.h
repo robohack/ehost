@@ -7,58 +7,64 @@
 **
 **	They belong in <arpa/nameser.h>
 **
-**	@(#)type.h              e07@nikhef.nl (Eric Wassenaar) 990605
+**	@(#)type.h              e07@nikhef.nl (Eric Wassenaar) 991527
 */
 
-/* never used in practice */
+	/* never used in practice */
 
 #ifndef C_CSNET
 #define C_CSNET		2
 #endif
 
-/* missing on some platforms */
+	/* missing on some platforms */
 
 #ifndef C_CHAOS
 #define C_CHAOS		3
 #endif
 
-/* missing in some old versions */
+	/* missing in some old versions */
 
 #ifndef C_HS
 #define C_HS		4
 #endif
 
-/* obsolete/deprecated types already missing on some platforms */
+	/* obsolete/deprecated types already missing on some platforms */
 
 #ifndef T_MD
 #define T_MD		3
 #endif
+
 #ifndef T_MF
 #define T_MF		4
 #endif
+
 #ifndef T_MB
 #define T_MB		7
 #endif
+
 #ifndef T_MG
 #define T_MG		8
 #endif
+
 #ifndef T_MR
 #define T_MR		9
 #endif
+
 #ifndef T_NULL
 #define T_NULL		10
 #endif
+
 #ifndef T_MINFO
 #define T_MINFO		14
 #endif
 
-/* missing in some old versions */
+	/* missing in some old versions */
 
 #ifndef T_TXT
 #define T_TXT		16
 #endif
 
-/* defined per RFC 1183 */
+	/* defined per RFC 1183 */
 
 #ifndef T_RP
 #define T_RP		17
@@ -80,7 +86,7 @@
 #define T_RT		21
 #endif
 
-/* defined per RFC 1348, revised per RFC 1637 */
+	/* defined per RFC 1348, revised per RFC 1637 */
 
 #ifndef T_NSAP
 #define T_NSAP		22
@@ -90,7 +96,7 @@
 #define T_NSAPPTR	23
 #endif
 
-/* reserved per RFC 1700, defined per RFC 2065, revised per RFC 2535 */
+	/* reserved per RFC 1700, defined per RFC 2065, revised per RFC 2535 */
 
 #ifndef T_SIG
 #define T_SIG		24
@@ -100,79 +106,103 @@
 #define T_KEY		25
 #endif
 
-/* defined per RFC 1664 */
+	/* defined per RFC 1664, updated by RFC 2163 */
 
 #ifndef T_PX
 #define T_PX		26
 #endif
 
-/* defined per RFC 1712, already withdrawn */
+	/* defined per RFC 1712, already withdrawn */
 
 #ifndef T_GPOS
 #define T_GPOS		27
 #endif
 
-/* reserved per RFC 1700, defined per RFC 1884 and 1886 */
+	/* reserved per RFC 1700, defined per RFC 1884 and 1886 */
 
 #ifndef T_AAAA
 #define T_AAAA		28
 #endif
 
-/* defined per RFC 1876 */
+	/* defined per RFC 1876 */
 
 #ifndef T_LOC
 #define T_LOC		29
 #endif
 
-/* defined per RFC 2065, revised per RFC 2535 */
+	/* defined per RFC 2065, revised per RFC 2535 */
 
 #ifndef T_NXT
 #define T_NXT		30
 #endif
 
-/* defined per RFC XXXX */
+	/* defined per RFC XXXX */
 
 #ifndef T_EID
 #define T_EID		31
 #endif
 
-/* defined per RFC XXXX */
+	/* defined per RFC XXXX */
 
 #ifndef T_NIMLOC
 #define T_NIMLOC	32
 #endif
 
-/* defined per RFC 2052 */
+	/* defined per RFC 2052, updated by RFC 2782 */
 
 #ifndef T_SRV
 #define T_SRV		33
 #endif
 
-/* defined per RFC XXXX */
+	/* defined per RFC XXXX */
 
 #ifndef T_ATMA
 #define T_ATMA		34
 #endif
 
-/* defined per RFC XXXX */
+	/* defined per RFC 2168 */
 
 #ifndef T_NAPTR
 #define T_NAPTR		35
 #endif
 
-/* defined per RFC 2230 */
+	/* defined per RFC 2230 */
 
 #ifndef T_KX
 #define T_KX		36
 #endif
 
-/* defined per RFC 2538 */
+	/* defined per RFC 2538 */
 
 #ifndef T_CERT
 #define T_CERT		37
 #endif
 
-/* nonstandard types are threatened to become extinct */
+	/* defined per RFC XXXX */
+
+#ifndef T_A6
+#define T_A6		38
+#endif
+
+	/* defined per RFC XXXX */
+
+#ifndef T_DNAME
+#define T_DNAME		39
+#endif
+
+	/* defined per RFC XXXX */
+
+#ifndef T_SINK
+#define T_SINK		40
+#endif
+
+	/* defined per RFC 2671 */
+
+#ifndef T_OPT
+#define T_OPT		41
+#endif
+
+	/* nonstandard types are threatened to become extinct */
 
 #ifndef T_UINFO
 #define T_UINFO		100
@@ -190,19 +220,37 @@
 #define T_UNSPEC	103
 #endif
 
-/* defined per RFC 1995 */
+	/* defined per RFC XXXX */
+
+#ifndef T_ADDRS
+#define T_ADDRS		248
+#endif
+
+	/* defined per RFC XXXX */
+
+#ifndef T_TKEY
+#define T_TKEY		249
+#endif
+
+	/* defined per RFC XXXX */
+
+#ifndef T_TSIG
+#define T_TSIG		250
+#endif
+
+	/* defined per RFC 1995 */
 
 #ifndef T_IXFR
 #define T_IXFR		251
 #endif
 
-/* really missing on some weird platforms, can you believe it */
+	/* really missing on some weird platforms, can you believe it */
 
 #ifndef T_AXFR
 #define T_AXFR		252
 #endif
 
-/* obsolete/deprecated types already missing on some platforms */
+	/* obsolete/deprecated types already missing on some platforms */
 
 #ifndef T_MAILB
 #define T_MAILB		253

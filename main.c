@@ -27,7 +27,7 @@
  * Rewritten by Eric Wassenaar, Nikhef-H, <e07@nikhef.nl>
  *
  * The officially maintained source of this program is available
- * via anonymous ftp from machine 'ftp.nikhef.nl' [192.16.199.1]
+ * via anonymous ftp from machine 'ftp.nikhef.nl'
  * in the directory '/pub/network' as 'host.tar.Z'
  *
  * You are kindly requested to report bugs and make suggestions
@@ -36,15 +36,14 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 990701";
+static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
 #endif
 
 #include "host.h"
 #define _DEFINE
 #include "glob.h"
 
-
-/*
+/*
  *			New features
  *
  * - Major overhaul of the entire code.
@@ -87,8 +86,8 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 990701";
  * but for some platforms you may have to define special settings.
  * See the Makefile and the header file port.h for details.
  */
-
-/*
+
+/*
  *			Miscellaneous notes
  *
  * This program should be linked explicitly with the BIND resolver library
@@ -140,8 +139,8 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 990701";
  * This program has not been optimized for speed. Especially the memory
  * management is simple and straightforward.
  */
-
-/*
+
+/*
  *			Terminology used
  *
  * Gateway hosts.
@@ -188,13 +187,13 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 990701";
  * as such, and therefore host will continue doing so. Interpretation
  * as the machine that holds the zone data disk file is pretty useless.
  */
-
-/*
+
+/*
  *		Usage: host [options] name [server]
  *		Usage: host [options] -x [name ...]
  *		Usage: host [options] -X server [name ...]
  *
- * Regular command line options:
+ * Regular command line options.
  * ----------------------------
  *
  * -t type	specify query type; default is T_A for normal mode
@@ -226,7 +225,8 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 990701";
  * -I chars	chars are not considered illegal in domain names
  * -i		generate reverse in-addr.arpa query for dotted quad
  * -n		generate reverse nsap.int query for dotted nsap address
- * -q		be quiet about some non-fatal errors
+ * -q		be quiet about non-fatal errors
+ * -Q		enable quick mode and skip various time consuming checks
  * -T		print ttl value during non-verbose output
  * -Z		print selected RR output in full zone file format
  *
@@ -248,6 +248,7 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 990701";
  *
  * -j minport	first source address port in explicit range
  * -J maxport	last  source address port in explicit range
+ * -O srcaddr	explicit source address IP number
  *
  * Undocumented options. (Experimental, subject to change)
  * --------------------
@@ -259,6 +260,15 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 990701";
  * -W		special mode to list wildcard records in a zone
  * -Y		dump data of resource record after regular printout
  * -z		special mode to list delegated zones in a zone
+ *
+ * Available options.
+ * -----------------
+ *
+ * -b
+ * -h
+ * -k
+ * -U
+ * -y
  */
 
 static char Usage[] =
@@ -269,10 +279,51 @@ Hostcount:  host [-v] [options] -H [-D] [-E] [-G] zone\n\
 Check soa:  host [-v] [options] -C zone\n\
 Addrcheck:  host [-v] [options] -A host\n\
 Listing options: [-L level] [-S] [-A] [-p] [-P prefserver] [-N skipzone]\n\
-Common options:  [-d] [-f|-F filename] [-I chars] [-i|-n] [-q] [-T] [-Z]\n\
+Common options:  [-d] [-f|-F file] [-I chars] [-i|-n] [-q] [-Q] [-T] [-Z]\n\
 Other options:   [-c class] [-e] [-m] [-o] [-r] [-R] [-s secs] [-u] [-w]\n\
-Special options: [-j minport] [-J maxport]\n\
+Special options: [-O srcaddr] [-j minport] [-J maxport]\n\
 Extended usage:  [-x [name ...]] [-X server [name ...]]\
+";
+
+static char Help[] =
+"\
+-A	  --addrcheck		check reverse address mapping\n\
+-a	  --anything		filter any resource record available\n\
+	  --canoncheck		check for canonical host names\n\
+-C	  --checksoa		check soa record at each of the nameservers\n\
+-CAL 1	  --checkzone		perform extensive analysis of zone data\n\
+-c class  --class=queryclass	specify explicit query class\n\
+	  --cnamecheck		check cname target for existence\n\
+	  --compare[=period]	compare soa serial before zone transfer\n\
+-d	  --debug		enable debug printout\n\
+-L level  --depth=level		specify recursion level during zone listing\n\
+	  --dump[=cachedir]	dump zone data to local disk cache\n\
+-e	  --exclusive		don't print resource records outside domain\n\
+-x	  --extended		extended usage with multiple arguments\n\
+-f	  --file=filename	log resource record output also in file\n\
+-Z	  --full		resource record output in full zone format\n\
+	  --help		show summary of long command line options\n\
+-H	  --hostcount		generate hostcount statistics\n\
+-i	  --inaddr		construct reverse in-addr.arpa query\n\
+-l	  --list		generate zone listing\n\
+	  --load[=cachedir]	load zone data from local disk cache\n\
+-r	  --norecurs		turn off recursion in nameserver queries\n\
+	  --nothing		no resource record output during zone listing\n\
+-p	  --primary		get listing from soa primary nameserver only\n\
+-Q	  --quick		skip time consuming special checks\n\
+-q	  --quiet		suppress all non-fatal warning messages\n\
+	  --recursive		zone listing with infinite recursion level\n\
+	  --retry=count		specify retry count for datagram queries\n\
+	  --server=host		specify explicit nameserver to query\n\
+-S	  --statistics		generate resource record statistics\n\
+-o	  --suppress		don't print resource records to stdout\n\
+-u	  --tcp			use tcp instead of udp for nameserver queries\n\
+-s secs	  --timeout=seconds	specify timeout for nameserver queries\n\
+-t type	  --type=querytype	specify explicit query type\n\
+	  --undercheck		check for invalid underscores\n\
+	  --usage		show summary of short command line syntax\n\
+-v	  --verbose		enable verbose printout\n\
+-V	  --version		show program version number\
 ";
 
 /*
@@ -290,17 +341,23 @@ Extended usage:  [-x [name ...]] [-X server [name ...]]\
 **		EX_SOFTWARE	Assertion botch in DEBUG mode
 */
 
+static res_state_t new_res;	/* new resolver database */
+
+static char **optargv = NULL;	/* argument list including default options */
+static int optargc = 0;		/* number of arguments in new argument list */
+
+static char *servername = NULL;		/* name of explicit server to query */
+static char *logfilename = NULL;	/* name of log file to store output */
+static char *cachedirname = NULL;	/* name of local cache directory */
+
 int
 main(argc, argv)
 input int argc;
 input char *argv[];
 {
 	register char *option;
-	res_state_t new_res;		/* new resolver database */
 	int result;			/* result status of action taken */
 	char *program;			/* name that host was called with */
-	char *servername = NULL;	/* name of explicit server */
-	char *logfilename = NULL;	/* name of log file */
 	bool extended = FALSE;		/* accept extended argument syntax */
 
 	assert(sizeof(int) >= 4);	/* probably paranoid */
@@ -313,6 +370,11 @@ input char *argv[];
  * Synchronize stdout and stderr in case output is redirected.
  */
 	linebufmode(stdout);
+
+/*
+ * Avoid premature abort when remote peer closes the connection.
+ */
+	setsignal(SIGPIPE, SIG_IGN);
 
 /*
  * Initialize resolver, set new defaults. See show_res() for details.
@@ -375,101 +437,65 @@ input char *argv[];
 	    {
 		switch (*option)
 		{
-		    case 'w' :
-			waitmode = TRUE;
-			new_res.retry = DEF_RETRIES;
-			new_res.retrans = DEF_RETRANS;
-			break;
-
-		    case 's' :
-			new_res.retry = DEF_RETRIES;
-			new_res.retrans = getval(argv[2], "timeout value", 1, 0);
-			argv++; argc--;
-			break;
-
-		    case 'j':
-			minport = getval(argv[2], "first port number",
-				1, (maxport > 0) ? maxport : MAXINT16);
-			if (maxport == 0)
-				maxport = minport;
-			argc--, argv++;
-			break;
-
-		    case 'J':
-			maxport = getval(argv[2], "last port number",
-				(minport > 0) ? minport : 1, MAXINT16);
-			if (minport == 0)
-				minport = maxport;
-			argc--, argv++;
-			break;
-
-		    case 'r' :
-			new_res.options &= ~RES_RECURSE;
-			break;
-
-		    case 'B' :
-			bindcompat = TRUE;
-			/*FALLTHROUGH*/
-
-		    case 'R' :
-			new_res.options |= RES_DNSRCH;
-			break;
-
-		    case 'u' :
-			new_res.options |= RES_USEVC;
-			break;
-
-		    case 'd' :
-			new_res.options |= RES_DEBUG;
-			debug++;		/* increment debugging level */
-			break;
-
-		    case 'v' :
-			verbose++;		/* increment verbosity level */
-			break;
-
-		    case 'q' :
-			quiet = TRUE;
-			break;
-
-		    case 'i' :
-			reverse = TRUE;
-			break;
-
-		    case 'n' :
-			revnsap = TRUE;
-			break;
-
-		    case 'p' :
-			primary = TRUE;
-			break;
-
-		    case 'o' :
-			suppress = TRUE;
-			break;
-
-		    case 'e' :
-			exclusive = TRUE;
-			break;
-
-		    case 'S' :
-			statistics = TRUE;
-			break;
-
-		    case 'T' :
-			ttlprint = TRUE;
-			break;
-
-		    case 'Z' :
-			dotprint = TRUE;
-			ttlprint = TRUE;
-			classprint = TRUE;
+		    case '-' :
+			if (option == &argv[1][1])
+				option = cvtopt(option+1);
 			break;
 
 		    case 'A' :
 			addrmode = TRUE;
 			break;
 
+		    case 'a' :
+			querytype = T_ANY;	/* filter anything available */
+			break;
+
+		    case 'B' :
+			bindcompat = TRUE;
+			new_res.options |= RES_DNSRCH;
+			break;
+
+		    case 'C' :
+			checkmode = TRUE;
+			listmode = TRUE;
+			if (querytype == T_NONE)
+				querytype = -1;	/* suppress zone data output */
+			break;
+
+		    case 'c' :
+			if (is_empty(argv[2]) || argv[2][0] == '-')
+				fatal("Missing query class");
+			queryclass = parse_class(argv[2]);
+			if (queryclass < 0)
+				fatal("Invalid query class %s", argv[2]);
+			argv++; argc--;
+			break;
+
+		    case 'd' :
+			debug++;		/* increment debugging level */
+			new_res.options |= RES_DEBUG;
+			break;
+
+		    case 'e' :
+			exclusive = TRUE;
+			break;
+
+		    case 'F' :
+			logexchange = TRUE;
+			/*FALLTHROUGH*/
+
+		    case 'f' :
+			if (is_empty(argv[2]) || argv[2][0] == '-')
+				fatal("Missing log file name");
+			logfilename = argv[2];
+			argv++; argc--;
+			break;
+#ifdef justfun
+		    case 'g' :
+			namelen = getval(argv[2], "minimum length", 1, MAXDNAME);
+			argv++; argc--;
+			break;
+#endif
 		    case 'D' :
 		    case 'E' :
 		    case 'G' :
@@ -486,32 +512,35 @@ input char *argv[];
 				querytype = -1;	/* suppress zone data output */
 			break;
 
-		    case 'C' :
-			checkmode = TRUE;
-			listmode = TRUE;
-			if (querytype == T_NONE)
-				querytype = -1;	/* suppress zone data output */
+		    case 'I' :
+			if (argv[2] == NULL || argv[2][0] == '-')
+				fatal("Missing allowed chars");
+			illegal = argv[2];
+			argv++; argc--;
 			break;
 
-		    case 'z' :
-			listzones = TRUE;
-			listmode = TRUE;
-			if (querytype == T_NONE)
-				querytype = -1;	/* suppress zone data output */
+		    case 'i' :
+			reverse = TRUE;
 			break;
 
-		    case 'M' :
-			mxdomains = TRUE;
-			listmode = TRUE;
-			if (querytype == T_NONE)
-				querytype = -1;	/* suppress zone data output */
+		    case 'J':
+			maxport = getval(argv[2], "last port number",
+				(minport > 0) ? minport : 1, MAXINT16);
+			if (minport == 0)
+				minport = maxport;
+			argc--, argv++;
 			break;
 
-		    case 'W' :
-			wildcards = TRUE;
-			listmode = TRUE;
-			if (querytype == T_NONE)
-				querytype = T_MX;
+		    case 'j':
+			minport = getval(argv[2], "first port number",
+				1, (maxport > 0) ? maxport : MAXINT16);
+			if (maxport == 0)
+				maxport = minport;
+			argc--, argv++;
+			break;
+
+		    case 'K' :
+			timing = TRUE;
 			break;
 
 		    case 'L' :
@@ -523,26 +552,11 @@ input char *argv[];
 			listmode = TRUE;
 			break;
 
-		    case 'c' :
-			if (argv[2] == NULL || argv[2][0] == '-')
-				fatal("Missing query class");
-			queryclass = parse_class(argv[2]);
-			if (queryclass < 0)
-				fatal("Invalid query class %s", argv[2]);
-			argv++; argc--;
-			break;
-
-		    case 't' :
-			if (argv[2] == NULL || argv[2][0] == '-')
-				fatal("Missing query type");
-			querytype = parse_type(argv[2]);
-			if (querytype < 0)
-				fatal("Invalid query type %s", argv[2]);
-			argv++; argc--;
-			break;
-
-		    case 'a' :
-			querytype = T_ANY;	/* filter anything available */
+		    case 'M' :
+			mxdomains = TRUE;
+			listmode = TRUE;
+			if (querytype == T_NONE)
+				querytype = -1;	/* suppress zone data output */
 			break;
 
 		    case 'm' :
@@ -550,40 +564,100 @@ input char *argv[];
 			querytype = T_MAILB;	/* filter MINFO/MG/MR/MB data */
 			break;
 
-		    case 'I' :
-			if (argv[2] == NULL || argv[2][0] == '-')
-				fatal("Missing allowed chars");
-			illegal = argv[2];
-			argv++; argc--;
-			break;
-
-		    case 'P' :
-			if (argv[2] == NULL || argv[2][0] == '-')
-				fatal("Missing preferred server");
-			prefserver = argv[2];
-			argv++; argc--;
-			break;
-
 		    case 'N' :
-			if (argv[2] == NULL || argv[2][0] == '-')
+			if (is_empty(argv[2]) || argv[2][0] == '-')
 				fatal("Missing zone to be skipped");
 			skipzone = argv[2];
 			argv++; argc--;
 			break;
 
-		    case 'F' :
-			logexchange = TRUE;
-			/*FALLTHROUGH*/
+		    case 'n' :
+			revnsap = TRUE;
+			break;
 
-		    case 'f' :
-			if (argv[2] == NULL || argv[2][0] == '-')
-				fatal("Missing log file name");
-			logfilename = argv[2];
+		    case 'O' :
+			if (is_empty(argv[2]) || argv[2][0] == '-')
+				fatal("Missing source address");
+			srcaddr = inet_addr(argv[2]);
+			if (srcaddr == NOT_DOTTED_QUAD)
+				fatal("Invalid source address %s", argv[2]);
 			argv++; argc--;
 			break;
 
+		    case 'o' :
+			suppress = TRUE;
+			break;
+
+		    case 'P' :
+			if (is_empty(argv[2]) || argv[2][0] == '-')
+				fatal("Missing preferred server");
+			prefserver = argv[2];
+			argv++; argc--;
+			break;
+
+		    case 'p' :
+			primary = TRUE;
+			break;
+
+		    case 'Q' :
+			quick = TRUE;
+			break;
+
+		    case 'q' :
+			quiet = TRUE;
+			break;
+
+		    case 'R' :
+			new_res.options |= RES_DNSRCH;
+			break;
+
+		    case 'r' :
+			new_res.options &= ~RES_RECURSE;
+			break;
+
+		    case 'S' :
+			statistics = TRUE;
+			break;
+
+		    case 's' :
+			new_res.retrans = getval(argv[2], "timeout value", 1, 0);
+			argv++; argc--;
+			break;
+
+		    case 'T' :
+			ttlprint = TRUE;
+			break;
+
+		    case 't' :
+			if (is_empty(argv[2]) || argv[2][0] == '-')
+				fatal("Missing query type");
+			querytype = parse_type(argv[2]);
+			if (querytype < 0)
+				fatal("Invalid query type %s", argv[2]);
+			argv++; argc--;
+			break;
+
+		    case 'u' :
+			new_res.options |= RES_USEVC;
+			break;
+
+		    case 'v' :
+			verbose++;		/* increment verbosity level */
+			break;
+
+		    case 'W' :
+			wildcards = TRUE;
+			listmode = TRUE;
+			if (querytype == T_NONE)
+				querytype = T_MX;
+			break;
+
+		    case 'w' :
+			waitmode = TRUE;
+			break;
+
 		    case 'X' :
-			if (argv[2] == NULL || argv[2][0] == '-')
+			if (is_empty(argv[2]) || argv[2][0] == '-')
 				fatal("Missing server name");
 			servername = argv[2];
 			argv++; argc--;
@@ -592,22 +666,26 @@ input char *argv[];
 		    case 'x' :
 			extended = TRUE;
 			break;
-#ifdef justfun
-		    case 'g' :
-			namelen = getval(argv[2], "minimum length", 1, MAXDNAME);
-			argv++; argc--;
-			break;
-#endif
-		    case 'K' :
-			timing = TRUE;
-			break;
 
 		    case 'Y' :
 			dumpdata = TRUE;
 			break;
 
+		    case 'Z' :
+			dotprint = TRUE;
+			ttlprint = TRUE;
+			classprint = TRUE;
+			break;
+
+		    case 'z' :
+			listzones = TRUE;
+			listmode = TRUE;
+			if (querytype == T_NONE)
+				querytype = -1;	/* suppress zone data output */
+			break;
+
 		    case 'V' :
-			printf("Version %s\n", version);
+			printf("%s\n", version);
 			exit(EX_SUCCESS);
 
 		    default:
@@ -630,10 +708,28 @@ input char *argv[];
 		servername = argv[2];
 
 /*
+ * Check for incompatible options.
+ */
+	if ((querytype < 0) && !listmode)
+		fatal("No query type specified");
+
+	if (loadzone && (servername != NULL))
+		fatal("Conflicting options load and server");
+
+	if (loadzone && dumpzone)
+		fatal("Conflicting options load and dump");
+
+/*
  * Open log file if requested.
  */
 	if (logfilename != NULL)
 		set_logfile(logfilename);
+
+/*
+ * Move to cache directory if specified.
+ */
+	if (cachedirname != NULL)
+		set_cachedir(cachedirname);
 
 /*
  * Set default preferred server for zone listings, if not specified.
@@ -771,7 +867,7 @@ input int maxvalue;			/* maximum value for option */
 {
 	register int optvalue;
 
-	if (optstring == NULL || optstring[0] == '-')
+	if (is_empty(optstring) || optstring[0] == '-')
 		fatal("Missing %s", optname);
 
 	optvalue = atoi(optstring);
@@ -786,6 +882,243 @@ input int maxvalue;			/* maximum value for option */
 		fatal("Maximum %s %s", optname, dtoa(maxvalue));
 
 	return(optvalue);
+}
+
+/*
+** CVTOPT -- Convert long option syntax
+** ------------------------------------
+**
+**	Returns:
+**		Short option string, if appropriate.
+*/
+
+char *
+cvtopt(optstring)
+input char *optstring;			/* parameter from command line */
+{
+	register char *value;
+
+	/* separate keyword and value */
+	value = index(optstring, '=');
+	if (value != NULL)
+		*value++ = '\0';
+
+/*
+ * These are just alternatives for short options.
+ */
+	if (sameword(optstring, "addrcheck"))
+		return("-A");
+
+	if (sameword(optstring, "anything"))
+		return("-a");
+
+	if (sameword(optstring, "checksoa"))
+		return("-C");
+
+	if (sameword(optstring, "debug"))
+		return("-d");
+
+	if (sameword(optstring, "exclusive"))
+		return("-e");
+
+	if (sameword(optstring, "extended"))
+		return("-x");
+
+	if (sameword(optstring, "full"))
+		return("-Z");
+
+	if (sameword(optstring, "hostcount"))
+		return("-H");
+
+	if (sameword(optstring, "inaddr"))
+		return("-i");
+
+	if (sameword(optstring, "list"))
+		return("-l");
+
+	if (sameword(optstring, "norecurs"))
+		return("-r");
+
+	if (sameword(optstring, "primary"))
+		return("-p");
+
+	if (sameword(optstring, "quick"))
+		return("-Q");
+
+	if (sameword(optstring, "quiet"))
+		return("-q");
+
+	if (sameword(optstring, "statistics"))
+		return("-S");
+
+	if (sameword(optstring, "suppress"))
+		return("-o");
+
+	if (sameword(optstring, "tcp"))
+		return("-u");
+
+	if (sameword(optstring, "verbose"))
+		return("-v");
+
+	if (sameword(optstring, "version"))
+		return("-V");
+
+/*
+ * Combinations of several short options, or valued short options.
+ */
+	if (sameword(optstring, "checkzone"))
+	{
+		if (recursive == 0)
+			recursive = 1;
+		return("-CAl");
+	}
+
+	if (sameword(optstring, "class"))
+	{
+		if (is_empty(value) || value[0] == '-')
+			fatal("Missing query class");
+		queryclass = parse_class(value);
+		if (queryclass < 0)
+			fatal("Invalid query class %s", value);
+		return("-");
+	}
+
+	if (sameword(optstring, "depth"))
+	{
+		recursive = getval(value, "recursion level", 1, 0);
+		return("-l");
+	}
+
+	if (sameword(optstring, "file"))
+	{
+		if (is_empty(value) || value[0] == '-')
+			fatal("Missing log file name");
+		logfilename = value;
+		return("-");
+	}
+
+	if (sameword(optstring, "server"))
+	{
+		if (is_empty(value) || value[0] == '-')
+			fatal("Missing server name");
+		servername = value;
+		return("-");
+	}
+
+	if (sameword(optstring, "timeout"))
+	{
+		new_res.retrans = getval(value, "timeout value", 1, 0);
+		return("-");
+	}
+
+	if (sameword(optstring, "type"))
+	{
+		if (is_empty(value) || value[0] == '-')
+			fatal("Missing query type");
+		querytype = parse_type(value);
+		if (querytype < 0)
+			fatal("Invalid query type %s", value);
+		return("-");
+	}
+
+/*
+ * New long options without an equivalent short one.
+ */
+	if (sameword(optstring, "canoncheck"))
+	{
+		canoncheck = TRUE;
+		return("-");
+	}
+
+	if (sameword(optstring, "cnamecheck"))
+	{
+		cnamecheck = TRUE;
+		return("-");
+	}
+
+	if (sameword(optstring, "compare"))
+	{
+		if (value != NULL)
+		{
+			time_t now = time((time_t *)NULL);
+			int period = convtime(value, 'd');
+
+			if (period < 0 || period > now)
+				fatal("Invalid time period %s", value);
+
+			/* set absolute time in the past */
+			loadtime = now - period;
+		}
+
+		compare = TRUE;
+		return("-");
+	}
+
+	if (sameword(optstring, "dump"))
+	{
+		cachedirname = value;	/* optional */
+		dumpzone = TRUE;
+		return("-l");
+	}
+
+	if (sameword(optstring, "load"))
+	{
+		cachedirname = value;	/* optional */
+		loadzone = TRUE;
+		return("-l");
+	}
+
+	if (sameword(optstring, "nothing"))
+	{
+		querytype = -1;
+		return("-");
+	}
+
+	if (sameword(optstring, "recursive"))
+	{
+		if (recursive == 0)
+			recursive = MAXINT16;
+		return("-l");
+	}
+
+	if (sameword(optstring, "retry"))
+	{
+		new_res.retry = getval(value, "retry count", 1, 0);
+		return("-");
+	}
+
+	if (sameword(optstring, "test"))
+	{
+		testmode = TRUE;
+		return("-");
+	}
+
+	if (sameword(optstring, "undercheck"))
+	{
+		undercheck = TRUE;
+		return("-");
+	}
+
+/*
+ * Remainder.
+ */
+	if (sameword(optstring, "help"))
+	{
+		printf("%s\n", Help);
+		exit(EX_SUCCESS);
+	}
+
+	if (sameword(optstring, "usage"))
+	{
+		printf("%s\n", Usage);
+		exit(EX_SUCCESS);
+	}
+
+	if (*optstring != '\0')
+		fatal("Unrecognized option %s", optstring);
+
+	/* just ignore */
+	return("-");
 }
 
 /*
@@ -1090,6 +1423,15 @@ input ipaddr_t addr;			/* explicit address of query */
 	bool result;			/* result status of action taken */
 
 /*
+ * Special mode to test code separately.
+ */
+	if (testmode)
+	{
+		result = test(name, addr);
+		return(result);
+	}
+
+/*
  * Special mode to list contents of specified zone.
  */
 	if (listmode)
@@ -1380,6 +1722,30 @@ input char *filename;			/* name of log file */
 			perror(filename);
 			exit(EX_CANTCREAT);
 		}
+	}
+}
+
+/*
+** SET_CACHEDIR -- Move to the local cache directory
+** -------------------------------------------------
+**
+**	Returns:
+**		None.
+**		Aborts the program if the cache is unavailable.
+**
+**	Side effects:
+**		Changes the current working directory to the cache.
+**		Cache files are relative to the top of the cache.
+*/
+
+void
+set_cachedir(filename)
+input char *filename;			/* name of cache directory */
+{
+	if (chdir(filename) < 0)
+	{
+		cache_perror("Cannot chdir", filename);
+		exit(EX_CANTCREAT);
 	}
 }
 

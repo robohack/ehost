@@ -1,4 +1,4 @@
-	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 990701
+	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 991529
 
 	URL	ftp://ftp.nikhef.nl/pub/network/host.tar.Z
 	URL	http://www.nikhef.nl/user/e07
@@ -8,10 +8,153 @@ TODO		Things that still need to be done
 WISHLIST	Wishes expressed by various people
 NOTES		Important issues to keep in mind
 MISC		Miscellaneous reminders
+HOSTCOUNT	The RIPE NCC monthly European hostcount
 
 # ----------------------------------------------------------------------
 # Description of changes per release
 # ----------------------------------------------------------------------
+
+991529
+	Extend functionality of the --compare option.
+		When deciding between a zone transfer or a cache load,
+		force a load from the cache if the cache is more recent
+		than a certain reference time. The --compare switch
+		takes an optional time period into the past to set this.
+		Requested by Peter Koch <pk@TechFak.Uni-Bielefeld.DE>
+
+991527
+	Extend functionality of the -A option.
+		When processing a reverse in-addr.arpa zone, and the
+		-A option is specified, check whether the RHS in PTR
+		records maps to a canonical host name.
+		This may generate spurious warnings about PTR records
+		that identify network names as suggested by RFC 1101.
+		The check does not include CIDR delegations (RFC 2317).
+		The same RHS is also checked for invalid characters.
+		Not sure why I haven't implemented this earlier.
+	Check dangling CNAME pointers.
+		The new --cnamecheck option will check the RHS target
+		in CNAME records for mere existence, by examining
+		whether there are any resource records available.
+		This check will be turned on automatically if the -A
+		option is specified when processing a non-reverse zone.
+		Reverse zones may have many CNAME entries pointing to
+		nonexisting domains in case of CIDR delegations.
+		Not sure why I haven't implemented this earlier.
+	New resource records and query types.
+		Define various new resource records, as registered by
+		IANA recently. Most are still in draft, and have no
+		support yet. These include T_A6/T_DNAME/T_SINK/T_OPT,
+		as well as T_ADDRS/T_TKEY/T_TSIG.
+	Enhance statistics printout.
+		Show the total number of individual resource records
+		found in all zones combined during recursive listings.
+	Documentation update.
+		Extend the list of related RFCs in the manual page.
+
+991520
+	Prepare for local disk cacheing.
+		Provide disk file I/O modules in new file.c.
+		These are similar to the ones in send.c, and some of
+		the code is duplicated.
+	Implement new option specification.
+		The verbose syntax '--option[=value]' is recognized.
+		Provide straightforward alternatives for some existing
+		short options and combinations of short options.
+		This new syntax is not yet documented in the man page,
+		but a summary is printed via the --help option.
+	Change option to define explicit source address.
+		Change the option flag from -Q to -O (origin).
+	Add option to disable special processing.
+		The new option -Q enables quick mode, in which various
+		potentially time consuming special checks are skipped.
+		Some of such checks were already skipped in quiet mode.
+		It also disables accumulating statistics, if this is
+		not explicitly requested. Some of these statistics would
+		previously be gathered anyway in case verbose mode was
+		selected.
+	Change behaviour of timestamp option.
+		The (still undocumented) option -K would force the
+		execution of some tasks that would otherwise be skipped
+		in a certain mode. This is no longer the case.
+	Enhance statistics printout.
+		Show the total number of resource records found,
+		in addition to the individual resource record counts.
+	Perform extra checks for valid names.
+		Make sure the dash '-' is in the middle of a label, i.e.
+		it is not immediately preceded or followed by a dot.
+		The same for the dot itself, i.e. prevent double dots.
+	Better control of special checks.
+		During recursive zone listings, the checks for canonical
+		host names and invalid underscores were always skipped
+		(unless the -A switch was given) beyond the top level.
+		These checks can now be selectively enabled via the
+		new --canoncheck and --undercheck options.
+		The checks are always enabled at the top level during
+		zone listings, and in regular mode. They are never done
+		if quick mode (-Q) is selected.
+	Add several new options.
+		The new --recursive option implies a zone listing with
+		infinite recursion level.
+		The new --nothing option prevents any resource record
+		printout during zone listings.
+		The new --retry=count option sets the maximum retry
+		count for datagram (udp) nameserver queries.
+	Implement local disk cacheing.
+		The new option --dump copies the raw zone data to a disk
+		cache file during zone transfers.
+		The new option --load reads the zone data from the cache
+		instead of performing a zone transfer.
+		This feature is not yet documented in the manual page.
+	Enhance SOA check.
+		If the option --load is given when checking SOA records,
+		the SOA record from the local cache is checked as well
+		as the SOA records at each of the zone nameservers.
+		Subsequent zone transfers are all loaded from the cache.
+	Compare SOA serial numbers.
+		When not explicitly loading the zone data from the local
+		cache, the new option --compare causes the serial number
+		from the cache to be compared with the real one. If they
+		both exist and are the same, a zone transfer is avoided.
+		If necessary for further processing, the zone is then
+		loaded from the cache instead.
+	Miscellaneous changes.
+		Reorder and restructure command line option parsing.
+		Use generic hash size for all hash tables.
+		Make argument passing more consistent in some places.
+		Add simple (undocumented) test facility for testing
+		code separately within the host environment.
+	This is a major new release.
+
+991331
+	Guard against premature abort.
+		Ignore SIGPIPE signals to avoid process termination when
+		the remote peer has prematurely closed a virtual circuit
+		(tcp) connection, which precludes further writes.
+		This has been a long-standing bug. Very important fix.
+		Found by Peter Koch <pk@TechFak.Uni-Bielefeld.DE>
+	Miscellaneous changes.
+		Provide new version of rblookup script, to query ORBS
+		besides MAPS.
+
+991328
+	Fix potential buffer overrun problem.
+		Before decoding a resource record from the nameserver
+		answer buffer, make sure it fits entirely as indicated
+		by its own record data length.
+		For certain resource records decoding could fail if
+		the answer was truncated due to insufficient internal
+		buffer space, in virtual circuit (tcp) mode.
+		Reported by Marco d'Itri <md@linux.it>
+	New option to define explicit source address.
+		The new option -Q allows to set an explicit source IP
+		address in queries. Useful for multi-homed hosts with
+		asymmetric routing policy.
+		Works only if you compile with HOST_RES_SEND (default).
+		Suggested by Pasztor Miklos <pasztor@sztaki.hu>
+	Miscellaneous changes.
+		Add the package name when printing the version number.
+		Requested by Mike Sweger <mikesw@whiterose.net>
 
 990701
 	Speedup glue record filtering.
@@ -683,7 +826,7 @@ MISC		Miscellaneous reminders
 		same ttl value in zone listings. This is now checked.
 		A suitable hash function is needed to minimize overhead.
 		The approach is similar to the function used in sendmail.
-		This has been a long standing wish from
+		This has been a long-standing wish from
 		Peter Koch <pk@TechFak.Uni-Bielefeld.DE>
 	Various speedup fixes.
 		Avoid unnecessary indomain() calls during zone listings.
@@ -1087,6 +1230,11 @@ MISC		Miscellaneous reminders
 	Skip printing of second SOA in zone listing.
 		Asked by Peter Koch <pk@TechFak.Uni-Bielefeld.DE>.
 
+	Check for both A and AAAA records.
+		The check for canonical hostnames in NS and MX records
+		should be extended to include also AAAA records.
+		Asked by Matti Aarnio <matti.aarnio@sonera.fi>
+
 # ----------------------------------------------------------------------
 # NOTES
 # ----------------------------------------------------------------------
@@ -1126,13 +1274,26 @@ MISC		Miscellaneous reminders
 		SUN will probably implement BIND 4.9.3 after its release.
 
 	Multiple answers during zone listing.
-		During zone transfers BIND encapsulates every resource
+		During zone transfers BIND 4 encapsulates every resource
 		record in a seperate reply buffer containing a HEADER
 		and an answer section (ancount == 1). The authority and
 		additional section are empty. The query section is also
 		empty except in the very first reply buffer.
-		Some non-BIND implementations may send multiple answers
-		per reply buffer (ancount > 1).
+		Some non-BIND implementations, as well as later BIND 8
+		versions, may send multiple answers per reply buffer so
+		that (ancount > 1).
+
+	Buffer size restrictions.
+		BIND uses internal query/answer buffers of relatively
+		small size, and puts an upper limit on the size of the
+		individual resource record data length. Such restrictions
+		are not imposed by the appropriate RFC specifications.
+		These sizes could, and perhaps should, have been larger.
+		Truncation, even in virtual circuit (tcp) mode, could
+		occur for a resource record set consisting of very many
+		MX records, or for excessively large TXT records.
+		Some other utilities don't handle truncated tcp answers
+		properly, but host is now protected.
 
 # ----------------------------------------------------------------------
 # MISC
@@ -1172,4 +1333,63 @@ MISC		Miscellaneous reminders
 		Extra checks are carried out to ensure that a reply packet
 		really is the answer to a query: nameserver addresses and
 		query fields are compared.
+
+# ----------------------------------------------------------------------
+# HOSTCOUNT
+# ----------------------------------------------------------------------
+
+	Since 1990 RIPE has been conducting the monthly hostcount of the
+	European and surrounding countries, using this "host" program.
+	See http://www.ripe.net/hostcount for details.
+
+	For each of the applicable toplevel domains, the entire DNS tree
+	is recursively traversed, performing zone transfers from the
+	appropriate nameservers. During this process, statistics are
+	accumulated, and various checks are carried out to report error
+	conditions.
+
+	The statistical results and the error reports are published
+	and are publicly available.
+
+	Zone administrators are requested to allow zone transfers to
+	the designated hostcount machines, and they are usually willing
+	to cooperate.
+
+	A single job per toplevel domain would do all processing in one
+	sequential run. With the current growth of the Internet, and the
+	corresponding increase of the DNS information, this is no longer
+	practical, at least for some of the largest domains. The total
+	runtime would become excessive, and make the process vulnerable
+	for unexpected crashes or network outages.
+
+	The procedure can now be split up into two independent parts:
+	o  A data collecting phase, which only performs zone transfers
+	   and saves the information in local cache disk files. This is
+	   restartable at any moment, and can easily be subdivided into
+	   parallel streams.
+	o  A data processing phase, which just reads the current local
+	   cache, making a snapshot without doing any zone transfers.
+
+	The recommended commands for this are the following, with only
+	the minimally required options shown.
+
+	1. Data collection (dump to cache)
+
+	   host --recursive --nothing --quick --compare --dump zone
+
+	2. Data processing (load from cache)
+
+	   host --recursive --anything --hostcount --statistics --load zone
+
+	Various other switches can be specified to turn on extra checking
+	and verbose logging.
+
+	Special attention deserves the command
+
+	   host --checkzone zone
+
+	This will perform an extensive analysis of the given single zone
+	by turning on all implemented checks. All zone administrators
+	are encouraged to regularly exercise this for their own zones.
+	If this command passes all tests, the world would be a better one.
 

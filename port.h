@@ -1,7 +1,7 @@
 /*
 ** Various portability definitions.
 **
-**	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 990511
+**	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
 */
 
 #if defined(__SVR4) || defined(__svr4__)
@@ -239,6 +239,8 @@ typedef int	free_t;
 #define EHOSTDOWN	WSAEHOSTDOWN
 #undef  EHOSTUNREACH
 #define EHOSTUNREACH	WSAEHOSTUNREACH
+#undef  EADDRINUSE
+#define EADDRINUSE	WSAEADDRINUSE
 #endif /*WINNT*/
 
 #if defined(WINNT)

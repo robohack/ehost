@@ -1,7 +1,7 @@
 .\"
-.\"	@(#)host.1              e07@nikhef.nl (Eric Wassenaar) 990607
+.\"	@(#)host.1              e07@nikhef.nl (Eric Wassenaar) 991527
 .\"
-.TH host 1 "990607"
+.TH host 1 "991527"
 .SH NAME
 host \- query nameserver about domain names and zones
 .SH SYNOPSIS 
@@ -20,6 +20,16 @@ host \- query nameserver about domain names and zones
 \fBhost\fP [\fIoptions\fP] \fB\-x\fP [\fIname\fP ...]
 .br
 \fBhost\fP [\fIoptions\fP] \fB\-X\fP \fIserver\fP [\fIname\fP ...]
+.SH OPTION SYNTAX
+Besides the traditional short options (one letter with single dash,
+and an optional value as separate argument), there are now also
+long options in the format \fB\-\-keyword\fP[=\fIvalue\fP].
+Many (but not all) short options have a long equivalent.
+There are several long options without a short equivalent.
+The long options are not yet documented in this manual page,
+but a summary of the existing long options, and the mapping to
+their short alternative, is available via the command
+\fBhost\ \-\-help\fP.
 .SH DESCRIPTION 
 .I host
 looks for information about Internet hosts and domain names.
@@ -104,8 +114,8 @@ The first options are the regularly used ones.
 causes printout to be in a "verbose" format.
 All resource record fields are printed.
 Without this option, the ttl and class fields are not shown.
-Also the contents of the "additional information" and "authoritative
-nameservers" sections in the answer from the nameserver are printed,
+Also the contents of the "additional information" and "authority
+information" sections in the answer from the nameserver are printed,
 if present.  Normally these sections are not shown.
 In addition, the verbose option prints extra information about the
 various actions that are taken by the program.
@@ -209,6 +219,8 @@ If the \fB\-A\fP flag is specified along with any zone listing option,
 a reverse lookup of the address in each encountered A record is performed,
 and it is checked whether it is registered and maps back to the name of
 the A record.
+This applies to forward zones. For reverse in-addr.arpa zones, it is
+checked whether the target in PTR records maps to a canonical host name.
 .SS "LISTING OPTIONS"
 The following options apply only to the special zone listing modes.
 .TP 4
@@ -294,6 +306,11 @@ be quiet and suppress various warning messages (the ones preceded
 by " !!! ").
 Serious error messages (preceded by " *** ") are never suppressed.
 .TP
+.B \-Q
+selects quick mode, in which several potentially time consuming
+special checks are not carried out, and statistics gathering is
+skipped if not explicitly selected.
+.TP
 .B \-T
 prints the time-to-live values during non-verbose output.
 By default the ttl is shown only in verbose mode.
@@ -315,7 +332,7 @@ The default class is \fBIN\fP.
 excludes information about names that are not residing within
 the given zone during zone listings, such as some glue records.
 For regular queries, it suppresses the printing of the "additional
-information" and "authoritative nameserver" sections in the answer
+information" and "authority information" sections in the answer
 from the nameserver.
 .TP
 .B \-m
@@ -376,6 +393,11 @@ prints just the version number of the \fBhost\fP program, and exits.
 .SS "SPECIAL OPTIONS"
 The following options are used only in special circumstances.
 .TP 4
+\fB\-O\fP \fIsrcaddr\fP
+Define an explicit source IP address for sending nameserver queries.
+This may be necessary for multi-homed hosts with asymmetric routing
+policy.
+.TP
 \fB\-j\fP \fIminport\fP \fB\-J\fP \fImaxport\fP
 Define a range of explicit port numbers to be assigned to the source
 IP address of the client socket for sending the nameserver queries and
@@ -538,11 +560,13 @@ Nimrod locator
 .TP
 .B ATMA
 ATM address
-.TP
+.PP
+The following type is defined per RFC 2168.
+.TP 10
 .B NAPTR
 Naming authority URN
 .PP
-The following type is proposed in RFC 2052.
+The following type is proposed in RFC 2052, updated by RFC 2782.
 .TP 10
 .B SRV
 Internet service information
@@ -555,7 +579,18 @@ Key exchanger (preference value, domain name)
 The following type is defined in RFC 2538.
 .TP 10
 .B CERT
-Security certificate
+.PP
+The following types have been proposed, but are still in draft.
+.TP 10
+.B A6
+.TP
+.B DNAME
+.TP
+.B SINK
+.PP
+The following type is defined in RFC 2671.
+.TP 10
+.B OPT
 .SH EXAMPLES
 A very good summary and validation of an entire zone can be obtained
 with the following command:
@@ -709,16 +744,26 @@ components (labels) between dots.
 The NS or MX target host \fIserver\fP does not exist at all.
 In case of NS, a lame delegation of \fIname\fP to \fIserver\fP
 is flagged.
+It also applies to the PTR target host in reverse zones.
 .TP
 \fIname\fP \fItype\fP host \fIserver\fP has no A record
 The NS or MX target host \fIserver\fP has no address.
 In case of NS, a lame delegation of \fIname\fP to \fIserver\fP
 is flagged.
+It also applies to the PTR target host in reverse zones.
 .TP
 \fIname\fP \fItype\fP host \fIserver\fP is not canonical
 The NS or MX target host \fIserver\fP is not a canonical name.
 This may cause serious operational problems during domain data
 retrieval, or electronic mail delivery.
+It also applies to the PTR target host in reverse zones.
+.TP
+\fIname\fP \fItype\fP target \fIdomain\fP does not exist
+The CNAME target \fIdomain\fP does not exist at all.
+.TP
+\fIname\fP \fItype\fP target \fIdomain\fP has no ANY record
+The CNAME target \fIdomain\fP does not seem to have any
+associated resource record, although the name seems to exist.
 .TP
 \fIname\fP address \fIA.B.C.D\fP is not registered
 The reverse lookup of the address of an A record failed in an
@@ -930,6 +975,10 @@ rfc2136, Dynamic updates in the DNS
 .br
 rfc2137, Secure DNS dynamic update
 .br
+rfc2163, Using DNS to distribute global address mapping (PX)
+.br
+rfc2168, Resolution of Uniform Resource Identifiers (NAPTR)
+.br
 rfc2181, Clarifications to the DNS specification
 .br
 rfc2230, Key exchange delegation record for the DNS (KX)
@@ -943,6 +992,10 @@ rfc2535, DNS security extensions (KEY/SIG/NXT)
 rfc2538, Storing certificates in the DNS (CERT)
 .br
 rfc2541, DNS security operational considerations
+.br
+rfc2671, Extension mechanisms for DNS (OPT)
+.br
+rfc2782, Specifying the location of services (SRV)
 .SH AUTHOR
 This program is originally from Rutgers University.
 .br

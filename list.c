@@ -18,7 +18,7 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 990701";
+static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
 #endif
 
 #include "host.h"
@@ -157,6 +157,8 @@ int hosts_medium = 0;		/* number of hosts within medium zones */
 int hosts_large  = 0;		/* number of hosts within large zones */
 int hosts_huge   = 0;		/* number of hosts within huge zones */
 
+int total_stats[T_ANY+1];	/* total count of resource records per type */
+
 #ifdef justfun
 char longname[MAXDNAME+1];	/* longest host name found */
 int longsize = 0;		/* size of longest host name */
@@ -183,6 +185,8 @@ input char *name;			/* name of zone to process */
 	if (n > 1 && name[n-1] == '.')
 		name[n-1] = '\0';
 
+	pr_timestamp("zone processing starting for %s", name);
+
 /*
  * Indicate whether we are processing an in-addr.arpa reverse zone.
  * In this case we will suppress accumulating host count statistics.
@@ -190,33 +194,76 @@ input char *name;			/* name of zone to process */
 	reverse = indomain(name, ARPA_ROOT, FALSE);
 
 /*
+ * Enable various checks in certain circumstances.
+ * This affects processing in print_rrec(). It may need refinement.
+ */
+	if (addrmode && !reverse)
+		cnamecheck = TRUE;
+
+/*
  * Suppress various checks if working beyond the recursion skip level.
  * This affects processing in print_rrec(). It may need refinement.
  */
-	recurskip = ((recursion_level > skip_level) && !addrmode) ? TRUE : FALSE;
+	canonskip = ((recursion_level > skip_level) && !addrmode &&
+			!canoncheck) ? TRUE : FALSE;
+
+	underskip = ((recursion_level > skip_level) && !addrmode &&
+			!undercheck) ? TRUE : FALSE;
+
+/*
+ * Reset the load/dump switches for zone transfers to their defaults.
+ * These may be overruled hereafter, on a per-zone basis.
+ */
+	dumping = dumpzone;	/* should dump to the cache */
+	loading = loadzone;	/* should load from the cache */
+
+/*
+ * When not loading from the cache, compare the serial numbers in the
+ * cache and in reality, and avoid the transfer if nothing has changed.
+ * In that case, load the zone from the cache instead.
+ * Quit immediately if a quick dump of a single zone was requested.
+ */
+	if (!loading && compare && compare_soa(name))
+	{
+		if (verbose)
+			printf("Avoiding zone transfer for %s\n", name);
+
+		/* all done if just dumping a single zone */
+		if (dumping && !recursive && quick)
+			return((errorcount == 0) ? TRUE : FALSE);
+
+		/* load from the cache instead for further processing */
+		dumping = FALSE;
+		loading = TRUE;
+	}
 
 /*
  * Find the nameservers for the given zone.
  * Make sure we have an address for at least one nameserver.
+ * We don't need the servers when loading the zone from the local cache,
+ * but we want them anyway if we are going to check the SOA records.
  */
-	pr_timestamp("zone processing starting for %s", name);
-
-	(void) find_servers(name);
-
-	if (nservers < 1)
+	if (!loading || checkmode)
 	{
-		errmsg("No nameservers for %s found", name);
-		return(FALSE);
-	}
+		(void) find_servers(name);
 
-	for (n = 0; n < nservers; n++)
-		if (naddrs[n] > 0)
-			break;
+		if (nservers < 1)
+		{
+			errmsg("No nameservers for %s found", name);
+			if (!loading)
+				return(FALSE);
+		}
 
-	if (n >= nservers)
-	{
-		errmsg("No addresses of nameservers for %s found", name);
-		return(FALSE);
+		for (n = 0; n < nservers; n++)
+			if (naddrs[n] > 0)
+				break;
+
+		if (nservers > 0 && n >= nservers)
+		{
+			errmsg("No addresses of nameservers for %s found", name);
+			if (!loading)
+				return(FALSE);
+		}
 	}
 
 /*
@@ -240,16 +287,19 @@ input char *name;			/* name of zone to process */
 	}
 
 /*
- * Ask zone transfer to the nameservers, until one responds.
  * The zone transfer for certain zones can be skipped.
  */
 	if (skip_transfer(name))
 	{
 		if (verbose || statistics || checkmode || hostmode)
 			printf("Skipping zone transfer for %s\n", name);
+
 		return(FALSE);
 	}
 
+/*
+ * Ask zone transfer to the nameservers, until one responds.
+ */
 	pr_timestamp("zone transfer starting for %s", name);
 
 	total_tries += 1;		/* update zone transfer attempts */
@@ -265,7 +315,7 @@ input char *name;			/* name of zone to process */
  * Print resource record statistics if so requested.
  */
 	if (statistics)
-		print_statistics(name, querytype, queryclass);
+		print_stats(record_stats, 0, name, querytype, queryclass);
 
 /*
  * Accumulate host count statistics for this zone.
@@ -277,7 +327,7 @@ input char *name;			/* name of zone to process */
 
 	nhosts = 0, ndupls = 0, nextrs = 0, ngates = 0;
 
-	i = (verbose || statistics || hostmode || timing) ? 0 : hostcount;
+	i = ((verbose && !quick) || statistics || hostmode) ? 0 : hostcount;
 
 	for (n = i; n < hostcount; n++)
 	{
@@ -341,24 +391,26 @@ input char *name;			/* name of zone to process */
 		}
 	}
 
+	pr_timestamp("finished statistics for %s", name);
+
 /*
  * Print statistics for this zone.
  */
-	if (verbose || statistics || hostmode)
+	if ((verbose && !quick) || statistics || hostmode)
 	{
-		printf("Found %d host%s within %s\n",
+		printf("Encountered %d host%s within %s\n",
 			nhosts, plural(nhosts), name);
 
 	    if ((ndupls > 0) || duplmode || (verbose > 1))
-		printf("Found %d duplicate host%s within %s\n",
+		printf("Encountered %d duplicate host%s within %s\n",
 			ndupls, plural(ndupls), name);
 
 	    if ((nextrs > 0) || extrmode || (verbose > 1))
-		printf("Found %d extrazone host%s within %s\n",
+		printf("Encountered %d extrazone host%s within %s\n",
 			nextrs, plural(nextrs), name);
 
 	    if ((ngates > 0) || gatemode || (verbose > 1))
-		printf("Found %d gateway host%s within %s\n",
+		printf("Encountered %d gateway host%s within %s\n",
 			ngates, plural(ngates), name);
 	}
 
@@ -369,6 +421,9 @@ input char *name;			/* name of zone to process */
 /*
  * Update overall statistics.
  */
+	for (i = T_FIRST; i <= T_LAST; i++)
+		total_stats[i] += record_stats[i];
+
 	total_hosts += nhosts;		/* update total number of hosts */
 	total_dupls += ndupls;		/* update total number of duplicates */
 
@@ -406,7 +461,7 @@ input char *name;			/* name of zone to process */
  */
 	pr_timestamp("sorting child zones for %s", name);
 
-	if ((nzones > 1) && (recursive || listzones || mxdomains || timing))
+	if ((nzones > 1) && (recursive || listzones || mxdomains))
 		qsort((ptr_t *)zonename, nzones, sizeof(char *), compare_name);
 
 /*
@@ -510,13 +565,16 @@ input char *name;			/* name of zone to process */
 		if (verbose || statistics || checkmode || hostmode)
 			printf("\n");
 
-		if (verbose || statistics || hostmode)
+		if (statistics)
+			print_stats(total_stats, total_zones, name, querytype, queryclass);
+
+		if ((verbose && !quick) || statistics || hostmode)
 			printf("Encountered %d host%s in %d zone%s within %s\n",
 				total_hosts, plural(total_hosts),
 				total_zones, plural(total_zones),
 				name);
 
-		if (verbose || statistics || hostmode)
+		if ((verbose && !quick) || statistics || hostmode)
 			printf("Encountered %d duplicate host%s in %d zone%s within %s\n",
 				total_dupls, plural(total_dupls),
 				total_zones, plural(total_zones),
@@ -536,7 +594,7 @@ input char *name;			/* name of zone to process */
 			printf("Longest hostname %s\t%d\n",
 				longname, longsize);
 #endif
-		if (verbose || statistics || hostmode)
+		if ((verbose && !quick) || statistics || hostmode)
 		{
 		    if (zones_empty > 0)
 			printf("Classified %d/%d empty zone%s (%d/%d host%s) within %s\n",
@@ -770,7 +828,7 @@ input char *name;			/* name of zone to find servers for */
 	if (verbose > 1)
 		(void) print_info(&answer, n, name, T_NS, queryclass, FALSE);
 
-	result = get_nsinfo(&answer, n, name);
+	result = get_nsinfo(&answer, n, name, T_NS, queryclass);
 	return(result);
 }
 
@@ -790,10 +848,12 @@ input char *name;			/* name of zone to find servers for */
 */
 
 bool
-get_nsinfo(answerbuf, answerlen, name)
+get_nsinfo(answerbuf, answerlen, name, qtype, qclass)
 input querybuf *answerbuf;		/* location of answer buffer */
 input int answerlen;			/* length of answer buffer */
 input char *name;			/* name of zone to find servers for */
+input int qtype;			/* record type we are querying about */
+input int qclass;			/* record class we are querying about */
 {
 	HEADER *bp;
 	int qdcount, ancount, nscount, arcount, rrcount;
@@ -815,7 +875,7 @@ input char *name;			/* name of zone to find servers for */
 
 	if (qdcount > 0 && cp < eom)	/* should be exactly one record */
 	{
-		cp = skip_qrec(name, T_NS, queryclass, cp, msg, eom);
+		cp = skip_qrec(name, qtype, qclass, cp, msg, eom);
 		if (cp == NULL)
 			return(FALSE);
 		qdcount--;
@@ -824,7 +884,7 @@ input char *name;			/* name of zone to find servers for */
 	if (qdcount)
 	{
 		pr_error("invalid qdcount after %s query for %s",
-			pr_type(T_NS), name);
+			pr_type(qtype), name);
 		seth_errno(NO_RECOVERY);
 		return(FALSE);
 	}
@@ -866,6 +926,8 @@ input char *name;			/* name of zone to find servers for */
 		dlen = _getshort(cp);
 		cp += INT16SZ;
 
+		if (check_size(rname, type, cp, msg, eom, dlen) < 0)
+			return(FALSE);
 		eor = cp + dlen;
 #ifdef lint
 		if (verbose)
@@ -925,7 +987,7 @@ input char *name;			/* name of zone to find servers for */
 	if (rrcount)
 	{
 		pr_error("invalid rrcount after %s query for %s",
-			pr_type(T_NS), name);
+			pr_type(qtype), name);
 		seth_errno(NO_RECOVERY);
 		return(FALSE);
 	}
@@ -1083,6 +1145,18 @@ input char *name;			/* name of zone to process */
 	register int n;
 	register int i;
 
+/*
+ * First check the local cache, if appropriate.
+ */
+	if (loading && !check_cache(name, "cache"))
+	{
+		/* SOA query failed */
+		ns_error(name, T_SOA, queryclass, "cache");
+	}
+
+/*
+ * Then continue with each of the nameservers.
+ */
 	/* save resolver database */
 	save_res = _res;
 	save_server = server;
@@ -1105,7 +1179,7 @@ input char *name;			/* name of zone to process */
 		_res.nscount = i;
 
 		/* retrieve and check SOA */
-		if (check_zone(name))
+		if (check_zone(name, server))
 			continue;
 
 		/* SOA query failed */
@@ -1154,8 +1228,8 @@ input char *host;			/* name of server to be queried */
 	res_state_t save_res;		/* saved copy of resolver database */
 	char *save_server;		/* saved copy of server name */
 	querybuf answer;
+	HEADER *bp;
 	register int n;
-	HEADER *bp = (HEADER *)&answer;
 
 	/* save resolver database */
 	save_res = _res;
@@ -1196,7 +1270,9 @@ input char *host;			/* name of server to be queried */
 			errmsg("%s has lame delegation to %s",
 				name, server);
 	}
-	else if (!bp->aa)
+
+	bp = (HEADER *)&answer;
+	if ((n > 0) && !bp->aa)
 	{
 		if (authserver)
 			pr_error("%s SOA record at %s is not authoritative",
@@ -1228,12 +1304,6 @@ input char *host;			/* name of server to be queried */
 **		Names are stored in the nsname[] database.
 **		Addresses are stored in the ipaddr[] database.
 **		Address counts are stored in the naddrs[] database.
-**
-**	Ask zone transfer to the nameservers, until one responds.
-**	The list of nameservers is sorted according to preference.
-**	An authoritative server should always respond positively.
-**	If it responds with an error, we may have a lame delegation.
-**	Always retry with the next server to avoid missing entire zones.
 */
 
 bool
@@ -1243,6 +1313,27 @@ input char *name;			/* name of zone to do zone xfer for */
 	register int n, ns;
 	register int i;
 
+/*
+ * When loading the zone from the local cache, just go ahead.
+ */
+	if (loading)
+	{
+		static struct in_addr inaddr;	/* unused */
+
+		if (transfer_zone(name, inaddr, "cache"))
+			return(TRUE);
+
+		ns_error(name, T_AXFR, queryclass, "cache");
+		return(FALSE);
+	}
+
+/*
+ * Ask zone transfer to the nameservers, until one responds.
+ * The list of nameservers is sorted according to preference.
+ * An authoritative server should always respond positively.
+ * If it responds with an error, we may have a lame delegation.
+ * Always retry with the next server to avoid missing entire zones.
+ */
 	for (sort_servers(), ns = 0; ns < nservers; ns++)
 	{
 	    for (n = nsrank[ns], i = 0; i < naddrs[n]; i++)
@@ -1252,7 +1343,14 @@ input char *name;			/* name of zone to do zone xfer for */
 				inet_ntoa(ipaddr[n][i]), nsname[n]);
 
 		if (transfer_zone(name, ipaddr[n][i], nsname[n]))
-			goto done;	/* double break */
+			return(TRUE);
+
+		/* terminate on cache I/O errors */
+		if (h_errno == CACHE_ERROR)
+		{
+			errmsg("No cache for %s created", name);
+			return(FALSE);
+		}
 
 		/* zone transfer failed */
 		if ((h_errno != TRY_AGAIN) || verbose)
@@ -1295,16 +1393,15 @@ input char *name;			/* name of zone to do zone xfer for */
 			break;
 	    }
 	}
-done:
-	if (ns >= nservers)
+
+	if (nservers > 0 && ns >= nservers)
 	{
 		if ((h_errno == TRY_AGAIN) && !verbose)
 			ns_error(name, T_AXFR, queryclass, (char *)NULL);
-		errmsg("No nameservers for %s responded", name);
-		return(FALSE);
 	}
 
-	return(TRUE);
+	errmsg("No nameservers for %s responded", name);
+	return(FALSE);
 }
 
 /*
@@ -1328,45 +1425,70 @@ input char *name;			/* name of zone to do zone xfer for */
 input struct in_addr inaddr;		/* address of server to be queried */
 input char *host;			/* name of server to be queried */
 {
+	bool result;
 	register int n;
 
 /*
  * Reset the resource record statistics before each try.
  */
-	clear_statistics();
+	clear_stats(record_stats);
 
 /*
  * Reset the hash tables of saved resource record information.
  * These tables are used only during the zone transfer itself.
+ * The zonetab is now also used when filtering glue records afterwards.
  */
 	clear_ttltab();
 	clear_hosttab();
 	clear_zonetab();
 
 /*
+ * Create temporary cache file if data must be dumped.
+ * In case this fails, the entire zone transfer is cancelled.
+ */
+	if (dumping && (cache_open(name, TRUE) < 0))
+	{
+		seth_errno(CACHE_ERROR);
+		return(FALSE);
+	}
+
+/*
  * Perform the actual zone transfer.
  * All error reporting is done by get_zone().
  */
-	if (get_zone(name, inaddr, host))
-		return(TRUE);
+	result = get_zone(name, inaddr, host);
 
 /*
- * Failure to get the zone. Free any memory that may have been allocated.
+ * Move temporary cache file to real cache file in case the transfer
+ * was successful. Otherwise just delete the temporary cache file.
+ * If the cache cannot be created, the transfer is marked to have failed.
+ */
+	if (dumping && (cache_close(result) < 0))
+	{
+		seth_errno(CACHE_ERROR);
+		result = FALSE;
+	}
+
+/*
+ * On failure to get the zone, free any memory that may have been allocated.
  * On success it is the responsibility of the caller to free the memory.
  * The information gathered is used by list_zone() after the zone transfer.
  */
-	for (n = 0; n < hostcount; n++)
-		xfree(hostname(n));
+	if (!result)
+	{
+		for (n = 0; n < hostcount; n++)
+			xfree(hostname(n));
 
-	for (n = 0; n < zonecount; n++)
-		xfree(zonename[n]);
+		for (n = 0; n < zonecount; n++)
+			xfree(zonename[n]);
 
-	if (zonename != NULL)
-		xfree(zonename);
+		if (zonename != NULL)
+			xfree(zonename);
 
-	zonename = NULL;
+		zonename = NULL;
+	}
 
-	return(FALSE);
+	return(result);
 }
 
 /*
@@ -1407,6 +1529,23 @@ input char *host;			/* name of server to be queried */
 	soacount = 0;			/* count of SOA records */
 	zonecount = 0;			/* count of delegated zones */
 	hostcount = 0;			/* count of host names */
+
+/*
+ * When loading the zone from the local cache, the cache file must exist.
+ */
+	if (loading)
+	{
+		if (cache_open(name, FALSE) < 0)
+		{
+			seth_errno(NO_RREC);
+			return(FALSE);
+		}
+
+		if (verbose)
+			printf("Loading zone from cache for %s ...\n", name);
+
+		goto start;
+	}
 
 /*
  * Construct query, and connect to the given server.
@@ -1466,14 +1605,20 @@ input char *host;			/* name of server to be queried */
 		return(FALSE);
 	}
 
+start:
+
 /*
  * Process all incoming packets, usually one record in a separate packet.
  */
-	while ((n = _res_read(sock, &sin, host, (char *)&answer, sizeof(querybuf))) != 0)
+	while ((n = loading ? cache_read((char *)&answer, sizeof(querybuf)) :
+		_res_read(sock, &sin, host, (char *)&answer, sizeof(querybuf))) != 0)
 	{
 		if (n < 0)
 		{
-			(void) close(sock);
+			if (loading)
+				(void) cache_close(FALSE);
+			else
+				(void) close(sock);
 			seth_errno(TRY_AGAIN);
 			return(FALSE);
 		}
@@ -1484,7 +1629,10 @@ input char *host;			/* name of server to be queried */
 		{
 			pr_error("answer length %s too short during %s for %s from %s",
 				dtoa(n), pr_type(T_AXFR), name, host);
-			(void) close(sock);
+			if (loading)
+				(void) cache_close(FALSE);
+			else
+				(void) close(sock);
 			seth_errno(TRY_AGAIN);
 			return(FALSE);
 		}
@@ -1507,7 +1655,7 @@ input char *host;			/* name of server to be queried */
 		if (bp->rcode != NOERROR || ancount == 0)
 		{
 			if (verbose || debug)
-				print_status(&answer, n);
+				print_answer(&answer, n);
 
 			switch (bp->rcode)
 			{
@@ -1541,7 +1689,10 @@ input char *host;			/* name of server to be queried */
 				pr_error("unexpected error during %s for %s from %s",
 					pr_type(T_AXFR), name, host);
 
-			(void) close(sock);
+			if (loading)
+				(void) cache_close(FALSE);
+			else
+				(void) close(sock);
 			return(FALSE);
 		}
 
@@ -1578,6 +1729,21 @@ input char *host;			/* name of server to be queried */
 
 		(void) print_info(&answer, n, name, T_AXFR, queryclass, FALSE);
 
+#ifdef notyet
+		/* make answer authoritative if it comes from such server */
+		if (dumping && authserver)
+			bp->aa = 1;
+#endif
+	/*
+	 * Dump data to cache if so requested.
+	 */
+		if (dumping && (cache_write((char *)&answer, n) < 0))
+		{
+			(void) close(sock);
+			seth_errno(CACHE_ERROR);
+			return(FALSE);
+		}
+
 	/*
 	 * Terminate upon the second SOA record for this zone.
 	 */
@@ -1586,9 +1752,23 @@ input char *host;			/* name of server to be queried */
 	}
 
 /*
+ * Write a zero length trailer to the cache to indicate end-of-file.
+ * This is not strictly necessary if the second SOA marks the end.
+ */
+	if (dumping && (cache_write((char *)&answer, 0) < 0))
+	{
+		(void) close(sock);
+		seth_errno(CACHE_ERROR);
+		return(FALSE);
+	}
+
+/*
  * End of zone transfer at second SOA record or zero length read.
  */
-	(void) close(sock);
+	if (loading)
+		(void) cache_close(FALSE);
+	else
+		(void) close(sock);
 
 /*
  * Check for the anomaly that the whole transfer consisted of the
@@ -1609,8 +1789,12 @@ input char *host;			/* name of server to be queried */
  * parent zone, or may have been defined as glue records.
  * This is not necessarily an error, but the host count may be wrong.
  * Note that an A record for the current zone has been ignored above.
+ * Skip this check if explicitly requested in quick mode, or in case
+ * nothing would be printed anyway in quiet mode.
  */
-	for (n = 0; n < zonecount; n++)
+	i = (quiet || quick) ? zonecount : 0;
+
+	for (n = i; n < zonecount; n++)
 	{
 		i = host_index(zonename[n], FALSE);
 #ifdef obsolete
@@ -1785,7 +1969,7 @@ input char *name;			/* name of zone to get soa for */
 		(void) print_info(&answer, n, name, T_SOA, queryclass, FALSE);
 
 	soaname = NULL;
-	(void) get_soainfo(&answer, n, name);
+	(void) get_soainfo(&answer, n, name, T_SOA, queryclass);
 	if (soaname == NULL)
 		return(NULL);
 
@@ -1801,23 +1985,25 @@ input char *name;			/* name of zone to get soa for */
 **		FALSE otherwise.
 **
 **	Inputs:
-**		The global variable ``server'' must contain the name
-**		of the server that was queried.
+**		The global variable ``server'' must contain the name of
+**		the server that was queried, and the resolver database
+**		must have been reset with its addresses.
 */
 
 bool
-check_zone(name)
+check_zone(name, host)
 input char *name;			/* name of zone to get soa for */
+input char *host;			/* name of server to be queried */
 {
 	querybuf answer;
 	register int n;
 
 	if (verbose)
-		printf("Checking SOA for %s at server %s ...\n", name, server);
+		printf("Checking SOA for %s at %s ...\n", name, host);
 	else if (authserver)
-		printf("%-20s\tNS\t%s\n", name, server);
+		printf("%-20s\tNS\t%s\n", name, host);
 	else
-		printf("%s\t(%s)\n", name, server);
+		printf("%-20s\t(%s)\n", name, host);
 
 	n = get_info(&answer, name, T_SOA, queryclass);
 	if (n < 0)
@@ -1827,13 +2013,131 @@ input char *name;			/* name of zone to get soa for */
 		(void) print_info(&answer, n, name, T_SOA, queryclass, FALSE);
 
 	soaname = NULL;
-	(void) get_soainfo(&answer, n, name);
+	(void) get_soainfo(&answer, n, name, T_SOA, queryclass);
 	if (soaname == NULL)
 		return(FALSE);
 
-	check_soa(&answer, name);
+	check_soa(&answer, name, host);
 
 	return(TRUE);
+}
+
+/*
+** CHECK_CACHE -- Fetch and analyze SOA record of a zone from the cache
+** --------------------------------------------------------------------
+**
+**	Returns:
+**		TRUE if the SOA record was found at the cache.
+**		FALSE otherwise.
+**
+**	The very first record is retrieved from the cache.
+**	Note that in the query section the type is AXFR, not SOA.
+**	This implies that we cannot call print_info() here.
+*/
+
+bool
+check_cache(name, host)
+input char *name;			/* name of zone to get soa for */
+input char *host;			/* name of server to be queried */
+{
+	querybuf answer;
+	register int n;
+
+	if (verbose)
+		printf("Checking SOA for %s at %s ...\n", name, host);
+	else
+		printf("%-20s\t(%s)\n", name, host);
+
+	n = load_soa(&answer, name);
+	if (n < 0)
+		return(FALSE);
+
+	soaname = NULL;
+	(void) get_soainfo(&answer, n, name, T_AXFR, queryclass);
+	if (soaname == NULL)
+		return(FALSE);
+
+	check_soa(&answer, name, host);
+
+	return(TRUE);
+}
+
+/*
+** COMPARE_SOA -- Compare SOA serial numbers in cache and reality
+** --------------------------------------------------------------
+**
+**	Returns:
+**		TRUE if both serial numbers exist, and are the same,
+**		or in case a load from the cache is forced.
+**		FALSE otherwise.
+**
+**	Note. The live serial number is retrieved via an ordinary
+**	regular query, and not directly from any of the nameservers
+**	because we have not looked up them yet. It may need refinement.
+*/
+
+bool
+compare_soa(name)
+input char *name;			/* name of zone to get soa for */
+{
+	int serial1, serial2;
+	querybuf answer;
+	register int n;
+
+	if (verbose)
+		printf("Comparing SOA serial for %s ...\n", name);
+
+/*
+ * Fetch the serial number from the cache.
+ */
+	n = load_soa(&answer, name);
+	if (n < 0)
+		goto error1;
+
+	soaname = NULL;
+	(void) get_soainfo(&answer, n, name, T_AXFR, queryclass);
+	if (soaname == NULL)
+		goto error1;
+
+	serial1 = soa.serial;
+
+/*
+ * Force a load from the cache in case it is more recent than
+ * a certain reference time in the past, if specified.
+ */
+	if (loadtime > 0 && cachetime > loadtime)
+		return(TRUE);
+
+/*
+ * Fetch the live serial number.
+ */
+	n = get_info(&answer, name, T_SOA, queryclass);
+	if (n < 0)
+		goto error2;
+
+	soaname = NULL;
+	(void) get_soainfo(&answer, n, name, T_SOA, queryclass);
+	if (soaname == NULL)
+		goto error2;
+
+	serial2 = soa.serial;
+
+/*
+ * Report the result.
+ */
+	return((serial1 == serial2) ? TRUE : FALSE);
+
+error1:
+	/* no serial number from the cache */
+	if (verbose)
+		ns_error(name, T_SOA, queryclass, "cache");
+	return(FALSE);
+
+error2:
+	/* no live serial number found */
+	if (verbose)
+		ns_error(name, T_SOA, queryclass, server);
+	return(FALSE);
 }
 
 /*
@@ -1854,10 +2158,12 @@ input char *name;			/* name of zone to get soa for */
 */
 
 bool
-get_soainfo(answerbuf, answerlen, name)
+get_soainfo(answerbuf, answerlen, name, qtype, qclass)
 input querybuf *answerbuf;		/* location of answer buffer */
 input int answerlen;			/* length of answer buffer */
 input char *name;			/* name of zone to get soa for */
+input int qtype;			/* record type we are querying about */
+input int qclass;			/* record class we are querying about */
 {
 	HEADER *bp;
 	int qdcount, ancount;
@@ -1874,7 +2180,7 @@ input char *name;			/* name of zone to get soa for */
 
 	if (qdcount > 0 && cp < eom)	/* should be exactly one record */
 	{
-		cp = skip_qrec(name, T_SOA, queryclass, cp, msg, eom);
+		cp = skip_qrec(name, qtype, qclass, cp, msg, eom);
 		if (cp == NULL)
 			return(FALSE);
 		qdcount--;
@@ -1883,7 +2189,7 @@ input char *name;			/* name of zone to get soa for */
 	if (qdcount)
 	{
 		pr_error("invalid qdcount after %s query for %s",
-			pr_type(T_SOA), name);
+			pr_type(qtype), name);
 		seth_errno(NO_RECOVERY);
 		return(FALSE);
 	}
@@ -1923,6 +2229,8 @@ input char *name;			/* name of zone to get soa for */
 		dlen = _getshort(cp);
 		cp += INT16SZ;
 
+		if (check_size(rname, type, cp, msg, eom, dlen) < 0)
+			return(FALSE);
 		eor = cp + dlen;
 #ifdef lint
 		if (verbose)
@@ -1978,7 +2286,7 @@ input char *name;			/* name of zone to get soa for */
 	if (ancount)
 	{
 		pr_error("invalid ancount after %s query for %s",
-			pr_type(T_SOA), name);
+			pr_type(qtype), name);
 		seth_errno(NO_RECOVERY);
 		return(FALSE);
 	}
@@ -1989,6 +2297,43 @@ input char *name;			/* name of zone to get soa for */
 }
 
 /*
+** LOAD_SOA -- Load the SOA record of a zone from the cache
+** --------------------------------------------------------
+**
+**	Returns:
+**		Length of answer buffer, if obtained.
+**		-1 if no answer (h_errno is set appropriately).
+**
+**	This just reads the very first record from the cache.
+*/
+
+int
+load_soa(answerbuf, name)
+output querybuf *answerbuf;		/* location of buffer to store answer */
+input char *name;			/* name of zone to check soa for */
+{
+	register int n;
+
+	if (cache_open(name, FALSE) < 0)
+	{
+		seth_errno(NO_RREC);
+		return(-1);
+	}
+
+	n = cache_read((char *)answerbuf, sizeof(querybuf));
+	if (n < 0)
+	{
+		(void) cache_close(FALSE);
+		seth_errno(TRY_AGAIN);
+		return(-1);
+	}
+
+	(void) cache_close(FALSE);
+	seth_errno(0);
+	return(n);
+}
+
+/*
 ** CHECK_SOA -- Analyze retrieved SOA records of a zone
 ** ----------------------------------------------------
 **
@@ -1996,19 +2341,21 @@ input char *name;			/* name of zone to get soa for */
 **		None.
 **
 **	Inputs:
-**		The global variable ``server'' must contain the
-**		name of the server that was queried.
+**		The global variable ``server'' must contain the name of
+**		the server that was queried, and the resolver database
+**		must have been reset with its addresses.
 **		The global struct ``soa'' must contain the soa data.
 */
 
 void
-check_soa(answerbuf, name)
+check_soa(answerbuf, name, host)
 input querybuf *answerbuf;		/* location of answer buffer */
 input char *name;			/* name of zone to check soa for */
+input char *host;			/* name of server to be queried */
 {
 	static char oldnamebuf[MAXDNAME+1];
 	static char *oldname = NULL;	/* previous name of zone */
-	static char *oldserver = NULL;	/* previous name of server */
+	static char *oldhost = NULL;	/* previous name of server */
 	static soa_data_t oldsoa;	/* previous soa data */
 	register int n;
 	HEADER *bp;
@@ -2026,20 +2373,21 @@ input char *name;			/* name of zone to check soa for */
 /*
  * We are supposed to have queried an authoritative nameserver, and since
  * nameserver recursion has been turned off, answer must be authoritative.
+ * An answer retrieved from the local cache is never marked authoritative.
  */
 	bp = (HEADER *)answerbuf;
-	if (!bp->aa)
+	if (!bp->aa && !sameword(host, "cache"))
 	{
 		if (authserver)
 			pr_error("%s SOA record at %s is not authoritative",
-				name, server);
+				name, host);
 		else
 			pr_warning("%s SOA record at %s is not authoritative",
-				name, server);
+				name, host);
 
 		if (authserver)
 			errmsg("%s has lame delegation to %s",
-				name, server);
+				name, host);
 	}
 
 /*
@@ -2105,38 +2453,38 @@ input char *name;			/* name of zone to check soa for */
 	{
 		if (!sameword(soa.primary, oldsoa.primary))
 			pr_error("%s and %s have different primary for %s",
-				server, oldserver, name);
+				host, oldhost, name);
 
 		if (!sameword(soa.hostmaster, oldsoa.hostmaster))
 			pr_error("%s and %s have different hostmaster for %s",
-				server, oldserver, name);
+				host, oldhost, name);
 
 		if (soa.serial != oldsoa.serial)
 			pr_warning("%s and %s have different serial for %s",
-				server, oldserver, name);
+				host, oldhost, name);
 
 		if (soa.refresh != oldsoa.refresh)
 			pr_error("%s and %s have different refresh for %s",
-				server, oldserver, name);
+				host, oldhost, name);
 
 		if (soa.retry != oldsoa.retry)
 			pr_error("%s and %s have different retry for %s",
-				server, oldserver, name);
+				host, oldhost, name);
 
 		if (soa.expire != oldsoa.expire)
 			pr_error("%s and %s have different expire for %s",
-				server, oldserver, name);
+				host, oldhost, name);
 
 		if (soa.defttl != oldsoa.defttl)
 			pr_error("%s and %s have different defttl for %s",
-				server, oldserver, name);
+				host, oldhost, name);
 	}
 
 /*
  * Save the current information.
  */
 	oldname = strcpy(oldnamebuf, name);
-	oldserver = server;
+	oldhost = host;
 	oldsoa = soa;
 }
 
@@ -2196,8 +2544,6 @@ input ipaddr_t addr;			/* address of host to check */
 **		Adds the record data to the list if not present.
 */
 
-#define THASHSIZE	2003
-
 typedef struct ttl_tab {
 	struct ttl_tab *next;		/* next entry in chain */
 	char *name;			/* name of resource record */
@@ -2207,7 +2553,7 @@ typedef struct ttl_tab {
 	int count;			/* count of different ttl values */
 } ttl_tab_t;
 
-ttl_tab_t *ttltab[THASHSIZE];		/* hash list of record info */
+ttl_tab_t *ttltab[HASHSIZE];		/* hash list of record info */
 
 bool
 check_ttl(name, type, class, ttl)
@@ -2226,7 +2572,7 @@ input int type, class, ttl;		/* resource record fixed values */
  */
 	for (hfunc = type, p = name; (c = *p) != '\0'; p++)
 	{
-		hfunc = ((hfunc << 1) ^ (lowercase(c) & 0377)) % THASHSIZE;
+		hfunc = ((hfunc << 1) ^ (lowercase(c) & 0377)) % HASHSIZE;
 	}
 
 	for (ps = &ttltab[hfunc]; (s = *ps) != NULL; ps = &s->next)
@@ -2289,7 +2635,7 @@ clear_ttltab()
 	register int i;
 	register ttl_tab_t *s, *t;
 
-	for (i = 0; i < THASHSIZE; i++)
+	for (i = 0; i < HASHSIZE; i++)
 	{
 		if (ttltab[i] != NULL)
 		{
@@ -2324,14 +2670,12 @@ clear_ttltab()
 **	Caller should update the master table after this call.
 */
 
-#define HHASHSIZE	2003
-
 typedef struct host_tab {
 	struct host_tab *next;		/* next entry in chain */
 	int slot;			/* slot in host name table */
 } host_tab_t;
 
-host_tab_t *hosttab[HHASHSIZE];		/* hash list of host name info */
+host_tab_t *hosttab[HASHSIZE];		/* hash list of host name info */
 
 int
 host_index(name, enter)
@@ -2350,7 +2694,7 @@ input bool enter;			/* add to table if not found */
  */
 	for (hfunc = 0, p = name; (c = *p) != '\0'; p++)
 	{
-		hfunc = ((hfunc << 1) ^ (lowercase(c) & 0377)) % HHASHSIZE;
+		hfunc = ((hfunc << 1) ^ (lowercase(c) & 0377)) % HASHSIZE;
 	}
 
 	for (ps = &hosttab[hfunc]; (s = *ps) != NULL; ps = &s->next)
@@ -2399,7 +2743,7 @@ clear_hosttab()
 	register int i;
 	register host_tab_t *s, *t;
 
-	for (i = 0; i < HHASHSIZE; i++)
+	for (i = 0; i < HASHSIZE; i++)
 	{
 		if (hosttab[i] != NULL)
 		{
@@ -2433,14 +2777,12 @@ clear_hosttab()
 **	Caller should update the master table after this call.
 */
 
-#define ZHASHSIZE	2003
-
 typedef struct zone_tab {
 	struct zone_tab *next;		/* next entry in chain */
 	int slot;			/* slot in zone name table */
 } zone_tab_t;
 
-zone_tab_t *zonetab[ZHASHSIZE];		/* hash list of zone name info */
+zone_tab_t *zonetab[HASHSIZE];		/* hash list of zone name info */
 
 int
 zone_index(name, enter)
@@ -2459,7 +2801,7 @@ input bool enter;			/* add to table if not found */
  */
 	for (hfunc = 0, p = name; (c = *p) != '\0'; p++)
 	{
-		hfunc = ((hfunc << 1) ^ (lowercase(c) & 0377)) % ZHASHSIZE;
+		hfunc = ((hfunc << 1) ^ (lowercase(c) & 0377)) % HASHSIZE;
 	}
 
 	for (ps = &zonetab[hfunc]; (s = *ps) != NULL; ps = &s->next)
@@ -2508,7 +2850,7 @@ clear_zonetab()
 	register int i;
 	register zone_tab_t *s, *t;
 
-	for (i = 0; i < ZHASHSIZE; i++)
+	for (i = 0; i < HASHSIZE; i++)
 	{
 		if (zonetab[i] != NULL)
 		{
@@ -2540,15 +2882,13 @@ clear_zonetab()
 **	(which may be necessary if the checking algorithm changes).
 */
 
-#define CHASHSIZE	2003
-
 typedef struct canon_tab {
 	struct canon_tab *next;		/* next entry in chain */
 	char *name;			/* domain name */
 	int status;			/* nonzero if not canonical */
 } canon_tab_t;
 
-canon_tab_t *canontab[CHASHSIZE];	/* hash list of domain name info */
+canon_tab_t *canontab[HASHSIZE];	/* hash list of domain name info */
 
 int
 check_canon(name)
@@ -2566,7 +2906,7 @@ input char *name;			/* the domain name to check */
  */
 	for (hfunc = 0, p = name; (c = *p) != '\0'; p++)
 	{
-		hfunc = ((hfunc << 1) ^ (lowercase(c) & 0377)) % CHASHSIZE;
+		hfunc = ((hfunc << 1) ^ (lowercase(c) & 0377)) % HASHSIZE;
 	}
 
 	for (ps = &canontab[hfunc]; (s = *ps) != NULL; ps = &s->next)
