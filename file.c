@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: file.c,v 1.8 2003-03-31 21:56:58 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: file.c,v 1.9 2003-04-03 18:29:26 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)file.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -262,9 +262,7 @@ cache_write(buf, bufsize)
 	buflen = INT16SZ;
 
 	while (buflen > 0 && (n = write(cachefd, buffer, buflen)) > 0) {
-#if 0
 		buffer += n;
-#endif
 		buflen -= n;
 	}
 	if (buflen != 0) {
@@ -281,9 +279,7 @@ cache_write(buf, bufsize)
 	buflen = bufsize;
 
 	while (buflen > 0 && (n = write(cachefd, buffer, buflen)) > 0) {
-#if 0
 		buffer += n;
-#endif
 		buflen -= n;
 	}
 	if (buflen != 0) {
@@ -360,14 +356,17 @@ cache_read(buf, bufsize)
 
 	/*
 	 * Check for truncation.
-	 * Do not chop the returned length in case of buffer overflow.
+	 * Do not chop the returned length (len) in case of buffer overflow.
 	 */
 	reslen = 0;
 	if ((size_t) len > bufsize) {
-		reslen = len - bufsize;
 #if 0
-		len = bufsize;
+		if (bitset(RES_DEBUG, _res.options)) {
+			fprintf(stderr, "%sanswer length %u bytes, bufsize only %lu bytes\n",
+				dbprefix, (unsigned int) len, (unsigned long) bufsize);
+		}
 #endif
+		reslen = len - bufsize;
 	}
 
 	/*
