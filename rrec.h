@@ -7,7 +7,7 @@
 **	@(#)rrec.h              e07@nikhef.nl (Eric Wassenaar) 990607
 */
 
-#ident "@(#)host:$Name:  $:$Id: rrec.h,v 1.3 2003-03-28 21:57:23 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: rrec.h,v 1.4 2003-03-29 19:49:18 -0800 woods Exp $"
 
 #define MAXSTRING	 255		/* maximum size of single encoded string */
 #define MAXSTRLEN	 MAXDLEN	/* maximum size of multiple substrings */
@@ -47,7 +47,7 @@ typedef struct soa_data {
 	int refresh;			/* refresh time in seconds */
 	int retry;			/* refresh retry time in seconds */
 	int expire;			/* expiration time in seconds */
-	int defttl;			/* default time_to_live */
+	int nxdomttl;			/* netgative response TTL */
 } soa_data_t;
 
 typedef struct mb_data {

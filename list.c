@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.6 2003-03-29 02:52:16 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.7 2003-03-29 19:49:18 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -2292,7 +2292,7 @@ get_soainfo(answerbuf, answerlen, name, qtype, qclass)
 			cp += INT32SZ;
 			soa.expire = _getlong(cp);
 			cp += INT32SZ;
-			soa.defttl = _getlong(cp);
+			soa.nxdomttl = _getlong(cp);
 			cp += INT32SZ;
 
 			/* valid complete soa record found */
@@ -2392,7 +2392,7 @@ check_soa(answerbuf, name, host)
 	 */
 	printf("%s\t%s\t(%u %d %d %d %d)\n",
 	       soa.primary, soa.hostmaster, (unsigned) soa.serial,
-	       soa.refresh, soa.retry, soa.expire, soa.defttl);
+	       soa.refresh, soa.retry, soa.expire, soa.nxdomttl);
 
 	/*
 	 * We are supposed to have queried an authoritative nameserver, and since
@@ -2498,8 +2498,8 @@ check_soa(answerbuf, name, host)
 			pr_error("%s and %s have different expire for %s",
 				 host, oldhost, name);
 		}
-		if (soa.defttl != oldsoa.defttl) {
-			pr_error("%s and %s have different defttl for %s",
+		if (soa.nxdomttl != oldsoa.nxdomttl) {
+			pr_error("%s and %s have different nxdomttl for %s",
 				 host, oldhost, name);
 		}
 	}
