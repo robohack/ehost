@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.8 2003-04-04 22:38:56 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.9 2003-04-05 03:31:38 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)geth.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -38,6 +38,8 @@ static char Version[] = "@(#)geth.c	e07@nikhef.nl (Eric Wassenaar) 990605";
 **
 **	Note. This routine works for fully qualified names only.
 **	The entire special res_search() processing can be skipped.
+**
+**	XXX needs a "family" parameter!
 */
 
 struct hostent *
@@ -47,8 +49,17 @@ geth_byname(name)
 	querybuf_t answer;
 	struct hostent *hp;
 	register int n;
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	int my_h_errno;
+#endif
 
-	if ((hp = gethostbyname(name)))
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	if (!(hp = getipnodebyname(name, AF_INET, AI_ALL | AI_V4MAPPED, &my_h_errno)))
+		set_h_errno(my_h_errno);
+#else
+	hp = gethostbyname(name);
+#endif
+	if (hp)
 		return (hp);
 
 	if (verbose)
@@ -63,7 +74,14 @@ geth_byname(name)
 	if ((verbose > print_level + 1) && (print_level < 1))
 		(void) print_info(&answer, n, name, T_A, C_IN, FALSE);
 
-	return gethostbyname(name);
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	if (!(hp = getipnodebyname(name, AF_INET, AI_ALL | AI_V4MAPPED, &my_h_errno)))
+		set_h_errno(my_h_errno);
+#else
+	hp = gethostbyname(name);
+#endif
+
+	return (hp);
 }
 
 /*
@@ -74,7 +92,7 @@ geth_byname(name)
 **	get_info() for the in-addr.arpa name derived from addr.
 **
 **	Returns:
-x**		Pointer to struct hostent if lookup was successful.
+**		Pointer to struct hostent if lookup was successful.
 **		NULL otherwise.
 */
 
@@ -90,11 +108,17 @@ geth_byaddr(addr, size, family)
 	querybuf_t answer;
 	struct hostent *hp;
 	register int n;
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	int my_h_errno;
+#endif
 
-	if (size != INADDRSZ || family != AF_INET)
-		return gethostbyaddr(addr, size, family); /* XXX size _SHOULD_ be socklen_t, but may not be... */
-
-	if ((hp = gethostbyaddr(addr, size, family))) /* XXX size _SHOULD_ be socklen_t, but may not be... */
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	if (!(hp = getipnodebyaddr((const void *) addr, size, family, &my_h_errno)))
+		set_h_errno(my_h_errno);
+#else
+	hp = gethostbyaddr(addr, size, family); /* XXX size _SHOULD_ be socklen_t, but may not be... */
+#endif
+	if (hp || (size != INADDRSZ || family != AF_INET))
 		return (hp);
 
 	if (verbose)
@@ -115,5 +139,26 @@ geth_byaddr(addr, size, family)
 	if ((verbose > print_level + 1) && (print_level < 1))
 		(void) print_info(&answer, n, name, T_PTR, C_IN, FALSE);
 
-	return gethostbyaddr(addr, size, family); /* XXX size _SHOULD_ be socklen_t, but may not be... */
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	if (!(hp = getipnodebyaddr((const void *) addr, size, family, &my_h_errno)))
+		set_h_errno(my_h_errno);
+#else
+	hp = gethostbyaddr(addr, size, family); /* XXX size _SHOULD_ be socklen_t, but may not be... */
+#endif
+
+	return (hp);
+}
+
+/*
+** GETH_FREEHOSTENT -- Wrapper for freehostent
+** -------------------------------------------
+*/
+
+void
+geth_freehostent(hp)
+	struct hostent *hp;
+{
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	freehostent(hp);
+#endif
 }
