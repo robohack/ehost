@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.13 2003-04-06 03:10:44 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.14 2003-04-09 06:10:41 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -40,6 +40,16 @@ static struct sockaddr *from_sa = (struct sockaddr *) &from;
 #ifdef HOST_RES_SEND
 
 static int srvsock = -1;	/* socket descriptor */
+
+#if !defined(NO_CONNECTED_DGRAM)
+static bool_t connected = TRUE;   /* we can use connected datagram sockets */
+#else
+static bool_t connected = FALSE;  /* connected datagram sockets unavailable */
+#endif
+
+static bool_t check_from __P((void));
+static int send_stream	__P((struct sockaddr_in *, const qbuf_t *, size_t, qbuf_t *, size_t));
+static int send_dgram	__P((struct sockaddr_in *, const qbuf_t *, size_t, qbuf_t *, size_t));
 
 /*
 ** RES_SEND -- Send nameserver query and retrieve answer
@@ -119,7 +129,7 @@ retry:
 				try = _res.retry;
 
 				/* connect via virtual circuit */
-				n = send_stream(addr, query, querylen, answer, anslen);
+				n = send_stream(addr, query, (size_t) querylen, answer, (size_t) anslen);
 			} else {
 				/* set datagram read timeout for recv_sock() */
 				timeout = (_res.retrans << try);
@@ -129,7 +139,7 @@ retry:
 					timeout = 1;
 
 				/* connect via datagram */
-				n = send_dgram(addr, query, querylen, answer, anslen);
+				n = send_dgram(addr, query, (size_t) querylen, answer, (size_t) anslen);
 
 				/* check truncation; use v_circuit with same server */
 				if ((n > 0) && bp->tc) {
@@ -228,14 +238,14 @@ check_from()
 static int
 send_stream(addr, query, querylen, answer, anslen)
 	input struct sockaddr_in *addr;	/* the server address to connect to */
-	input qbuf_t *query;		/* location of formatted query buffer */
-	input int querylen;		/* length of query buffer */
+	input const qbuf_t *query;	/* location of formatted query buffer */
+	input size_t querylen;		/* length of query buffer */
 	output qbuf_t *answer;		/* location of buffer to store answer */
-	input int anslen;		/* maximum size of answer buffer */
+	input size_t anslen;		/* maximum size of answer buffer */
 {
 	char *host = NULL;		/* name of server is unknown */
-	HEADER *qp = (HEADER *) query;
-	HEADER *bp = (HEADER *) answer;
+	const HEADER *qp = (const HEADER *) query;
+	const HEADER *bp = (const HEADER *) answer;
 	register int n;
 
 	/*
@@ -259,7 +269,7 @@ send_stream(addr, query, querylen, answer, anslen)
 	/*
 	 * Send the query buffer.
 	 */
-	if (host_res_write(srvsock, addr, host, (char *) query, querylen) < 0) {
+	if (host_res_write(srvsock, addr, host, (const char *) query, (size_t) querylen) < 0) {
 		(void) host_res_close(srvsock);
 		return (-1);
 	}
@@ -268,7 +278,7 @@ send_stream(addr, query, querylen, answer, anslen)
 	 * Read the answer buffer.
 	 */
 wait:
-	if ((n = host_res_read(srvsock, addr, host, (char *) answer, anslen, 0)) < 0) {
+	if ((n = host_res_read(srvsock, addr, host, (char *) answer, (size_t) anslen)) < 0) {
 		(void) host_res_close(srvsock);
 		return (-1);
 	}
@@ -279,7 +289,7 @@ wait:
 	if (qp->id != bp->id) {
 		if (bitset(RES_DEBUG, _res.options)) {
 			printf("%sunexpected answer:\n", debug_prefix);
-			pr_query(answer, (n > anslen) ? anslen : n, stdout);
+			pr_query(answer, ((size_t) n > anslen) ? (int) anslen : n, stdout);
 		}
 		goto wait;
 	}
@@ -319,14 +329,14 @@ wait:
 static int
 send_dgram(addr, query, querylen, answer, anslen)
 	input struct sockaddr_in *addr;	/* the server address to connect to */
-	input qbuf_t *query;		/* location of formatted query buffer */
-	input int querylen;		/* length of query buffer */
+	input const qbuf_t *query;	/* location of formatted query buffer */
+	input size_t querylen;		/* length of query buffer */
 	output qbuf_t *answer;		/* location of buffer to store answer */
-	input int anslen;		/* maximum size of answer buffer */
+	input size_t anslen;		/* maximum size of answer buffer */
 {
 	char *host = NULL;		/* name of server is unknown */
-	HEADER *qp = (HEADER *) query;
-	HEADER *bp = (HEADER *) answer;
+	const HEADER *qp = (const HEADER *) query;
+	const HEADER *bp = (const HEADER *) answer;
 	register int n;
 
 	/*
@@ -348,12 +358,12 @@ send_dgram(addr, query, querylen, answer, anslen)
 	 * Send the query buffer.
 	 */
 	if (connected)
-		n = send(srvsock, (char *) query, querylen, 0);
+		n = send(srvsock, (const ptr_t *) query, querylen, 0);
 	else
-		n = sendto(srvsock, (char *) query, querylen, 0,
+		n = sendto(srvsock, (const ptr_t *) query, querylen, 0,
 			   (struct sockaddr *) addr, sizeof(*addr));
 
-	if (n != querylen) {
+	if ((size_t) n != querylen) {
 		if (bitset(RES_DEBUG, _res.options))
 			host_res_perror(addr, host, "send");
 		(void) host_res_close(srvsock);
@@ -377,7 +387,7 @@ wait:
 	if (qp->id != bp->id) {
 		if (bitset(RES_DEBUG, _res.options))  {
 			printf("%sold answer:\n", debug_prefix);
-			pr_query(answer, (n > anslen) ? anslen : n, stdout);
+			pr_query(answer, ((size_t) n > anslen) ? (int) anslen : n, stdout);
 		}
 		goto wait;
 	}
@@ -389,7 +399,7 @@ wait:
 		if (bitset(RES_DEBUG, _res.options)) {
 			printf("%sunknown server %s:\n",
 				debug_prefix, inet_ntoa(from.sin_addr));
-			pr_query(answer, (n > anslen) ? anslen : n, stdout);
+			pr_query(answer, ((size_t) n > anslen) ? (int) anslen : n, stdout);
 		}
 		goto wait;
 	}
@@ -612,7 +622,7 @@ host_res_write(sock, addr, host, buf, bufsize)
 	input int sock;			/* socket FD to write to */
 	input struct sockaddr_in *addr;	/* the server address to connect to */
 	input char *host;		/* name of server to connect to */
-	input char *buf;		/* location of formatted query buffer */
+	input const char *buf;		/* location of formatted query buffer */
 	input size_t bufsize;		/* length of query buffer */
 {
 	u_int len;

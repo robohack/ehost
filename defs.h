@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.18 2003-04-06 03:12:22 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.19 2003-04-09 06:10:41 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -153,9 +153,6 @@ void cache_perror	__P((char *, char *));
 
 #ifdef HOST_RES_SEND
 int res_send		__P((const qbuf_t *, int, qbuf_t *, int));
-static bool_t check_from __P((void));
-static int send_stream	__P((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
-static int send_dgram	__P((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
 #endif /*HOST_RES_SEND*/
 
 int host_res_socket	__P((int, int, int));
@@ -163,7 +160,7 @@ int host_res_close	__P((int));
 int host_res_blocking	__P((int, bool_t));
 sigtype_t timer		__P((int));
 int host_res_connect	__P((int, struct sockaddr_in *, socklen_t));
-int host_res_write	__P((int, struct sockaddr_in *, char *, char *, size_t));
+int host_res_write	__P((int, struct sockaddr_in *, char *, const char *, size_t));
 int host_res_read	__P((int, struct sockaddr_in *, char *, char *, size_t));
 int host_res_read_stream __P((int, struct sockaddr_in *, char *, char *, size_t));
 int recv_sock		__P((int, char *, size_t));
