@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.5 2003-03-29 02:54:47 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.6 2003-03-29 19:49:52 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -26,8 +26,8 @@ char *myhostname	__P((void));
 void set_server		__P((char *));
 void set_logfile	__P((char *));
 void set_cachedir	__P((char *));
-void fatal		__P((char *, ...));
-void errmsg		__P((char *, ...));
+void fatal		__P((const char *, ...));
+void errmsg		__P((const char *, ...));
 
 	/* info.c */
 

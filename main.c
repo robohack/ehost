@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.6 2003-03-29 02:55:50 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.7 2003-03-29 19:49:51 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1767,7 +1767,7 @@ set_cachedir(filename)
 /*VARARGS1*/
 #ifdef __STDC__
 void
-fatal(char *fmt, ...)
+fatal(const char *fmt, ...)
 #else
 void
 fatal(fmt, va_alist)
@@ -1800,7 +1800,7 @@ fatal(fmt, va_alist)
 /*VARARGS1*/
 #ifdef __STDC__
 void
-errmsg(char *fmt, ...)
+errmsg(const char *fmt, ...)
 #else
 void
 errmsg(fmt, va_alist)

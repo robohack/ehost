@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.4 2003-03-28 22:19:58 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.5 2003-03-29 19:49:52 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)geth.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -78,7 +78,7 @@ geth_byaddr(addr, size, family)
 {
 	char addrbuf[(4 * 4) + sizeof(ARPA_ROOT) + 1];
 	char *name = addrbuf;
-	u_char *a = (u_char *) addr;
+	const u_char *a = (const u_char *) addr;
 	querybuf_t answer;
 	struct hostent *hp;
 	register int n;

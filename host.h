@@ -4,7 +4,7 @@
 **	@(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: host.h,v 1.4 2003-03-28 21:57:23 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.5 2003-03-29 19:49:52 -0800 woods Exp $"
 
 #if defined(apollo) && defined(lint)
 # define __attribute(x)		/* XXX ??? */
@@ -182,7 +182,7 @@ EXTERN res_state_t _res;	/* defined in res_init.c */
 #define fakename(a)	(samehead(a, "localhost.") || samehead(a, "loopback."))
 #define nulladdr(a)	(((a) == 0) || ((a) == BROADCAST_ADDR))
 #define fakeaddr(a)	(nulladdr(a) || ((a) == htonl(LOCALHOST_ADDR)))
-#define incopy(a)	*((struct in_addr *) (a))
+#define incopy(a)	*((const struct in_addr *) (a))
 #define querysize(n)	(((n) > sizeof(querybuf_t)) ? ((int) sizeof(querybuf_t)) : (n))
 
 #define newlist(a,n,t)	(t *) xalloc((ptr_t *) (a), (size_t) ((n) * sizeof(t)))
