@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-#ident "@(#)host:$Name:  $:$Id: nscheck.sh,v 1.1 2002-01-11 22:29:38 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: nscheck.sh,v 1.2 2003-03-21 02:00:44 -0800 woods Exp $"
 #
 #	nscheck - check NS RRs at every parent NS
 #
@@ -22,24 +22,21 @@ flags="-r"
 type="ns"
 rc=""
 
-for i
-do
+for i in ${1+$@}; do
 	case "$i" in
-	-d|-u|-v)
+	-d|-u|-v|-Z|-r)
 		flags="$i $flags"
-		shift
 		;;
 	-a)
 		type="any"
-		shift
 		;;
 	-t)
 		type="$2"
-		shift 2
+		shift
 		;;
 	-P)
 		parent="$2"
-		shift 2
+		shift
 		;;
 	-*)
 		echo "$argv0: Unknown option $i" 1>&2
@@ -49,6 +46,7 @@ do
 		break
 		;;
 	esac
+	shift
 done
 
 for domain
