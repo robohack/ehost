@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.5 2003-03-28 22:19:57 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.6 2003-03-29 02:55:50 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -61,7 +61,7 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
  * - Check for various extraneous conditions during zone listings.
  * - Check for illegal domain names containing invalid characters.
  * - Verify that certain domain names represent canonical host names.
- * - Perform ttl consistency checking during zone listings.
+ * - Perform TTL consistency checking during zone listings.
  * - Exploit multiple server addresses if available.
  * - Option to exploit only primary server for zone transfers.
  * - Option to exclude info from names that do not reside in a zone.
@@ -233,7 +233,7 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
  * -n		generate reverse nsap.int query for dotted nsap address
  * -q		be quiet about non-fatal errors
  * -Q		enable quick mode and skip various time consuming checks
- * -T		print ttl value during non-verbose output
+ * -T		print TTL value during non-verbose output
  * -Z		print selected RR output in full zone file format
  *
  * Seldom used options.
@@ -687,7 +687,23 @@ main(argc, argv)
 				break;
 
 			case 'V' :
-				printf("%s\n", version);
+#if defined(__NAMESER) && defined(BIND_RES_SEND)
+				printf("Host version %s, BIND-8 resolver API version: %d\n", version, __NAMESER);
+#elif defined(__BIND) && defined(BIND_RES_SEND)
+				printf("Host version %s, BIND-4 resolver API version: %d\n", version, __BIND);
+#elif defined(BIND_4_8) && defined(BIND_RES_SEND)
+				printf("Host version %s, BIND 4.8.x resolver\n", version);
+#elif defined(BIND_4_9) && defined(BIND_RES_SEND)
+				printf("Host version %s, BIND 4.9.x resolver\n", version);
+#elif defined(__NAMESER) && defined(HOST_RES_SEND)
+				printf("Host version %s, using private res_send() with BIND-8 resolver API version %d\n", version, __NAMESER);
+#elif defined(__BIND) && defined(HOST_RES_SEND)
+				printf("Host version %s, using private res_send() with BIND-4 resolver API version %d\n", version, __BIND);
+#elif defined(HOST_RES_SEND)
+				printf("Host version %s, using private res_send() with very old or non-BIND headers\n", version);
+#else
+				printf("Host version %s, unknown resolver version\n", version);
+#endif
 				exit(EX_OK);
 
 			default:
