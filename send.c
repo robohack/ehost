@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.7 2003-03-30 20:53:52 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.8 2003-03-30 22:56:15 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -581,7 +581,7 @@ int
 _res_connect(sock, addr, addrlen)
 	input int sock;
 	input struct sockaddr_in *addr;		/* the server address to connect to */
-	input size_t addrlen;
+	input socklen_t addrlen;
 {
 	if (setjmp(timer_buf) != 0) {
 		seterrno(ETIMEDOUT);
@@ -640,7 +640,7 @@ _res_write(sock, addr, host, buf, bufsize)
 	ns_put16((u_int) bufsize, (u_char *) &len);
 #endif
 
-	if (send(sock, (char *) &len, INT16SZ, 0) != INT16SZ) {
+	if (send(sock, (char *) &len, (sock_buflen_t) INT16SZ, 0) != INT16SZ) {
 		_res_perror(addr, host, "write query length");
 		return (-1);
 	}
@@ -648,7 +648,7 @@ _res_write(sock, addr, host, buf, bufsize)
 	/*
 	 * Write the query buffer itself.
 	 */
-	if (send(sock, buf, bufsize, 0) != bufsize) {
+	if (send(sock, buf, (sock_buflen_t) bufsize, 0) != bufsize) {
 		_res_perror(addr, host, "write query");
 		return (-1);
 	}
@@ -686,11 +686,11 @@ _res_read(sock, addr, host, buf, bufsize)
 	input struct sockaddr_in *addr;	/* the server address to connect to */
 	input char *host;		/* name of server to connect to */
 	output char *buf;		/* location of buffer to store answer */
-	input size_t bufsize;		/* maximum size of answer buffer */
+	input size_t bufsize;	/* maximum size of answer buffer */
 {
 	u_short len;
 	char *buffer;
-	size_t buflen;
+	socklen_t buflen;
 	int reslen;			/* residue length.... */
 	register int n;
 
@@ -704,7 +704,9 @@ _res_read(sock, addr, host, buf, bufsize)
 	buflen = INT16SZ;
 
 	while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0) {
+#if 0
 		buffer += n;
+#endif
 		buflen -= n;
 	}
 	if (buflen != 0) {
@@ -750,7 +752,9 @@ _res_read(sock, addr, host, buf, bufsize)
 	buflen = (reslen > 0) ? bufsize : len;
 
 	while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0) {
+#if 0
 		buffer += n;
+#endif
 		buflen -= n;
 	}
 	if (buflen != 0) {
@@ -852,7 +856,7 @@ recv_sock(sock, buffer, buflen)
 {
 	fd_set fds;
 	struct timeval wait;
-	recvfrom_fromlen_t fromlen;
+	socklen_t fromlen;
 	register int n;
 
 	wait.tv_sec = timeout;
@@ -873,7 +877,7 @@ rewait:
 reread:
 	/* fake an error if nothing was actually read */
 	fromlen = sizeof(from);
-	n = recvfrom(sock, buffer, buflen, 0, from_sa, &fromlen);
+	n = recvfrom(sock, buffer, (sock_buflen_t) buflen, 0, from_sa, &fromlen);
 	if (n < 0 && errno == EINTR)
 		goto reread;
 	if (n < 0 && errno == EWOULDBLOCK)
@@ -902,7 +906,7 @@ static int
 recv_sock(sock, buffer, buflen)
 	input int sock;			/* socket FD to read from */
 	output char *buffer;		/* current buffer address */
-	input int buflen;		/* remaining buffer size */
+	input size_t buflen;		/* remaining buffer size */
 {
 	int fromlen;
 	register int n;
