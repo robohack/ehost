@@ -1,10 +1,10 @@
 /*
 ** Master include file of the host utility.
 **
-**	@(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
+** from: @(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: host.h,v 1.5 2003-03-29 19:49:52 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.6 2003-03-30 17:38:26 -0800 woods Exp $"
 
 #if defined(apollo) && defined(lint)
 # define __attribute(x)		/* XXX ??? */
@@ -14,12 +14,19 @@
 #undef  obsolete		/* old code left as a reminder */
 #undef  notyet			/* new code for possible future use */
 
-#if defined(BSD) || defined(__bsdi__) || defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__)
-# include <sys/cdefs.h>
+#if (defined(sun) && defined(unix)) || (defined(__sun__) && defined(__unix__))
+# define TIME_WITH_SYS_TIME	1
 #endif
 
-#if defined(__LCC__) && defined(__NetBSD__) && !defined(__restrict)
-# define __restrict		/* NOTHING */
+#if defined(__sun__) && defined(__GNUC__) /* && defined(__sunos4__) */
+# define __USE_FIXED_PROTOTYPES__
+#endif
+
+#if defined(BSD) || defined(__bsdi__) || defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__)
+# ifndef TIME_WITH_SYS_TIME
+#  define TIME_WITH_SYS_TIME	1
+# endif
+# include <sys/cdefs.h>
 #endif
 
 #include <sys/stat.h>
@@ -34,10 +41,6 @@
 #include <signal.h>
 #include <time.h>
 
-#if defined (HAVE_UNISTD_H)
-# include <unistd.h>
-#endif
-
 #if !defined(WINNT)
 # include <sys/param.h>
 # include <sys/socket.h>
@@ -46,7 +49,7 @@
 # include <netinet/ip.h>
 #endif
 
-#if TIME_WITH_SYS_TIME		/* not really needed? */
+#if TIME_WITH_SYS_TIME
 # include <sys/time.h>
 # include <time.h>
 #else
@@ -126,36 +129,20 @@ typedef union {
 #define input			/* read-only input parameter */
 #define output			/* modified output parameter */
 
-#ifndef STDIN_FILENO
-# define STDIN_FILENO	0
-#endif
-#ifndef STDOUT_FILENO
-# define STDOUT_FILENO	1
-#endif
-#ifndef STDERR_FILENO
-# define STDERR_FILENO	2
-#endif
-
 #define MAXINT8		255
 #define MAXINT16	65535
 
 #define HASHSIZE	2003	/* size of various hash tables */
 
-#ifdef lint
-# define EXTERN
-#else
-# define EXTERN		extern
-#endif
-
 #if !defined(errno)		/* XXX who defines this? */
-EXTERN int errno;
+extern int errno;
 #endif
 
 #if !defined(h_errno)		/* XXX who defines this? */
-EXTERN int h_errno;		/* defined in the resolver library */
+extern int h_errno;		/* defined in the resolver library */
 #endif
 
-EXTERN res_state_t _res;	/* defined in res_init.c */
+extern res_state_t _res;	/* defined in res_init.c */
 
 #include "defs.h"		/* declaration of functions */
 
@@ -170,13 +157,12 @@ EXTERN res_state_t _res;	/* defined in res_init.c */
 #define is_upper(c)	(isascii(c) && isupper(c))
 
 #define lowercase(c)	(is_upper(c) ? tolower(c) : (c))
-#define lower(c)	(((c) >= 'A' && (c) <= 'Z') ? (c) + 'a' - 'A' : (c))
 #define hexdigit(c)	(((c) < 10) ? '0' + (c) : 'A' + (c) - 10);
 
-#define bitset(a,b)	(((a) & (b)) != 0)
-#define sameword(a,b)	(strcasecmp(a, b) == 0)
-#define samepart(a,b)	(strncasecmp(a, b, strlen(b)) == 0)
-#define samehead(a,b)	(strncasecmp(a, b, sizeof(b) - 1) == 0)
+#define bitset(a, b)	(((a) & (b)) != 0)
+#define sameword(a, b)	(strcasecmp(a, b) == 0)
+#define samepart(a, b)	(strncasecmp(a, b, strlen(b)) == 0)
+#define samehead(a, b)	(strncasecmp(a, b, sizeof(b) - 1) == 0)
 
 #define zeroname(a)	(samehead(a, "0.") || samehead(a, "255."))
 #define fakename(a)	(samehead(a, "localhost.") || samehead(a, "loopback."))
@@ -185,14 +171,14 @@ EXTERN res_state_t _res;	/* defined in res_init.c */
 #define incopy(a)	*((const struct in_addr *) (a))
 #define querysize(n)	(((n) > sizeof(querybuf_t)) ? ((int) sizeof(querybuf_t)) : (n))
 
-#define newlist(a,n,t)	(t *) xalloc((ptr_t *) (a), (size_t) ((n) * sizeof(t)))
+#define newlist(a, n, t) (t *) xalloc((ptr_t *) (a), (size_t) ((n) * sizeof(t)))
 #define newstruct(t)	(t *) xalloc((ptr_t *) NULL, (size_t) (sizeof(t)))
 #define newstring(s)	(char *) xalloc((ptr_t *) NULL, (size_t) (strlen(s) + 1))
 #define newstr(s)	strcpy(newstring(s), s)
 #define xfree(a)	(void) free((ptr_t *) (a))
 
 #define strlength(s)	(int) strlen(s)
-#define in_string(s,c)	(index(s, c) != NULL)
-#define in_label(a,b)	(((a) > (b)) && ((a)[-1] != '.') && ((a)[1] != '.'))
-#define is_quoted(a,b)	(((a) > (b)) && ((a)[-1] == '\\'))
+#define in_string(s, c)	(strchr(s, c) != NULL)
+#define in_label(a, b)	(((a) > (b)) && ((a)[-1] != '.') && ((a)[1] != '.'))
+#define is_quoted(a, b)	(((a) > (b)) && ((a)[-1] == '\\'))
 #define is_empty(s)	(((s) == NULL) || ((s)[0] == '\0'))
