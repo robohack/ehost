@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.9 2003-04-03 16:32:18 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.10 2003-04-03 23:17:38 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -935,6 +935,42 @@ pr_timestamp(fmt, va_alist)
 		va_end(ap);
 		(void) fprintf(stderr, "\n");
 	}
+
+	return;
+}
+
+
+/*
+** SYS_ERROR -- Print error messages about system/libc problems
+** ------------------------------------------------------------
+**
+**	The caller will handle cleanup/exit/whatever....
+**
+**	Returns:
+**		None.
+**
+**	Side effects:
+**		None.
+*/
+
+/*VARARGS1*/
+#ifdef __STDC__
+void
+sys_error(const char *fmt, ...)
+#else
+void
+sys_error(fmt, va_alist)
+	input const char *fmt;		/* format of message */
+	va_dcl				/* arguments for printf */
+#endif
+{
+	va_list ap;
+
+	(void) fprintf(stderr, "%s: ", argv0);
+	VA_START(ap, fmt);
+	(void) vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	(void) fputs("\n", stderr);
 
 	return;
 }
