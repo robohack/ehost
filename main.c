@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.12 2003-04-04 04:10:48 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.13 2003-04-04 21:41:17 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1365,6 +1365,11 @@ execute_name(name)
 		/* this is also a reversed mapping domain */
 		reverse = TRUE;
 	}
+	/* must have regular name or dotted quad in addrmode */
+	if (!listmode && addrmode && reverse) {
+		errmsg("Do not use '-i' with '-A'.");
+		return (EX_USAGE);
+	}
 
 	/*
 	 * In regular mode, the querytype is used to formulate the nameserver
@@ -1384,19 +1389,13 @@ execute_name(name)
 	 */
 	/* cannot have dotted quad in listmode */
 	if (listmode && (queryaddr != NOT_DOTTED_QUAD)) {
-		errmsg("Invalid query name %s", queryname);
-		return (EX_USAGE);
-	}
-
-	/* must have regular name or dotted quad in addrmode */
-	if (!listmode && addrmode && reverse) {
-		errmsg("Invalid query name %s", queryname);
+		errmsg("Invalid query name %s (dotted quad not allowed in listmode)", queryname);
 		return (EX_USAGE);
 	}
 
 	/* must have plain name with --parent */
 	if (parent && queryaddr != NOT_DOTTED_QUAD) {
-		errmsg("Invalid query name %s", queryname);
+		errmsg("Invalid query name %s (need plainname with --parent)", queryname);
 		return (EX_USAGE);
 	}
 
