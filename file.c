@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: file.c,v 1.4 2003-03-28 22:19:58 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: file.c,v 1.5 2003-03-30 17:33:32 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)file.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -64,7 +64,7 @@ cachename(name, buf, prefix)
 	 * Construct the name of the hash directory.
 	 */
 	for (hfunc = 0, p = name; (c = *p) != '\0'; p++) {
-		hfunc = ((hfunc << 1) ^ (lowercase(c) & 0377)) % HASHSIZE;
+		hfunc = ((hfunc << 1) ^ (lowercase((int) c) & 0377)) % HASHSIZE;
 	}
 
 	(void) sprintf(buf, "%04u/%c", hfunc, prefix);
@@ -76,10 +76,10 @@ cachename(name, buf, prefix)
 	 * Obviously there should be no further slashes in the name.
 	 */
 	for (q = &buf[strlen(buf)], p = name; (c = *p) != '\0'; p++) {
-		if (!is_alnum(c) && !in_string("-._", c))
+		if (!is_alnum((int) c) && !in_string("-._", c))
 			c = '?';
 
-		*q++ = lowercase(c);
+		*q++ = lowercase((int) c);
 	}
 	*q = '\0';
 
@@ -134,7 +134,7 @@ cache_open(name, create)
 	/*
 	 * If necessary, create the intermediate cache directories.
 	 */
-	p = index(cachefile, '/');
+	p = strchr(cachefile, '/');
 	while (p) {
 		if (p > cachefile) {
 			*p = '\0';
@@ -143,7 +143,7 @@ cache_open(name, create)
 					cache_perror("Cannot stat", cachefile);
 					return (-1);
 				}
-				if (mkdir(cachefile, 0755) < 0) {
+				if (mkdir(cachefile, (mode_t) 0755) < 0) {
 					if (errno == EEXIST)
 						continue;
 					cache_perror("Cannot mkdir", cachefile);
@@ -156,7 +156,7 @@ cache_open(name, create)
 			}
 			*p = '/';
 		}
-		p = index(p+1, '/');
+		p = strchr(p + 1, '/');
 	}
 
 	/*
@@ -255,7 +255,7 @@ cache_write(buf, bufsize)
 #if 0
 	len = htons((u_short) bufsize);
 #endif
-	putshort((u_int16_t) bufsize, (u_char *) &len);	/* XXX from resolv.h, bogus broken API! */
+	putshort((u_short) bufsize, (u_char *) &len);	/* XXX from resolv.h, bogus broken API! */
 
 	buffer = (char *) &len;
 	buflen = INT16SZ;
