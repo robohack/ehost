@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.4 2003-03-28 22:19:58 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.5 2003-04-04 21:44:21 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)addr.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -25,6 +25,10 @@ static char Version[] = "@(#)addr.c	e07@nikhef.nl (Eric Wassenaar) 990605";
 
 #include "host.h"
 #include "glob.h"
+
+static bool_t check_name_addr	__P((char *, ipaddr_t));
+static bool_t check_addr_name	__P((struct in_addr, char *));
+
 
 /*
 ** CHECK_ADDR -- Check whether reverse address mappings revert to host
@@ -40,62 +44,110 @@ check_addr(name)
 	input char *name;		/* host name to check addresses for */
 {
 	struct hostent *hp;
-	register int i;
-	struct in_addr inaddr[MAXADDRS];
-	int naddress;
-	char *hname, hnamebuf[MAXDNAME+1];
-	int matched = 0;
+	struct in_addr *inaddr = NULL;
+	register unsigned int i;
+	unsigned int naddrs = 0;
+	unsigned int matched = 0;
+	char *hname;
+	char hnamebuf[MAXDNAME + 1];
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	int my_h_errno;
+#endif
 
 	/*
-	 * Look up the specified host to fetch its addresses.
+	 * Look up the specified host to fetch all of its addresses.
 	 */
+	/*
+	 * XXX ARGH!  We should avoid using the upper-level BIND resolver for
+	 * this query so that we can ensure we always get _all_ of the answers!
+	 *
+	 * XXX also need to deal properly with IPv6 too....
+	 */
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	if (!(hp = getipnodebyname(name, AF_INET, AI_ALL | AI_V4MAPPED, &my_h_errno))) {
+		set_h_errno(my_h_errno);
+		ns_error(name, T_A, C_IN, server);
+		return (FALSE);
+	}
+#else
 	if (!(hp = gethostbyname(name))) {
 		ns_error(name, T_A, C_IN, server);
 		return (FALSE);
 	}
+#endif
 
 	hname = strncpy(hnamebuf, hp->h_name, MAXDNAME);
 	hname[MAXDNAME] = '\0';
 
-	for (i = 0; i < MAXADDRS && hp->h_addr_list[i]; i++)
+	for (i = 0; hp->h_addr_list[i]; i++)
+		naddrs++;
+
+	if (!(inaddr = malloc(naddrs * sizeof(*inaddr)))) {
+		sys_error("malloc(%d): failed: ", naddrs * sizeof(*inaddr), strerror(errno));
+		return (FALSE);
+	}
+	for (i = 0; hp->h_addr_list[i]; i++) {
 		inaddr[i] = incopy(hp->h_addr_list[i]);
 
-	naddress = i;
+		if (verbose)
+			printf("Hostname %s maps to address %s\n", hnamebuf, inet_ntoa(inaddr[i]));
+	}
 
 	if (verbose) {
 		printf("Found %d address%s for %s\n",
-		       naddress, plurale(naddress), hname);
+		       naddrs, plurale(naddrs), hname);
+	}
+	/*
+	 * XXX this check only detects something if your libbind has been
+	 * patched to either dynamically allocate its internal arrays, or at
+	 * least has had them expanded beyond the norm.
+	 */
+	if (naddrs > MAXADDRS) {
+		pr_error("%s: most resolvers only support %d A records per RR set, found %d.",
+			 hname, MAXADDRS, naddrs);
 	}
 
 	/*
 	 * Map back the addresses found, and check whether they revert to host.
 	 */
-	for (i = 0; i < naddress; i++) {
+	for (i = 0; i < naddrs; i++) {
 		if (check_addr_name(inaddr[i], hname))
 			matched++;
 	}
 
-	return ((matched == naddress) ? TRUE : FALSE);
+	free((ptr_t *) inaddr);
+	
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	freehostent(hp);
+#endif
+
+	if (matched != naddrs)
+		pr_error("Not all addresses for hostname %s have a matching hostname.", hname);
+
+	return ((matched == naddrs) ? TRUE : FALSE);
 }
 
 /*
-** CHECK_ADDR_NAME -- Check whether reverse address mappings revert to host
-** ------------------------------------------------------------------------
+** CHECK_ADDR_NAME -- Check whether reverse address mappings for an address belong to host
+** ---------------------------------------------------------------------------------------
 **
 **	Returns:
 **		TRUE if the given address of host maps back to host.
 **		FALSE otherwise.
 */
 
-bool_t
+static bool_t
 check_addr_name(inaddr, name)
 	input struct in_addr inaddr;	/* address of host to map back */
 	input char *name;		/* name of host to check */
 {
 	struct hostent *hp;
-	register int i;
-	char *iname, inamebuf[MAXDNAME+1];
-	int matched = 0;
+	register unsigned int i;
+	char *iname, inamebuf[MAXDNAME + 1];
+	unsigned int matched = 0;
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	int my_h_errno;
+#endif
 
 	/*
 	 * Fetch the reverse mapping of the given host address.
@@ -105,36 +157,68 @@ check_addr_name(inaddr, name)
 	if (verbose)
 		printf("Checking %s address %s\n", name, iname);
 
+	/*
+	 * XXX ARGH!  We should avoid using the upper-level BIND resolver for
+	 * this query so that we can ensure we always get _all_ of the answers!
+	 *
+	 * XXX also need to deal properly with IPv6 too....
+	 */
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	if (!(hp = getipnodebyaddr((void *) &inaddr, sizeof(inaddr), AF_INET, &my_h_errno))) {
+		set_h_errno(my_h_errno);
+		ns_error(name, T_PTR, C_IN, server);
+		return (FALSE);
+	}
+#else
 	if (!(hp = gethostbyaddr((char *) &inaddr, INADDRSZ, AF_INET))) {
 		ns_error(iname, T_PTR, C_IN, server);
 		return (FALSE);
 	}
+#endif
 
 	/*
-	 * Check whether the ``official'' host name matches.
-	 * This is the name in the first (or only) PTR record encountered.
+	 * Check whether the ``official'' hostname matches.  This is simply the
+	 * name in the first (or only) PTR record encountered.
 	 */
 	if (!sameword(hp->h_name, name)) {
-		pr_warning("%s address %s maps to %s",
-			name, iname, hp->h_name);
-	} else
+		if (!hp->h_aliases[0]) {	/* "&& verbose"? */
+			pr_error("%s address %s maps to hostname %s",
+				 name, iname, hp->h_name);
+		} else if (verbose) {
+			printf("%s address %s maps to hostname %s\n",
+			       name, iname, hp->h_name);
+		}
+	} else {
 		matched++;
 
-	/*
-	 * If not, a match may be found among the aliases.
-	 *
-	 * They are available (as of BIND 4.9) in case multipe PTR records are
-	 * used.
-	 */
-	if (!matched) {
-		for (i = 0; hp->h_aliases[i]; i++) {
-			pr_warning("%s address %s maps to alias %s",
-				name, iname, hp->h_aliases[i]);
-
-			if (sameword(hp->h_aliases[i], name))
-				matched++;
+		if (debug) {
+			printf("%s address %s maps to hostname %s\n",
+			       name, iname, hp->h_name);
 		}
 	}
+	/*
+	 * A match may also be found among the ``aliases''.
+	 *
+	 * They are available (as of BIND 4.9) when multiple PTR records are
+	 * used.
+	 */
+	for (i = 0; hp->h_aliases[i]; i++) {
+		if (sameword(hp->h_aliases[i], name))
+			matched++;
+
+		if (verbose) {
+			printf("%s address %s maps to hostname %s\n",
+			       name, iname, hp->h_aliases[i]);
+		}
+	}
+	if (!matched) {
+		pr_error("Hostname %s does not belong to address %s",
+			 name, iname);
+	}
+
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	freehostent(hp);
+#endif
 
 	return (matched ? TRUE : FALSE);
 }
@@ -153,13 +237,16 @@ check_name(addr)
 	input ipaddr_t addr;		/* address of host to check */
 {
 	struct hostent *hp;
-	register int i;
+	register unsigned int i;
 	struct in_addr inaddr;
-	char *iname, inamebuf[MAXDNAME+1];
-	char *hname, hnamebuf[MAXDNAME+1];
-	char *aname, anamebuf[MAXALIAS][MAXDNAME+1];
-	int naliases;
-	int matched = 0;
+	char *iname, inamebuf[MAXDNAME + 1];
+	char *hname, hnamebuf[MAXDNAME + 1];
+	char *aname, *anamebuf = NULL;
+	unsigned int naliases = 0;
+	unsigned int matched = 0;
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	int my_h_errno;
+#endif
 
 	/*
 	 * Check whether the address is registered by fetching its host name.
@@ -167,29 +254,66 @@ check_name(addr)
 	inaddr.s_addr = addr;
 	iname = strcpy(inamebuf, inet_ntoa(inaddr));
 
+	/*
+	 * XXX ARGH!  We should avoid using the upper-level BIND resolver for
+	 * this query so that we can ensure we always get _all_ of the answers!
+	 *
+	 * XXX also need to deal properly with IPv6 too....
+	 */
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	if (!(hp = getipnodebyaddr((void *) &inaddr, sizeof(inaddr), AF_INET, &my_h_errno))) {
+		set_h_errno(my_h_errno);
+		ns_error(iname, T_PTR, C_IN, server);
+		return (FALSE);
+	}
+#else
 	if (!(hp = gethostbyaddr((char *) &inaddr, INADDRSZ, AF_INET))) {
 		ns_error(iname, T_PTR, C_IN, server);
 		return (FALSE);
 	}
+#endif
 
 	hname = strncpy(hnamebuf, hp->h_name, MAXDNAME);
 	hname[MAXDNAME] = '\0';
 
 	if (verbose)
-		printf("Address %s maps to %s\n", iname, hname);
+		printf("Address %s maps to hostname %s\n", iname, hname);
 
 	/*
 	 * In case of multiple PTR records, additional names are stored as
 	 * aliases.
 	 */
-	for (i = 0; i < MAXALIAS && hp->h_aliases[i]; i++) {
-		aname = strncpy(anamebuf[i], hp->h_aliases[i], MAXDNAME);
-		aname[MAXDNAME] = '\0';
+	for (i = 0; hp->h_aliases[i]; i++)
+		naliases++;
 
-		if (verbose)
-			printf("Address %s maps to alias %s\n", iname, aname);
+	if (verbose) {
+		printf("Found %d hostname%s for %s\n",
+		       naliases, plural(naliases + 1), iname);
 	}
-	naliases = i;
+	if (naliases) {
+		/* XXX this is big and sparse and wasteful, but what the heck... */
+		if (!(anamebuf = calloc(naliases, (MAXDNAME + 1)))) {
+			sys_error("calloc(%u, %d): failed: ", naliases, (MAXDNAME + 1), strerror(errno));
+			return (FALSE);
+		}
+		for (i = 0; hp->h_aliases[i]; i++) {
+			aname = strncpy(&anamebuf[i * (MAXDNAME + 1)], hp->h_aliases[i], MAXDNAME);
+			aname[MAXDNAME] = '\0';
+			
+			if (verbose)
+				printf("Address %s maps to hostname %s\n", iname, aname);
+		}
+	}
+	/*
+	 * XXX this check only detects something if your libbind has been
+	 * patched to either dynamically allocate its internal arrays, or at
+	 * least has had them expanded beyond the norm.
+	 */
+	if (naliases > MAXALIAS) {
+		/* report the full number of PTRs so the message makes sense */
+		pr_error("%s: most resolvers only support %d PTR records per RR set, found %d.",
+			 iname, MAXALIAS, naliases + 1);
+	}
 
 	/*
 	 * Check whether the given address belongs to the host name and the
@@ -199,10 +323,19 @@ check_name(addr)
 		matched++;
 
 	for (i = 0; i < naliases; i++) {
-		aname = anamebuf[i];
+		aname = &anamebuf[i * (MAXDNAME + 1)];
 		if (check_name_addr(aname, addr))
 			matched++;
 	}
+
+	free((ptr_t *) anamebuf);
+
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	freehostent(hp);
+#endif
+
+	if (matched != (naliases + 1))
+		pr_error("Not all hostnames for address %s have a matching address.", iname);
 
 	return ((matched == (naliases + 1)) ? TRUE : FALSE);
 }
@@ -216,16 +349,19 @@ check_name(addr)
 **		FALSE otherwise.
 */
 
-bool_t
+static bool_t
 check_name_addr(name, addr)
 	input char *name;		/* name of host to check */
 	input ipaddr_t addr;		/* address should belong to host */
 {
 	struct hostent *hp;
-	register int i;
+	register unsigned int i;
 	struct in_addr inaddr;
 	char *iname, inamebuf[MAXDNAME+1];
-	int matched = 0;
+	unsigned int matched = 0;
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	int my_h_errno;
+#endif
 
 	inaddr.s_addr = addr;
 	iname = strcpy(inamebuf, inet_ntoa(inaddr));
@@ -233,17 +369,31 @@ check_name_addr(name, addr)
 	/*
 	 * Lookup the host name found to fetch its addresses.
 	 */
+	/*
+	 * XXX ARGH!  We should avoid using the upper-level BIND resolver for
+	 * this query so that we can ensure we always get _all_ of the answers!
+	 *
+	 * XXX also need to deal properly with IPv6 too....
+	 */
+#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+	if (!(hp = getipnodebyname(name, AF_INET, AI_ALL | AI_V4MAPPED, &my_h_errno))) {
+		set_h_errno(my_h_errno);
+		ns_error(name, T_A, C_IN, server);
+		return (FALSE);
+	}
+#else
 	if (!(hp = gethostbyname(name))) {
 		ns_error(name, T_A, C_IN, server);
 		return (FALSE);
 	}
+#endif
 
 	/*
 	 * Verify whether the mapped host name is canonical.
 	 */
 	if (!sameword(hp->h_name, name)) {
-		pr_warning("%s host %s is not canonical (%s)",
-			   iname, name, hp->h_name);
+		pr_error("%s target host %s is not canonical (%s)",
+			 iname, name, hp->h_name);
 	}
 
 	/*
@@ -262,9 +412,12 @@ check_name_addr(name, addr)
 	}
 
 	if (!matched) {
-		pr_error("address %s does not belong to %s",
+		pr_error("address %s does not belong to hostname %s",
 			 iname, name);
 	}
+#if defined(__NAMESER) && ((__NAMESER - 0) > 19991006)
+	freehostent(hp);
+#endif
 
 	return (matched ? TRUE : FALSE);
 }
