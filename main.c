@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.19 2003-11-17 05:29:26 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.20 2003-12-04 03:38:55 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -55,7 +55,7 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
  * - Major overhaul of the entire code.
  * - Very rigid error checking, with more verbose error messages.
  * - Zone listing section completely rewritten.
- * - It is now possible to do recursive listings into delegated zones.
+ * - It is now possible to do recursive listings into delegated sub-zones.
  * - Maintain resource record statistics during zone listings.
  * - Maintain count of hosts during zone listings.
  * - Check for various extraneous conditions during zone listings.
@@ -190,64 +190,11 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
  * (or one of the primary nameservers) for that zone (as defined by RFC 1033
  * and 1035, and clarified in RFC 2181.
  */
-
-/*
+
+/*
  *		Usage: host [options] name [server]
  *		Usage: host [options] -x [name ...]
  *		Usage: host [options] -X server [name ...]
- *
- * XXX this list needs to be updated to include the "long" options....
- *
- * Regular command line options.
- * ----------------------------
- *
- * -t type	specify query type; default is T_A for normal mode
- * -a		specify query type T_ANY
- * -v		print verbose messages (-vv is very verbose)
- * -d		print debugging output (-dd prints even more)
- *
- * Special mode options.
- * --------------------
- *
- * -l		special mode to generate zone listing for a zone
- * -L level	do recursive zone listing/checking this level deep
- * -p		use primary nameserver of zone for queries
- * -P server	give priority to preferred servers for zone transfers
- * -N zone	do not perform zone transfer for these explicit zones
- * -S		print zone resource record statistics
- * -H		special mode to count hosts residing in a zone
- * -G		same as -H but lists gateway hosts in addition
- * -E		same as -H but lists extrazone hosts in addition
- * -D		same as -H but lists duplicate hosts in addition
- * -C		special mode to check SOA records for a zone
- * -A		special mode to check reverse mappings of host addresses
- * -???		special mode to check internal and external delegations
- *
- * Miscellaneous options.
- * ---------------------
- *
- * -f filename	log resource record output also in given file
- * -F filename	same as -f, but exchange role of stdout and log file
- * -I chars	chars are not considered illegal in domain names
- * -i		generate reverse in-addr.arpa query for dotted quad
- * -n		generate reverse nsap.int query for dotted nsap address
- * -q		be quiet about non-fatal errors
- * -Q		enable quick mode and skip various time consuming checks
- * -T		print TTL value during non-verbose output
- * -Z		print selected RR output in full zone file format
- *
- * Seldom used options.
- * -------------------
- *
- * -c class	specify query class; default is C_IN
- * -e		exclude info from names that do not reside in the zone
- * -m		specify query type T_MAILB and trace MB records
- * -o		suppress resource record output to stdout
- * -r		do not use recursion when querying nameserver
- * -R		repeatedly add search domains to qualify queryname
- * -s secs	specify timeout value in seconds; default is 2 * 5
- * -u		use virtual circuit instead of datagram for queries
- * -w		wait until nameserver becomes available
  *
  * Special options.
  * ---------------
@@ -267,11 +214,10 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
  * -Y		dump data of resource record after regular printout
  * -z		special mode to list delegated zones in a zone
  *
- * Available options.
- * -----------------
+ * Available unuxed option letters.
+ * -------------------------------
  *
  * -b
- * -h
  * -k
  * -U
  * -y
@@ -280,59 +226,70 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
 static char usage_msg[] =
 "\
 Usage:      host [-v] [-a] [-t querytype] [options]  name  [server]\n\
-Long Help:  host --help\n\
+Long Help:  host -h|--help\n\
 Listing:    host [-v] [-a] [-t querytype] [options]  -l zone  [server]\n\
 Hostcount:  host [-v] [options] -H [-D] [-E] [-G] zone\n\
 Check SOA:  host [-v] [options] -C zone\n\
 Addrcheck:  host [-v] [options] -A host\n\
-Listing options: [-L level] [-S] [-A] [-P prefserver] [-N skipzone]\n\
+Extended usage:  host [options] -x name ...\n\
+                 host [options] -X server name ...\n\
+Listing options: [-L level] [-S] [-A] [-N skipzone]\n\
 Common options:  [-d] [-f|-F file] [-I chars] [-i|-n] [-p] [-q] [-Q] [-T] [-Z]\n\
-Other options:   [-c class] [-e] [-m] [-o] [-r] [-R] [-s secs] [-u] [-w]\n\
+Other options:   [-c class] [-e] [-m] [-o] [-P] [-r] [-R] [-s secs] [-u] [-w]\n\
 Special options: [-O srcaddr] [-j minport] [-J maxport]\n\
-Extended usage:  [-x [name ...]] [-X server [name ...]]\
 ";
 
 static char Help[] =
 "\
 -A	  --addrcheck		check reverse address mapping\n\
 -a	  --anything		filter any resource record available\n\
-	  --canoncheck		check for canonical host names\n\
+	  --canoncheck		always check for canonical host names\n\
+	  --canonskip		do not check for canonical host names\n\
 -C	  --checksoa		check soa record at each of the nameservers\n\
 -CAL 1	  --checkzone		perform extensive analysis of zone data\n\
 -c class  --class=queryclass	specify explicit query class\n\
 	  --cnamecheck		check cname target for existence\n\
 	  --compare[=period]	compare soa serial before zone transfer\n\
--d	  --debug		enable debug printout\n\
--L level  --depth=level		specify recursion level during zone listing\n\
+-d	  --debug		enable debug printout (the more the merrier)\n\
 	  --dump[=cachedir]	dump zone data to local disk cache\n\
 -e	  --exclusive		don't print resource records outside domain\n\
 -x	  --extended		extended usage with multiple arguments\n\
 -f	  --file=filename	log resource record output also in file\n\
 -Z	  --full		resource record output in full zone format\n\
-	  --help		show summary of long command line options\n\
+-h	  --help		show summary of long command line options\n\
 -H	  --hostcount		generate hostcount statistics\n\
 -i	  --inaddr		construct reverse in-addr.arpa query\n\
+-J maxport			specify a maximum port # for the source port\n\
+-j minport			specify a minimum port # for the source port\n\
+-L level  --depth=level		specify max recursion level during zone listing\n\
 -l	  --list		generate zone listing\n\
 	  --load[=cachedir]	load zone data from local disk cache\n\
+-m				specify query type T_MAILB and trace MB records\n\
+-O srcaddr			specify a source address for the query\n\
+-o	  --suppress		don't print resource records to stdout\n\
 -r	  --norecurs		turn off recursion in nameserver queries\n\
 	  --nothing		no resource record output during zone listing\n\
-	  --parent		use only the nameservers from the parent zone\n\
+-P	  --parent		use the nameservers found in the parent zone\n\
 -p	  --primary		get answers from soa primary nameserver only\n\
--P list  --prefserver=list	set the preferred nameservers (comma sep list)\n\
+	  --prefserver=list	set the preferred nameservers (comma sep list)\n\
 -Q	  --quick		skip time consuming special checks\n\
 -q	  --quiet		suppress all non-fatal warning messages\n\
-	  --recursive		zone listing with infinite recursion level\n\
+	  --recursive		zone listing with near-infinite recursion level\n\
 	  --retry=count		specify retry count for datagram queries\n\
 	  --server=host		specify explicit nameserver to query\n\
+-R				enable RES_DNSRCH (resolver 'search' option)\n\
+-r	  --norecurs		do not use recursion when querying nameserver\n\
 -S	  --statistics		generate resource record statistics\n\
--o	  --suppress		don't print resource records to stdout\n\
--u	  --tcp			use tcp instead of udp for nameserver queries\n\
 -s secs	  --timeout=seconds	specify timeout for nameserver queries\n\
 -t type	  --type=querytype	specify explicit query type\n\
 	  --undercheck		check for invalid underscores\n\
 	  --usage		show summary of short command line syntax\n\
--v	  --verbose		enable verbose printout\n\
--V	  --version		show program version number\
+-u	  --tcp			use tcp instead of udp for nameserver queries\n\
+-v	  --verbose		enable verbose printout (repeat to incr level)\n\
+-V	  --version		show program version number\n\
+-w				wait until nameserver becomes available\n\
+-X srvr	  --server=srvr		specify the name of the server to query\n\
+-_	  --undercheck		check for invalid underscores in hostsnames\n\
 ";
 
 /*
@@ -435,9 +392,9 @@ main(argc, argv)
 	if (sameword(argv0, "zone"))
 		listmode = TRUE;
 
-/*
- * Scan command line options and flags.
- */
+	/*
+	 * Scan command line options and flags.
+	 */
 	while (argc > 1 && argv[1] != NULL && argv[1][0] == '-') {
 		for (option = &argv[1][1]; *option != '\0'; option++) {
 			switch (*option) {
@@ -518,6 +475,11 @@ main(argc, argv)
 					querytype = -1;	/* suppress zone data output */
 				break;
 
+			case 'h':
+				printf("%s", Help);
+				exit(EX_OK);
+				break;
+
 			case 'I' :
 				if (argv[2] == NULL || argv[2][0] == '-')
 					usage_error("Missing allowed chars");
@@ -556,6 +518,7 @@ main(argc, argv)
 
 			case 'l' :
 				listmode = TRUE;
+				classprint = TRUE;
 				break;
 
 			case 'M' :
@@ -595,10 +558,7 @@ main(argc, argv)
 				break;
 
 			case 'P' :
-				if (is_empty(argv[2]) || argv[2][0] == '-')
-					usage_error("Missing preferred server");
-				prefserver = argv[2];
-				argv++; argc--;
+				parent = TRUE;
 				break;
 
 			case 'p' :
@@ -618,6 +578,7 @@ main(argc, argv)
 				break;
 
 			case 'r' :
+				norecurs = TRUE;
 				new_res.options &= ~RES_RECURSE;
 				break;
 
@@ -667,7 +628,7 @@ main(argc, argv)
 					usage_error("Missing server name");
 				servername = argv[2];
 				argv++; argc--;
-				/*FALLTHROUGH*/
+				/* FALLTHROUGH */
 
 			case 'x' :
 				extended = TRUE;
@@ -712,6 +673,10 @@ main(argc, argv)
 				exit(EX_OK);
 				/* NOTREACHED */
 
+			case '_':
+				undercheck = TRUE;
+				break;
+
 			default:
 				usage_error(usage_msg);
 			}
@@ -723,13 +688,19 @@ main(argc, argv)
 	/*
 	 * Check the remaining arguments.
 	 */
-	/* old syntax must have at least one argument */
-	if (!extended && (argc < 2 || argv[1] == NULL || argc > 3))
+	/* old syntax must have at least one argument and no more than two */
+	if (!extended && (argc < 1 || argv[0] == NULL || argc > 3))
 		usage_error(usage_msg);
 
 	/* old syntax has explicit server as second argument */
 	if (!extended && (argc > 2 && argv[2] != NULL))
 		servername = argv[2];
+
+	/*
+	 * set defaults from major modes
+	 */
+	if (listmode && !canoncheck)
+		canonskip = TRUE;
 
 	/*
 	 * Check for incompatible options.
@@ -738,13 +709,13 @@ main(argc, argv)
 		usage_error("No query type specified");
 
 	if (loadzone && (servername != NULL))
-		usage_error("Conflicting options load and server");
+		usage_error("Conflicting options --load and explicit server");
 
 	if (parent && (servername != NULL))
-		usage_error("Conflicting options --parent and server");
+		usage_error("Conflicting options -P and explicit server");
 
 	if (loadzone && dumpzone)
-		usage_error("Conflicting options load and dump");
+		usage_error("Conflicting options --load and --dump");
 
 	/*
 	 * Open log file if requested.
@@ -782,7 +753,7 @@ main(argc, argv)
 	_res.options = new_res.options;
 
 	/* show the new resolver database */
-	if (verbose > 1 || debug > 1)
+	if (!parent && (verbose > 1 || debug > 1))
 		show_res();
 
 	/* show customized default domain */
@@ -953,6 +924,9 @@ cvtopt(optstring)
 	if (sameword(optstring, "full"))
 		return ("-Z");
 
+	if (sameword(optstring, "help"))
+		return ("-h");
+
 	if (sameword(optstring, "hostcount"))
 		return ("-H");
 
@@ -964,6 +938,9 @@ cvtopt(optstring)
 
 	if (sameword(optstring, "norecurs"))
 		return ("-r");
+
+	if (sameword(optstring, "parent"))
+		return ("-P");
 
 	if (sameword(optstring, "primary"))
 		return ("-p");
@@ -989,16 +966,15 @@ cvtopt(optstring)
 	if (sameword(optstring, "version"))
 		return ("-V");
 
-	/*
-	 * Combinations of several short options, or valued short options.
-	 */
-	if (sameword(optstring, "checkzone")) {
-		if (recursive == 0)
-			recursive = 1;
-		return ("-CAl");
-	}
+	if (sameword(optstring, "undercheck"))
+		return ("-_");
 
-	if (sameword(optstring, "class")) {
+	/*
+	 * alternatives for short options with values
+	 * (parsed and set here because of the '=' syntax)
+	 */
+
+	if (sameword(optstring, "class")) { /* also -c */
 		if (is_empty(value) || value[0] == '-')
 			usage_error("Missing query class");
 		queryclass = parse_class(value);
@@ -1007,31 +983,31 @@ cvtopt(optstring)
 		return ("-");
 	}
 
-	if (sameword(optstring, "depth")) {
+	if (sameword(optstring, "depth")) { /* also -L */
 		recursive = getval(value, "recursion level", 1, 0);
 		return ("-l");
 	}
 
-	if (sameword(optstring, "file")) {
+	if (sameword(optstring, "file")) { /* also -f */
 		if (is_empty(value) || value[0] == '-')
 			usage_error("Missing log file name");
 		logfilename = value;
 		return ("-");
 	}
 
-	if (sameword(optstring, "server")) {
+	if (sameword(optstring, "server")) { /* also -X */
 		if (is_empty(value) || value[0] == '-')
 			usage_error("Missing server name");
 		servername = value;
 		return ("-");
 	}
 
-	if (sameword(optstring, "timeout")) {
+	if (sameword(optstring, "timeout")) { /* also -s */
 		new_res.retrans = getval(value, "timeout value", 1, 0);
 		return ("-");
 	}
 
-	if (sameword(optstring, "type")) {
+	if (sameword(optstring, "type")) { /* also -t */
 		if (is_empty(value) || value[0] == '-')
 			usage_error("Missing query type");
 		querytype = parse_type(value);
@@ -1041,8 +1017,19 @@ cvtopt(optstring)
 	}
 
 	/*
+	 * Combinations of several short options.
+	 */
+
+	if (sameword(optstring, "checkzone")) {
+		if (recursive == 0)
+			recursive = 1;
+		return ("-CAl");
+	}
+
+	/*
 	 * New long options without an equivalent short one.
 	 */
+
 	if (sameword(optstring, "canoncheck")) {
 		canoncheck = TRUE;
 		return ("-");
@@ -1058,7 +1045,7 @@ cvtopt(optstring)
 		return ("-");
 	}
 
-	if (sameword(optstring, "compare")) {
+	if (sameword(optstring, "compare")) { /* -k ? */
 		if (value != NULL) {
 			time_t now = time((time_t *) NULL);
 			int period = convtime(value, 'd');
@@ -1091,11 +1078,6 @@ cvtopt(optstring)
 		return ("-");
 	}
 
-	if (sameword(optstring, "parent")) {
-		parent = TRUE;
-		return ("-");
-	}
-
 	if (sameword(optstring, "prefserver")) {
 		if (is_empty(value) || value[0] == '-')
 			usage_error("Missing prefserver name");
@@ -1103,7 +1085,7 @@ cvtopt(optstring)
 		return ("-");
 	}
 
-	if (sameword(optstring, "recursive")) {
+	if (sameword(optstring, "recursive")) {	/* -y ? */
 		if (recursive == 0)
 			recursive = MAXINT16;
 		return ("-l");
@@ -1115,21 +1097,8 @@ cvtopt(optstring)
 	}
 
 	if (sameword(optstring, "test")) {
-		testmode = TRUE;
+		testmode = TRUE;	/* just calls test.c:test(), for testing new code. */
 		return ("-");
-	}
-
-	if (sameword(optstring, "undercheck")) {
-		undercheck = TRUE;
-		return ("-");
-	}
-
-	/*
-	 * Remainder.
-	 */
-	if (sameword(optstring, "help")) {
-		printf("%s\n", Help);
-		exit(EX_OK);
 	}
 
 	if (sameword(optstring, "usage")) {
@@ -1393,6 +1362,8 @@ execute_name(name)
 	if ((querytype == T_NONE) && !listmode) {
 		if ((queryaddr != NOT_DOTTED_QUAD) || reverse)
 			querytype = T_PTR;
+		else if (parent)
+			querytype = T_NS;
 		else
 			querytype = T_A;
 	}
@@ -1406,9 +1377,9 @@ execute_name(name)
 		return (EX_USAGE);
 	}
 
-	/* must have plain name with --parent */
+	/* must have plain name with -P */
 	if (parent && queryaddr != NOT_DOTTED_QUAD) {
-		errmsg("Invalid query name %s (need plainname with --parent)", queryname);
+		errmsg("Invalid query name %s (need a plain name with -P)", queryname);
 		return (EX_USAGE);
 	}
 
@@ -1452,6 +1423,8 @@ execute(name, addr)
 
 	/*
 	 * Special mode to list contents of specified zone.
+	 *
+	 * Handling of primary and parent is done in list.c
 	 */
 	if (listmode) {
 		result = list_zone(name);
@@ -1470,24 +1443,84 @@ execute(name, addr)
 			return (FALSE);
 		}
 		set_server(primaryname);
-		canonskip = 1;	/* the primary server may be non-recursive */
+		canonskip = TRUE; /* the primary servers may (should!) be non-recursive */
 	} else if (parent) {
 		/*
-		 * If --parent was specified we try using the parent zone's
-		 * nameservers instead of whatever's configured for the local
-		 * resolver.
+		 * XXX this code should be refactored out into a separate
+		 * function so that the similar code in list.c:get_servers()
+		 * can also be refactored out and use the same function.
 		 */
-		char *parent_zone = strchr(name, '.');
+		/*
+		 * If -P was specified we try using the parent zone's
+		 * nameservers instead of whatever's configured for the local
+		 * resolver.  There's not a whole heck of a lot of utility for
+		 * this particular feature other than to ask the first
+		 * available parent server for NS records (and any incidental
+		 * glue records).
+		 */
+		char pzn[MAXDNAME + 2];
+		char *parent_zone;
+		int save_verbose;
 
-		if (!parent_zone || !*(parent_zone + 1)) {
-			errmsg("Unable to determine parent zone for %s", name);
+		/* there is always one final parent:  "." */
+		assert(strlen(name) <= MAXDNAME);
+		sprintf(pzn, "%s.", name);
+		parent_zone = pzn;
+
+		if (verbose > 1)
+			printf("(Trying to use the parent nameservers for %s)\n", name);
+
+		save_verbose = verbose;
+		if (verbose)
+			verbose--;
+
+		/*
+		 * XXX since this code mimics similar code enabled by 'parent'
+		 * in list.c:get_servers(), which we call via use_servers(), we
+		 * must turn off the parent flag when calling use_servers()!
+		 */
+		parent = FALSE;
+
+		while ((parent_zone = strchr(parent_zone, '.'))) {
+			size_t dot_offset = 0;
+
+			/* skip the dot unless it's the last dot */
+			parent_zone = *(parent_zone + 1) ? (parent_zone + 1) : parent_zone;
+			/* trim the trailing dot unless it's the last one */
+			if (*(parent_zone + 1)) {
+				dot_offset = strlen(parent_zone) - 1;
+				parent_zone[dot_offset] = '\0';
+			}
+			if (save_verbose)
+				printf("(Searching for nameservers for the parent zone: %s)\n", parent_zone);
+			if (use_servers(parent_zone) != FALSE) {
+				parent = TRUE; /* used to indicate success */
+				break;
+			}
+			/* make sure next call to use_servers works right! */
+			server = NULL;
+			/* restore any trimmed trailing dot in case it's the last one */
+			if (dot_offset)
+				parent_zone[dot_offset] = '.';
+		}
+		verbose = save_verbose;
+		if (!parent) {
+			ns_error(name, T_NS, queryclass, (char *) NULL);
 			return (FALSE);
 		}
-		if (use_servers(parent_zone + 1) == FALSE)
-			return (FALSE);
-		/* turn off nameserver recursion */
+		/*
+		 * turn off nameserver recursion for queries using the
+		 * nameservers discovered through the parent zone delegation,
+		 * also disable canonical checks of NS and MX records that
+		 * might be retrieved subsequently -- the nameservers reported
+		 * above from the parent zone should all be authoritative and
+		 * may (should!) also be non-recursive.
+		 */
 		_res.options &= ~RES_RECURSE;
-		canonskip = 1;	/* the parent servers may be non-recursive */
+		canonskip = TRUE;
+
+		if (verbose > 1 || debug > 1)
+			show_res();
 	}
 
 	/*
@@ -1550,7 +1583,7 @@ host_query(name, addr)
 				result = get_hostinfo(newname, TRUE);
 
 			/* recurse on CNAMEs, but not too deep */
-			if (cname && (querytype != T_CNAME)) {
+			if (cnamecheck && cname && (querytype != T_CNAME)) {
 				newname = strcpy(newnamebuf, cname);
 
 				if (ncnames++ > MAXCHAIN) {
@@ -1673,12 +1706,12 @@ set_server(name)
 			errmsg("Error in looking up server name");
 			exit(EX_NOHOST);
 		}
-		for (i = 0; i < MAXNS && hp->h_addr_list[i]; i++) {
-			nslist(i).sin_family = AF_INET;
-			nslist(i).sin_port = htons(NAMESERVER_PORT);
-			nslist(i).sin_addr = incopy(hp->h_addr_list[i]);
+		_res.nscount = 0;
+		for (i = 0; _res.nscount < MAXNS && hp->h_addr_list[i]; i++, _res.nscount++) {
+			nslist(_res.nscount).sin_family = AF_INET;
+			nslist(_res.nscount).sin_port = htons(NAMESERVER_PORT);
+			nslist(_res.nscount).sin_addr = incopy(hp->h_addr_list[i]);
 		}
-		_res.nscount = i;
 	} else {
 		/* lookup the name, but use only the given address */
 		hp = gethostbyaddr((char *) &inaddr, INADDRSZ, AF_INET);
@@ -1704,6 +1737,7 @@ set_server(name)
 		if (verbose)
 			printf("Server: %s\n\n", server);
 	}
+	canonskip = TRUE;
 
 	return;
 }
@@ -1794,7 +1828,8 @@ usage_error(fmt, va_alist)
 	VA_START(ap, fmt);
 	(void) vfprintf(stderr, fmt, ap);
 	va_end(ap);
-	(void) fprintf(stderr, "\n");
+	if (fmt[strlen(fmt) - 1] != '\n')
+		(void) fputc("\n", stderr);
 
 	exit(EX_USAGE);
 }
