@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.9 2003-03-31 21:07:12 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.10 2003-03-31 21:57:23 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -626,7 +626,8 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	bool_t listing;			/* set if this is a zone listing */
 	char *host = listhost;		/* contacted host for zone listings */
 	char *dumpmsg = NULL;		/* set if data should be dumped */
-	register int n, c;
+	register int n;
+	register unsigned int c;
 	struct in_addr inaddr;
 	struct protoent *protocol;
 	struct servent *service;
@@ -1078,9 +1079,9 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 		doprintf((" %sm ", pr_vertical(n, "", "-")));
 		cp += INT32SZ;
 
-		doprintf((" %sm", pr_precision((c >> 16) & 0xff)));
-		doprintf((" %sm", pr_precision((c >>  8) & 0xff)));
-		doprintf((" %sm", pr_precision((c >>  0) & 0xff)));
+		doprintf((" %sm", pr_precision(((u_int) c >> 16) & 0xff)));
+		doprintf((" %sm", pr_precision(((u_int) c >>  8) & 0xff)));
+		doprintf((" %sm", pr_precision(((u_int) c >>  0) & 0xff)));
 		break;
 
 	case T_UNSPEC:
@@ -1591,15 +1592,15 @@ dump_rrec(cp, size, comment)
 	while ((n = (size > 16) ? 16 : size) > 0) {
 		for (i = 0; i < n; i++, cp++) {
 			ascbuf[i] = is_print(*cp) ? *cp : '.';
-			c = ((int)(*cp) >> 4) & 0x0f;
-			hexbuf[i*3+0] = hexdigit(c);
-			c = ((int)(*cp) >> 0) & 0x0f;
-			hexbuf[i*3+1] = hexdigit(c);
+			c = ((u_int) (*cp) >> 4) & 0x0f;
+			hexbuf[(i * 3)] = hexdigit(c);
+			c = ((u_int) (*cp) >> 0) & 0x0f;
+			hexbuf[(i * 3) + 1] = hexdigit(c);
 		}
 		for (size -= n; i < 16; i++) {
 			ascbuf[i] = ' ';
-			hexbuf[i*3+0] = ' ';
-			hexbuf[i*3+1] = ' ';
+			hexbuf[i * 3] = ' ';
+			hexbuf[(i * 3) + 1] = ' ';
 		}
 
 		if (comment != NULL)
