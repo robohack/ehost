@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.22 2004-08-10 20:09:48 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.23 2004-10-17 18:40:22 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -282,7 +282,6 @@ static char Help[] =
 -S	  --statistics		generate resource record statistics\n\
 -s secs	  --timeout=seconds	specify timeout for nameserver queries\n\
 -t type	  --type=querytype	specify explicit query type\n\
-	  --undercheck		check for invalid underscores\n\
 	  --usage		show summary of short command line syntax\n\
 -u	  --tcp			use tcp instead of udp for nameserver queries\n\
 -v	  --verbose		enable verbose printout (repeat to incr level)\n\
