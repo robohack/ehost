@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.10 2003-05-17 00:57:23 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.11 2003-11-01 01:21:58 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)geth.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -46,40 +46,29 @@ struct hostent *
 geth_byname(name)
 	input const char *name;		/* name to do forward lookup for */
 {
-	querybuf_t answer;
 	struct hostent *hp;
-	register int n;
 #if defined(HAVE_GETIPNODEBYNAME)
 	int my_h_errno;
 #endif
 
-#if defined(HAVE_GETIPNODEBYNAME)
-	if (!(hp = getipnodebyname(name, AF_INET, AI_ALL | AI_V4MAPPED, &my_h_errno)))
-		set_h_errno(my_h_errno);
-#else
-	hp = gethostbyname(name);
-#endif
-	if (hp)
-		return (hp);
-
-	if (verbose)
-		fprintf(stderr, "%s: gethostbyname(%s): %s\n", argv0, name, hstrerror(h_errno));
-
 	if (verbose > print_level)
 		printf("Finding addresses for %s ...\n", name);
 
-	if ((n = get_info(&answer, name, T_A, C_IN)) < 0)
-		return (NULL);
+	if (debug || verbose > print_level+1) {
+		querybuf_t answer;
+		register int n;
 
-	if ((verbose > print_level + 1) && (print_level < 1))
-		(void) print_info(&answer, n, name, T_A, C_IN, FALSE);
-
+		if ((n = get_info(&answer, name, T_A, C_IN)) > 0)
+			(void) print_info(&answer, n, name, T_A, C_IN, FALSE);
+	}
 #if defined(HAVE_GETIPNODEBYNAME)
 	if (!(hp = getipnodebyname(name, AF_INET, AI_ALL | AI_V4MAPPED, &my_h_errno)))
 		set_h_errno(my_h_errno);
 #else
 	hp = gethostbyname(name);
 #endif
+	if (!hp && verbose)
+		fprintf(stderr, "%s: gethostbyname(%s): %s\n", argv0, name, hstrerror(h_errno));
 
 	return (hp);
 }
@@ -102,42 +91,29 @@ geth_byaddr(addr, size, family)
 	input socklen_t size;		/* size of the address */
 	input int family;		/* address family */
 {
-	char addrbuf[(4 * 4) + sizeof(ARPA_ROOT) + 1];
-	char *name;
-	const u_char *a = (const u_char *) addr;
-	querybuf_t answer;
 	struct hostent *hp;
-	register int n;
 #if defined(HAVE_GETIPNODEBYADDR)
 	int my_h_errno;
 #endif
 
-#if defined(HAVE_GETIPNODEBYADDR)
-	if (!(hp = getipnodebyaddr((const void *) addr, size, family, &my_h_errno)))
-		set_h_errno(my_h_errno);
-#else
-	hp = gethostbyaddr(addr, size, family); /* XXX size _SHOULD_ be socklen_t, but may not be... */
-#endif
-	if (hp || (size != INADDRSZ || family != AF_INET))
-		return (hp);
-
-	if (verbose)
-		fprintf(stderr, "%s: gethostbyaddr(%s): %s\n", argv0, inet_ntoa(incopy(addr)), hstrerror(h_errno));
-
-	if (verbose > print_level) {
+	if (debug || verbose > print_level) {
 		printf("Finding reverse mapping for %s ...\n",
 		       inet_ntoa(incopy(addr)));
 	}
+	if (debug || verbose > print_level+1) {
+		char addrbuf[(4 * 4) + sizeof(ARPA_ROOT) + 1];
+		char *name;
+		const u_char *a = (const u_char *) addr;
+		querybuf_t answer;
+		register int n;
 
-	/* construct absolute reverse name *without* trailing dot */
-	(void) sprintf(addrbuf, "%u.%u.%u.%u.%s",
-		       a[3] & 0xff, a[2] & 0xff, a[1] & 0xff, a[0] & 0xff, ARPA_ROOT);
-	name = addrbuf;
-	if ((n = get_info(&answer, name, T_PTR, C_IN)) < 0)
-		return (NULL);
-
-	if ((verbose > print_level + 1) && (print_level < 1))
-		(void) print_info(&answer, n, name, T_PTR, C_IN, FALSE);
+		/* construct absolute reverse name *without* trailing dot */
+		(void) sprintf(addrbuf, "%u.%u.%u.%u.%s",
+			       a[3] & 0xff, a[2] & 0xff, a[1] & 0xff, a[0] & 0xff, ARPA_ROOT);
+		name = addrbuf;
+		if ((n = get_info(&answer, name, T_PTR, C_IN)) > 0)
+			(void) print_info(&answer, n, name, T_PTR, C_IN, FALSE);
+	}
 
 #if defined(HAVE_GETIPNODEBYADDR)
 	if (!(hp = getipnodebyaddr((const void *) addr, size, family, &my_h_errno)))
@@ -145,6 +121,8 @@ geth_byaddr(addr, size, family)
 #else
 	hp = gethostbyaddr(addr, size, family); /* XXX size _SHOULD_ be socklen_t, but may not be... */
 #endif
+	if (!hp && verbose)
+		fprintf(stderr, "%s: gethostbyaddr(%s): %s\n", argv0, inet_ntoa(incopy(addr)), hstrerror(h_errno));
 
 	return (hp);
 }
