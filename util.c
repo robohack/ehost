@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.11 2003-04-04 04:10:48 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.12 2003-04-04 22:36:13 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -1686,7 +1686,7 @@ canonical(name)
 	/*
 	 * The given name exists and there is an associated A record.
 	 * The name of this A record should be the name we queried about.
-	 * If this is not the case we probably supplied a CNAME.
+	 * If this is not the case then the answer was probably a CNAME.
 	 */
 	return sameword(hp->h_name, name) ? 0 : HOST_NOT_CANON;
 }
