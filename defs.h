@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.7 2003-03-30 17:28:23 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.8 2003-03-30 22:53:55 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -162,7 +162,7 @@ static int send_dgram	__P((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
 int _res_socket		__P((int, int, int));
 int _res_blocking	__P((int, bool_t));
 sigtype_t timer		__P((int));
-int _res_connect	__P((int, struct sockaddr_in *, size_t));
+int _res_connect	__P((int, struct sockaddr_in *, socklen_t));
 int _res_write		__P((int, struct sockaddr_in *, char *, char *, size_t));
 int _res_read		__P((int, struct sockaddr_in *, char *, char *, size_t));
 int _res_read_stream	__P((int, struct sockaddr_in *, char *, char *, size_t));
@@ -189,6 +189,29 @@ char *inet_ntoa		__P((struct in_addr));
 #if defined(BIND_4_8)
 char *hostalias		__P((const char *));
 #endif
+
+/* SunOS-4.x -- gcc doesn't have <sys/socket.h> with __USE_FIXED_PROTOTYPES__ */
+#if defined(__sun__) && !defined(SVR4)
+extern int accept	__P((int, struct sockaddr *, int *));
+extern int bind		__P((int, const struct sockaddr *, int));
+extern int connect	__P((int, struct sockaddr *, int));
+extern int getpeername	__P((int, struct sockaddr *, int *));
+extern int getsockname	__P((int, struct sockaddr *, int *));
+extern int getsockopt	__P((int, int, int, char *, int *));
+extern int listen	__P((int, int));
+extern int recv		__P((int, char *, int, int));
+extern int recvfrom	__P((int, char *, int, int, struct sockaddr *, int *));
+extern int recvmsg	__P((int, struct msghdr *, int));
+extern int select	__P((int, fd_set *, fd_set *, fd_set *, struct timeval *)); /* <sys/select.h> */
+extern int send		__P((int, const char *, int, int));
+extern int sendmsg	__P((int, const struct msghdr *, int));
+extern int sendto	__P((int, const char *, int, int, const struct sockaddr *, int));
+extern int setsockopt	__P((int, int, int, const char *, int));
+extern int socketpair	__P((int, int, int, int *));
+extern int shutdown	__P((int, int));
+extern int socket	__P((int, int, int));
+#endif
+
 
 	/* <string.h> */
 
