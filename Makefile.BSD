@@ -3,27 +3,40 @@
 #
 # Define control variables on the command-line as necessary.
 #
-#	make -f Makefile.BSD __NetBSD__=1 __GNUC__=2
+#	make -f Makefile.BSD __NetBSD__=1 __GNUC__=2 __GNULD__=2
 #
-#ident	"@(#)newsyslog:$Name:  $:$Id: Makefile.BSD,v 1.6 2003-04-06 21:37:00 -0800 woods Exp $"
+#ident	"@(#)newsyslog:$Name:  $:$Id: Makefile.BSD,v 1.7 2003-05-17 00:51:59 -0800 woods Exp $"
 #
 
-.if defined(HOSTNAME) && $(HOSTNAME) == "proven"
+
+# are we running in the full NetBSD build environment?
+.if defined(MAKE) && defined(MACHINE) && defined(MACHINE_ARCH) && defined(TOOLDIR) && defined(USETOOLS)
+
+__NetBSD__ = 1
+__GNUC__ = 2
+__GNULD__ = 2
+
+.elif defined(HOSTNAME) && $(HOSTNAME) == "proven"
+
 PREFIX ?= /usr/pkg
 CC = PATH=/usr/pkg/gcc-ssp/bin:$$PATH /usr/pkg/gcc-ssp/bin/cc
 CFLAGS += -pipe -fstack-protector
 __NetBSD__ = 1
 __GNUC__ = 2
-.endif
-.if defined(HOSTNAME) && $(HOSTNAME) == "proven-bind8"
+__GNULD__ = 2
+
+.elif defined(HOSTNAME) && $(HOSTNAME) == "proven-bind8"
+
 PREFIX ?= /usr/pkg
 CC = PATH=/usr/pkg/gcc-ssp/bin:$$PATH /usr/pkg/gcc-ssp/bin/cc
 CFLAGS += -pipe -fstack-protector
-CPPFLAGS += -I$(PREFIX)/bind/include
+CPPFLAGS += -I$(PREFIX)/bind/include -DHOST_RES_SEND
 LDFLAGS += -L$(PREFIX)/lib
 LDADD += -lbind
 __NetBSD__ = 1
 __GNUC__ = 2
+__GNULD__ = 2
+
 .endif
 
 CPPFLAGS += -DDEBUG
@@ -53,7 +66,10 @@ SRCS =	main.c info.c list.c addr.c geth.c util.c misc.c test.c \
 HEADERS = port.h conf.h exit.h type.h rrec.h defs.h host.h glob.h
 
 SCRIPT_SRCS = nscheck.sh nslookup.sh mxlookup.sh rblookup.sh
-SCRIPTS = nscheck nslookup mxlookup rblookup
+SCRIPTS = nscheck mxlookup rblookup
+.if defined(FAKE_NSLOOKUP)
+SCRIPTS += nslookup
+.endif
 
 DOCS =	RELEASE_NOTES
 MISCS = malloc.c README_NT
@@ -67,6 +83,8 @@ NO_WERROR = 1
 # Take control of our own warning flags (WARNS=2 is not yet appropriate)
 WARNS = 0
 
+__GNUC__ ?= 1
+.if $(__GNUC__) >= 1
 # no, we're not that pedantic!
 #CWARNFLAGS += -pedantic
 #
@@ -80,6 +98,7 @@ CWARNFLAGS += -Wswitch
 CWARNFLAGS += -Wcomment
 #
 # in addition to -Wall
+CWARNFLAGS += -Wtraditional
 CWARNFLAGS += -Wcast-qual
 # -Wid-clash-LEN is sadly no longer supported in 3.2.2
 CWARNFLAGS += -Wid-clash-30
@@ -91,38 +110,50 @@ CWARNFLAGS += -Wshadow
 #
 # this isn't mentioned in 1.42's manual but causes no error
 CWARNFLAGS += -Wstrict-prototypes
+.endif
 
-__GNUC__ ?= 1
 .if $(__GNUC__) >= 2
 CWARNFLAGS += -Waggregate-return
+CWARNFLAGS += -Wcast-align
 CWARNFLAGS += -Wchar-subscripts
 CWARNFLAGS += -Wconversion
 CWARNFLAGS += -Wmissing-declarations
 CWARNFLAGS += -Wmissing-prototypes
-CWARNFLAGS += -Wno-format-extra-args
+CWARNFLAGS += -Wno-long-long
 # the rest aren't in the manual, but work on at least 2.9x.x
-# -Wundef isn't in 2.7.2, but if you're still using 2.7.2 you may be
-# suffering from far more bugs and problems than you might know!
+CWARNFLAGS += -Wformat-extra-args
+# -Wundef isn't in 2.7.2, but then again if you're still using 2.7.2
+# you may be suffering from far more code generation bugs and other
+# compiler problems than you might know!
 CWARNFLAGS += -Wundef
 CWARNFLAGS += -Wlarger-than-65536
 CWARNFLAGS += -Wbad-function-cast
 .endif
+
 .if $(__GNUC__) >= 3
 # Yuck:  this is broken in at least 3.2.2...
 #CWARNFLAGS += -Wunreachable-code
 .endif
 
-WFORMAT = 0
-.if defined(__NetBSD__) && $(CC) == "cc"
+#WFORMAT = 0
+.if defined(__NetBSD__) && defined(__GNUC__) && $(CC) == "cc"
 # Some magic is missing -- I can't get this to shut up....
-CWARNFLAGS += -Wnetbsd-format-audit
-.elif defined(__FreeBSD__)
+#CWARNFLAGS += -Wnetbsd-format-audit
+.elif defined(__FreeBSD__) && defined(__GNUC__)
 # Some magic is missing -- I can't get this to shut up....
-CWARNFLAGS += -Wnon-const-format
+#CWARNFLAGS += -Wnon-const-format
 .endif
 
 .if !defined(__NetBSD__) && !defined(__FreeBSD__)
 CFLAGS += $(CWARNFLAGS)
+.endif
+
+__GNULD__ ?= 1
+.if $(__GNULD__) >= 1
+LDFLAGS += -W
+LDFLAGS += -Wall
+LDFLAGS += -Wid-clash-30
+LDFLAGS += -Wl,--warn-common
 .endif
 
 SOELIM = soelim
@@ -133,7 +164,7 @@ SOELIM = soelim
 
 .sh:
 	@rm -f $@
-	sed -e 's,@BINDIR@,$(BINDIR),g' -e 's,@CONFDIR@,$(CONFDIR),g' < $@.sh > $@
+	sed -e 's,@BINDIR@,$(BINDIR),g' -e 's,@CONFDIR@,$(CONFDIR),g' < ${.CURDIR}/$@.sh > $@
 	chmod +x $@
 
 .if !target(clobber)
