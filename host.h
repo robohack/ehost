@@ -4,7 +4,7 @@
 ** from: @(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: host.h,v 1.12 2003-05-17 00:56:20 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.13 2003-06-04 20:09:36 -0800 woods Exp $"
 
 #if defined(apollo) && defined(lint)
 # define __attribute(x)		/* XXX ??? */
@@ -120,13 +120,14 @@
 # define PACKETSZ	512		/* UDP packet RFC 1035 §2.3.4 */
 #endif
 
-#define MAXINT8		255		/* 2^8 */
-#define MAXINT16	65535		/* 2^16 */
+#define MAXINT16	65536		/* 2^16 */
 
-#if PACKETSZ > MAXINT16
-# define MAXPACKET	PACKETSZ
-#else
-# define MAXPACKET	MAXINT16	/* maximum TCP answer length... RFC 1035 §4.2.2 */
+#if !defined(MAXPACKET)
+# if PACKETSZ > MAXINT16
+#  define MAXPACKET	PACKETSZ
+# else
+#  define MAXPACKET	MAXINT16	/* maximum TCP answer length... RFC 1035 §4.2.2 */
+# endif
 #endif
 
 #ifndef HFIXEDSZ
