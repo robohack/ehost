@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.11 2003-11-01 01:21:58 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.12 2004-10-17 18:39:50 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)geth.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -135,7 +135,11 @@ geth_byaddr(addr, size, family)
 /* ARGSUSED */
 void
 geth_freehostent(hp)
-	struct hostent *hp;			/* UNUSED if !HAVE_FREEHOSTENT */
+	struct hostent *hp
+#if !defined(HAVE_FREEHOSTENT)
+		GCC_UNUSED_HACK
+#endif
+	;
 {
 #if defined(HAVE_FREEHOSTENT)
 	freehostent(hp);

@@ -3,7 +3,7 @@
 **
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.16 2003-06-05 01:00:07 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.17 2004-10-17 18:39:50 -0800 woods Exp $"
 /*
  * from: @(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
  */
@@ -462,4 +462,11 @@ HANDLE hReadWriteEvent;
 # define VA_START(args, lastarg)       va_start(args, lastarg)
 #else
 # define VA_START(args, lastarg)       va_start(args)
+#endif
+
+/* adapt for GCC's lack of adherence to lint's standard ARGSUSED comment */
+#ifdef __GNUC__
+# define GCC_UNUSED_HACK	__attribute__((unused))
+#else
+# define GCC_UNUSED_HACK	/* nothing */
 #endif
