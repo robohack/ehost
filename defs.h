@@ -4,6 +4,8 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.2 2002-01-11 22:32:12 -0800 woods Exp $"
+
 /*
 ** Internal modules of the host utility
 ** ------------------------------------
@@ -95,7 +97,7 @@ void clear_stats	PROTO((int *));
 void show_types		PROTO((char *, int, int));
 void ns_error		PROTO((char *, int, int, char *));
 char *decode_error	PROTO((int));
-void print_answer	PROTO((querybuf *, int));
+void print_answer	PROTO((querybuf *, int, int));
 void pr_error		PROTO((char *, ...));
 void pr_warning		PROTO((char *, ...));
 void pr_timestamp	PROTO((char *, ...));
