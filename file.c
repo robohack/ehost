@@ -17,13 +17,14 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: file.c,v 1.9 2003-04-03 18:29:26 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: file.c,v 1.10 2003-04-03 23:20:39 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)file.c	e07@nikhef.nl (Eric Wassenaar) 991529";
 #endif
 
 #include "host.h"
+#include "glob.h"
 
 #define MAXCACHENAME	(4 + 2 + MAXDNAME)	/* NNNN/Xdomainname */
 
@@ -120,7 +121,7 @@ cache_open(name, create)
 	 */
 	if (!create) {
 		if ((cachefd = open(cachefile, O_RDONLY, 0)) < 0) {
-			if (errno != ENOENT)
+			if (errno != ENOENT || debug || verbose)
 				cache_perror("Cannot open", cachefile);
 			return (-1);
 		}
@@ -360,12 +361,10 @@ cache_read(buf, bufsize)
 	 */
 	reslen = 0;
 	if ((size_t) len > bufsize) {
-#if 0
-		if (bitset(RES_DEBUG, _res.options)) {
-			fprintf(stderr, "%sanswer length %u bytes, bufsize only %lu bytes\n",
-				dbprefix, (unsigned int) len, (unsigned long) bufsize);
+		if (bitset(RES_DEBUG, _res.options) || debug || verbose ) {
+			fprintf(stderr, "%s: answer length %u bytes, bufsize only %lu bytes\n",
+				cachefile, (unsigned int) len, (unsigned long) bufsize);
 		}
-#endif
 		reslen = len - bufsize;
 	}
 
