@@ -1,2 +1,16 @@
 - check that the names in the answer records match the names we asked
   for (taking CNAMEs into account where they're allowed).
+
+- allow for setting the (stream) read timeout (conn_timeout) at runtime.
+
+- use setservbyname() to get the local NAMESERVER_PORT value.
+
+- allow runtime specification of destination port in server with ':PORT'
+
+- allow runtime specification of source port with '-O'
+
+- clean up the host_res_*() mess.
+
+- build a regression test suite.
+
+- think about using autobuild.
