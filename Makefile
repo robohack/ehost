@@ -1,5 +1,5 @@
 #
-#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.14 2003-05-27 19:38:36 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.15 2003-06-04 06:45:02 -0800 woods Exp $"
 #
 # from:	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 991515
 
@@ -330,7 +330,7 @@ clobber: clean
 
 .sh:
 	@rm -f $@
-	sed -e 's,@BINDIR@,$(BINDIR),g' -e 's,@CONFDIR@,$(CONFDIR),g' < $@.sh > $@
+	sed -e 's,@CONFDIR@,$(CONFDIR),g' < $@.sh > $@
 	chmod +x $@
 
 # ----------------------------------------------------------------------
