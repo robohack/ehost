@@ -4,7 +4,7 @@
 **	These define the various resource record fields after decoding
 **	from the internal representation in the nameserver answer buffer.
 **
-**	@(#)rrec.h              e07@nikhef.nl (Eric Wassenaar) 941205
+**	@(#)rrec.h              e07@nikhef.nl (Eric Wassenaar) 960417
 */
 
 #define MAXSTRING 255		/* maximum size of single encoded string */
@@ -140,6 +140,10 @@ typedef struct gpos_data {
 	char altpos[MAXSTRING+1];	/* geographical altitude */
 } gpos_data_t;
 
+typedef struct aaaa_data {
+	u_char ipngaddr[IPNGSIZE];	/* binary ip v6 address */
+} aaaa_data_t;
+
 typedef struct loc_data {
 	int locversion;			/* version number */
 	int objectsize;			/* size of object */
@@ -204,6 +208,7 @@ typedef struct rrecord {
 		nsapptr_data_t	data_nsapptr;
 		px_data_t	data_px;
 		gpos_data_t	data_gpos;
+		aaaa_data_t	data_aaaa;
 		loc_data_t	data_loc;
 		uinfo_data_t	data_uinfo;
 		uid_data_t	data_uid;
@@ -238,6 +243,7 @@ typedef struct rrecord {
 #define t_nsapptr	data.data_nsapptr
 #define t_px		data.data_px
 #define t_gpos		data.data_gpos
+#define t_aaaa		data.data_aaaa
 #define t_loc		data.data_loc
 #define t_uinfo		data.data_uinfo
 #define t_uid		data.data_uid

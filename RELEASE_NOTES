@@ -1,4 +1,4 @@
-	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 951231
+	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 960512
 
 yymmdd		Description of changes per release
 TODO		Things that still need to be done
@@ -9,6 +9,44 @@ MISC		Miscellaneous reminders
 # ----------------------------------------------------------------------
 # Description of changes per release
 # ----------------------------------------------------------------------
+
+960512
+	Allocate list of host data dynamically.
+		This avoids the MAXHOSTS static limit, and keeps the
+		initial BSS of the executable to a reasonable size.
+		Mentioned by Greg Woods <woods@most.weird.com>
+		The list will be expanded in chunks as needed during
+		zone transfers, but will not shrink again.
+	Escape special characters within quoted strings.
+		Data fields of TXT/HINFO/UINFO records are printed as
+		quoted strings. Some special embedded characters should
+		be backslash-escaped in the output format.
+	Properly handle tcp packet overflow.
+		If the supplied answer buffer space is insufficient to
+		store the entire answer, res_send() is supposed to
+		return the length of the entire untruncated answer, not
+		the number of bytes that are actually available.
+	Increase MAXPACKET packet buffer size.
+		This is now set to the maximum value used internally
+		by the BIND named. The same value is used by dig.
+		Although still static, it should be sufficient.
+	Miscellaneous changes.
+		Show the length of the received answer in various debug
+		messages. This gives some insight in case of truncation.
+
+960417
+	Rudimentary support for AAAA RR.
+		Just decode and print the ip v6 address during regular
+		RR type processing, in the most straightforward way.
+		No provisions for reverse lookups yet.
+	Increase MAXPACKET packet buffer size.
+		The traditional value 1024 for the (tcp) packet size is
+		no longer sufficient (see moderators.uu.net MX records).
+	Miscellaneous changes.
+		In verbose mode, show the number of bytes in the answer
+		if it exceeds the (udp) packet size PACKETSZ (512), or
+		in case the answer is truncated. Print the truncation
+		indication at a more appropriate position.
 
 951231
 	Cosmetic changes.
@@ -106,7 +144,7 @@ MISC		Miscellaneous reminders
 950427
 	Fix glitch in host name lookup.
 		New entry would be inadvertently added to the hash
-		lish in case the MAXHOSTS limit was reached.
+		list in case the MAXHOSTS limit was reached.
 	Miscellaneous changes.
 		Speedup comparison of zone names and host names by
 		looking up zone names in the host name hash list.

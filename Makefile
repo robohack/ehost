@@ -1,4 +1,4 @@
-#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 951230
+#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 960417
 
 # ----------------------------------------------------------------------
 # Adapt the installation directories to your local standards.
@@ -62,10 +62,10 @@ CONFIGDEFS = -DHOST_RES_SEND
 # were used to build the resolver library you are linking with.
 # ----------------------------------------------------------------------
 
-INCL = ../include
+INCL = ../../include
 INCL = .
 
-COMPINCL = ../compat/include
+COMPINCL = ../../compat/include
 COMPINCL = .
 
 INCLUDES = -I$(INCL) -I$(COMPINCL)
@@ -103,10 +103,10 @@ CC = cc
 
 RES = -lsocket				#if defined(SCO) && default
 RES =
-RES = ../res/libresolv.a
+RES = ../../res/libresolv.a
 RES = -lresolv
 
-COMPLIB = ../compat/lib/lib44bsd.a
+COMPLIB = ../../compat/lib/lib44bsd.a
 COMPLIB = -lnet
 COMPLIB =
 

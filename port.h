@@ -1,7 +1,7 @@
 /*
 ** Various portability definitions.
 **
-**	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 950925
+**	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 960417
 */
 
 #if defined(SYSV) || defined(SVR4)
@@ -20,10 +20,8 @@
 #define BIND_48
 #endif
 
-#if defined(BIND_49)
-#if defined(__BIND)
+#if defined(BIND_49) && defined(__BIND)
 #define BIND_493
-#endif
 #endif
 
 /*
@@ -41,6 +39,8 @@
 #ifndef INADDRSZ
 #define	INADDRSZ	4	/* for sizeof(struct inaddr) != 4 */
 #endif
+
+#define	IPNGSIZE	16	/* 128 bit ip v6 address size */
 
 /*
 ** The following should depend on existing definitions.

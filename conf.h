@@ -1,7 +1,7 @@
 /*
 ** Various configuration definitions.
 **
-**	@(#)conf.h              e07@nikhef.nl (Eric Wassenaar) 951230
+**	@(#)conf.h              e07@nikhef.nl (Eric Wassenaar) 960512
 */
 
 /*
@@ -10,11 +10,13 @@
  */
 
 #if !defined(HOST_RES_SEND) && !defined(BIND_RES_SEND)
+
 #if defined(BIND_49)
 #define BIND_RES_SEND		/* use the default BIND res_send() */
 #else
 #define HOST_RES_SEND		/* use the special host res_send() */
 #endif
+
 #endif
 
 /*
@@ -22,6 +24,14 @@
  */
 
 #define ARPA_ROOT	"in-addr.arpa"
+
+/*
+ * The root domain for the IP v6 reversed mapping zones as per RFC 1886.
+ */
+
+#ifndef IPNG_ROOT
+#define IPNG_ROOT	"ip6.int"
+#endif
 
 /*
  * The root domain for the NSAP reversed mapping zones as per RFC 1637.
@@ -38,19 +48,18 @@
 #define MAXNSAP		20	/* maximum size of encoded NSAP address */
 
 /*
+ * Version number of T_LOC resource record.
+ */
+
+#define T_LOC_VERSION	0	/* must be zero */
+
+/*
  * Miscellaneous constants.
  */
 
 #define MAXADDRS	35	/* max address count from gethostnamadr.c */
 #define MAXNSNAME	16	/* maximum count of nameservers per zone */
 #define MAXIPADDR	10	/* maximum count of addresses per nameserver */
-#define MAXHOSTS	65536	/* maximum count of hostnames per zone */
-
-/*
- * Version number of T_LOC resource record.
- */
-
-#define T_LOC_VERSION	0	/* must be zero */
 
 /*
  * Prefix for messages on stdout in debug mode.
