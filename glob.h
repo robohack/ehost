@@ -4,7 +4,7 @@
 **	@(#)glob.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: glob.h,v 1.7 2003-04-06 03:12:32 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: glob.h,v 1.8 2003-12-01 20:18:12 -0800 woods Exp $"
 
 #ifdef _DEFINE
 # define GLOBAL
@@ -99,6 +99,7 @@ GLOBAL bool_t loading;		/* really load zone data from local cache */
 GLOBAL bool_t loadzone;		/* should load zone data from local cache */
 GLOBAL bool_t mailmode;		/* trace MG and MR into MB records */
 GLOBAL bool_t mxdomains;	/* list MX records for each delegated zone */
+GLOBAL bool_t norecurs;		/* don't enable recursion in queries */
 GLOBAL bool_t parent;		/* use nameservers for parent zone for queries */
 GLOBAL bool_t primary;		/* use the primary nameserver for queries */
 GLOBAL bool_t quick;		/* disable time consuming special checks */
