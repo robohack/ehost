@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.13 2003-04-04 21:41:17 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.14 2003-04-04 22:39:14 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1550,7 +1550,7 @@ host_query(name, addr)
 				continue;
 			}
 		} else {
-			if ((hp = geth_byaddr((char *) &inaddr, INADDRSZ, AF_INET))) {
+			if ((hp = geth_byaddr((char *) &inaddr, (socklen_t) INADDRSZ, AF_INET))) {
 				print_host("Name", hp);
 				result = TRUE;
 			}

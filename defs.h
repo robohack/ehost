@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.14 2003-04-04 21:40:53 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.15 2003-04-04 22:38:01 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -80,7 +80,7 @@ bool_t check_name	__P((ipaddr_t));
 	/* geth.c */
 
 struct hostent *geth_byname	__P((const char *));
-struct hostent *geth_byaddr	__P((const char *, size_t, int));
+struct hostent *geth_byaddr	__P((const char *, socklen_t, int));
 
 	/* util.c */
 
