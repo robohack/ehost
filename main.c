@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.9 2003-03-30 20:51:41 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.10 2003-03-31 21:57:48 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -705,6 +705,7 @@ main(argc, argv)
 				printf("Host version %s, unknown resolver version\n", version);
 #endif
 				exit(EX_OK);
+				/* NOTREACHED */
 
 			default:
 				fatal(Usage);
