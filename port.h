@@ -4,7 +4,7 @@
 **	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.4 2003-03-29 02:54:47 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.5 2003-03-29 03:13:36 -0800 woods Exp $"
 
 #if defined(__SVR4) || defined(__svr4__)
 # define SVR4
@@ -95,7 +95,9 @@
 
 typedef int		bool_t;		/* boolean type */
 
+#undef TRUE				/* SunOS-5 defines this in <rpc/types.h> */
 #define TRUE		1
+#undef FALSE				/* SunOS-5 defines this in <rpc/types.h> */
 #define FALSE		0
 
 #if defined(BIND_4_8) || defined(OLD_RES_STATE)
@@ -149,8 +151,8 @@ typedef int	free_t;
 #endif
 
 #ifdef SYSV_MEMSET
-# define bzero(a,n)	(void) memset(a,'\0',n)
-# define bcopy(a,b,n)	(void) memcpy(b,a,n)
+# define bzero(a, n)	(void) memset(a, '\0', n)
+# define bcopy(a, b, n)	(void) memcpy(b, a, n)
 #endif
 
 #ifdef SYSV_STRCHR
@@ -171,20 +173,20 @@ typedef int	free_t;
 #endif
 
 #ifdef fp_nquery
-# define pr_query(a,n,f)	fp_nquery(a, n, f)
+# define pr_query(a, n, f)	fp_nquery(a, n, f)
 #else
-# define pr_query(a,n,f)	fp_query(a, f)
+# define pr_query(a, n, f)	fp_query(a, f)
 #endif
 
 #if defined(sun) && defined(NO_YP_LOOKUP)
-#define gethostbyname	(struct hostent *) res_gethostbyname
-#define gethostbyaddr	(struct hostent *) res_gethostbyaddr
+# define gethostbyname	(struct hostent *) res_gethostbyname
+# define gethostbyaddr	(struct hostent *) res_gethostbyaddr
 #endif
 
 #if defined(SVR4)
-#define jmp_buf		sigjmp_buf
-#define setjmp(e)	sigsetjmp(e, 1)
-#define longjmp(e,n)	siglongjmp(e, n)
+# define jmp_buf	sigjmp_buf
+# define setjmp(e)	sigsetjmp(e, 1)
+# define longjmp(e, n)	siglongjmp(e, n)
 #endif
 
 /*
@@ -192,69 +194,69 @@ typedef int	free_t;
 */
 
 #if defined(WINNT)
-#define NO_CONNECTED_DGRAM
+# define NO_CONNECTED_DGRAM
 #endif
 
 #if defined(WINNT)
-#undef  linebufmode
-#define linebufmode(a)	(void) setvbuf(a, (char *) NULL, _IONBF, 0)
+# undef  linebufmode
+# define linebufmode(a)	(void) setvbuf(a, (char *) NULL, _IONBF, 0)
 #endif
 
 #if defined(WINNT)
-#ifndef strcasecmp
-#define strcasecmp	_stricmp
-#endif
-#ifndef strncasecmp
-#define strncasecmp	_strnicmp
-#endif
+# ifndef strcasecmp
+#  define strcasecmp	_stricmp
+# endif
+# ifndef strncasecmp
+#  define strncasecmp	_strnicmp
+# endif
 #endif /*WINNT*/
 
 #if defined(WINNT)
-#define setalarm(n)
-#define setsignal(s,f)
+# define setalarm(n)
+# define setsignal(s, f)
 #else
-#define setalarm(n)	(void) alarm((unsigned int) (n))
-#define setsignal(s,f)	(void) signal(s, f)
+# define setalarm(n)		(void) alarm((unsigned int) (n))
+# define setsignal(s, f)	(void) signal(s, f)
 #endif
 
 #if defined(WINNT)
-#ifndef errno
-#define errno		WSAGetLastError()
-#endif
-#ifndef h_errno
-#define h_errno		WSAGetLastError()
-#endif
+# ifndef errno
+#  define errno		WSAGetLastError()
+# endif
+# ifndef h_errno
+#  define h_errno	WSAGetLastError()
+# endif
 #endif /*WINNT*/
 
 #if defined(WINNT)
-#define seterrno(n)	WSASetLastError(n)
-#define seth_errno(n)	WSASetLastError(n)
+# define seterrno(n)	WSASetLastError(n)
+# define seth_errno(n)	WSASetLastError(n)
 #else
-#define seterrno(n)	errno = (n)
-#define seth_errno(n)	h_errno = (n)
+# define seterrno(n)	errno = (n)
+# define seth_errno(n)	h_errno = (n)
 #endif
 
 #if defined(WINNT)
-#undef  EINTR
-#define EINTR		WSAEINTR
-#undef  EWOULDBLOCK
-#define EWOULDBLOCK	WSAEWOULDBLOCK
-#undef  ETIMEDOUT
-#define ETIMEDOUT	WSAETIMEDOUT
-#undef  ECONNRESET
-#define ECONNRESET	WSAECONNRESET
-#undef  ECONNREFUSED
-#define ECONNREFUSED	WSAECONNREFUSED
-#undef  ENETDOWN
-#define ENETDOWN	WSAENETDOWN
-#undef  ENETUNREACH
-#define ENETUNREACH	WSAENETUNREACH
-#undef  EHOSTDOWN
-#define EHOSTDOWN	WSAEHOSTDOWN
-#undef  EHOSTUNREACH
-#define EHOSTUNREACH	WSAEHOSTUNREACH
-#undef  EADDRINUSE
-#define EADDRINUSE	WSAEADDRINUSE
+# undef  EINTR
+# define EINTR		WSAEINTR
+# undef  EWOULDBLOCK
+# define EWOULDBLOCK	WSAEWOULDBLOCK
+# undef  ETIMEDOUT
+# define ETIMEDOUT	WSAETIMEDOUT
+# undef  ECONNRESET
+# define ECONNRESET	WSAECONNRESET
+# undef  ECONNREFUSED
+# define ECONNREFUSED	WSAECONNREFUSED
+# undef  ENETDOWN
+# define ENETDOWN	WSAENETDOWN
+# undef  ENETUNREACH
+# define ENETUNREACH	WSAENETUNREACH
+# undef  EHOSTDOWN
+# define EHOSTDOWN	WSAEHOSTDOWN
+# undef  EHOSTUNREACH
+# define EHOSTUNREACH	WSAEHOSTUNREACH
+# undef  EADDRINUSE
+# define EADDRINUSE	WSAEADDRINUSE
 #endif /*WINNT*/
 
 #if defined(WINNT)
@@ -262,22 +264,26 @@ HANDLE hReadWriteEvent;
 #endif
 
 #if defined(WINNT) && !defined(__STDC__)
-#define __STDC__
+# define __STDC__
 #endif
 
-#ifndef __P				/* in *BSD's <sys/cdefs.h>, included by everything!  */
-# if defined(__STDC__) || defined(__cplusplus)
+#ifndef __P		/* in *BSD's <sys/cdefs.h>, included by everything! */
+# if ((__STDC__ - 0) > 0) || defined(__cplusplus)
 #  define __P(protos)	protos		/* full-blown ANSI C */
-# else	/* !(__STDC__ || __cplusplus) */
+# else
 #  define __P(protos)	()		/* traditional C */
 # endif
 #endif
 
-#ifndef volatile			/* in *BSD's <sys/cdefs.h>, included by everything!  */
-# if defined(__STDC__) || defined(__cplusplus)
-#  define volatile	volatile
-# else	/* !(__STDC__ || __cplusplus) */
-#  define volatile	/* most compilers won't optimize global variables */
+#ifndef const		/* in *BSD's <sys/cdefs.h>, included by everything! */
+# if ((__STDC__ - 0) <= 0) || defined(apollo)
+#  define const		/* NOTHING */
+# endif
+#endif
+
+#ifndef volatile	/* in *BSD's <sys/cdefs.h>, included by everything! */
+# if !defined(__STDC__) && !defined(__cplusplus)/* ((__STDC__ - 0) > 0) ??? */
+#  define volatile	/* NOTHING most compilers won't optimize global variables */
 # endif
 #endif
 
@@ -285,8 +291,4 @@ HANDLE hReadWriteEvent;
 # define VA_START(args, lastarg)       va_start(args, lastarg)
 #else
 # define VA_START(args, lastarg)       va_start(args)
-#endif
-
-#if ((__STDC__ - 0) <= 0) || defined(apollo)
-# define const				/* NOTHING */
 #endif
