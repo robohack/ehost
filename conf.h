@@ -4,7 +4,7 @@
 **	@(#)conf.h              e07@nikhef.nl (Eric Wassenaar) 961013
 */
 
-#ident "@(#)host:$Name:  $:$Id: conf.h,v 1.5 2003-04-06 03:11:07 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: conf.h,v 1.6 2003-06-05 01:07:37 -0800 woods Exp $"
 
 /*
  * The root domain for the internet reversed mapping zones.
@@ -62,13 +62,13 @@
 
 #define MAXCHAIN	10	/* maximum count of recursive chain lookups */
 #define MAXNSNAME	16	/* maximum count of nameservers per zone */
-#define MAXIPADDR	10	/* maximum count of addresses per nameserver */
+#define MAXIPADDR	MAXADDRS /* maximum count of addresses per nameserver */
 
 /*
- * Default timeout values.
+ * Default retry & timeout values.
  */
 
 #define DEF_RETRIES	2	/* number of datagram retries per nameserver */
 #define DEF_RETRANS	5	/* timeout (seconds) between datagram retries */
-#define CONNTIMEOUT	5	/* connect timeout (value _res.retrans used) */
-#define READTIMEOUT	60	/* read timeout (seconds) during stream I/O */
+
+#define DEF_STRM_TMOUT	120	/* read timeout (seconds) for stream I/O */
