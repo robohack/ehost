@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.5 2003-03-29 19:49:52 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.6 2003-03-30 20:49:21 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)geth.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -84,9 +84,9 @@ geth_byaddr(addr, size, family)
 	register int n;
 
 	if (size != INADDRSZ || family != AF_INET)
-		return gethostbyaddr(addr, size, family);
+		return gethostbyaddr(addr, (geth_sz_t) size, family);
 
-	if ((hp = gethostbyaddr(addr, size, family)))
+	if ((hp = gethostbyaddr(addr, (geth_sz_t) size, family)))
 		return (hp);
 
 	/* construct absolute reverse name *without* trailing dot */
@@ -104,5 +104,5 @@ geth_byaddr(addr, size, family)
 	if ((verbose > print_level + 1) && (print_level < 1))
 		(void) print_info(&answer, n, name, T_PTR, C_IN, FALSE);
 
-	return gethostbyaddr(addr, size, family);
+	return gethostbyaddr(addr, (geth_sz_t) size, family);
 }
