@@ -1,0 +1,88 @@
+#
+#	Makefile.BSD - input for pmake (for use in base OS or pkgsrc)
+#
+# Define control variables on the command-line as necessary.
+#
+#	make -f Makefile.BSD __NetBSD__=1 __GNUC__=2
+#
+#ident	"@(#)newsyslog:$Name:  $:$Id: Makefile.BSD,v 1.1 2003-03-30 20:56:01 -0800 woods Exp $"
+#
+
+CPPFLAGS += -DDEBUG
+
+PREFIX ?= /usr
+
+BINDIR ?= ${PREFIX}/bin
+BINOWN ?= root
+
+MANDIR ?= ${PREFIX}/share/man/man1
+
+PROG =	host
+
+SRCS =	main.c info.c list.c addr.c geth.c util.c misc.c test.c \
+	file.c send.c vers.c
+
+HEADERS = port.h conf.h exit.h type.h rrec.h defs.h host.h glob.h
+
+DOCS =	RELEASE_NOTES
+MISCS = malloc.c README_NT
+
+SCRIPT_SRCS = nscheck.sh nslookup.sh mxlookup.sh rblookup.sh
+SCRIPTS = nscheck nslookup mxlookup rblookup
+
+FILES =	${PROG} ${SCRIPTS}
+
+ALL_FILES = Makefile $(DOCS) $(HDRS) $(SRCS) $(MANS) $(UTILS) $(MISCS)
+
+# GCC apparently has buggy parameter width detection
+NOGCCERROR = 1
+NO_WERROR = 1
+
+# Take control of our own warning flags (WARNS=2 is not yet appropriate)
+WARNS = 0
+CWARNFLAGS += -Wall
+CWARNFLAGS += -Wshadow
+CWARNFLAGS += -Wswitch
+CWARNFLAGS += -Wreturn-type
+CWARNFLAGS += -Wpointer-arith
+CWARNFLAGS += -Wimplicit
+CWARNFLAGS += -Wcast-qual
+CWARNFLAGS += -Wstrict-prototypes
+# not ready for full const-ification yet...
+#CWARNFLAGS += -Wwrite-strings
+
+__GNUC__ ?= 1
+.if $(__GNUC__) >= 2
+CWARNFLAGS += -Wconversion
+CWARNFLAGS += -Wmissing-declarations
+CWARNFLAGS += -Wmissing-prototypes
+CWARNFLAGS += -Wno-format-extra-args
+.endif
+
+WFORMAT = 0
+.if defined(__NetBSD__)
+# Some magic is missing -- I can't get this to shut up....
+#CWARNFLAGS += -Wnetbsd-format-audit
+.elif defined(__FreeBSD__)
+# Some magic is missing -- I can't get this to shut up....
+#CWARNFLAGS += -Wnon-const-format
+.endif
+
+.if defined(__bsdi__) || defined(bsd4_4)
+CFLAGS += $(CWARNFLAGS)
+.endif
+
+SOELIM = soelim
+
+.SUFFIXES: .5so .5
+
+.include <bsd.prog.mk>
+
+.sh:
+	@rm -f $@
+	sed -e 's,@BINDIR@,$(BINDIR),g' -e 's,@CONFDIR@,$(CONFDIR),g' < $@.sh > $@
+	chmod +x $@
+
+.if !target(clobber)
+clobber: .NOTMAIN cleandir
+.endif
