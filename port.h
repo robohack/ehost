@@ -3,7 +3,7 @@
 **
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.15 2003-05-17 01:02:49 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.16 2003-06-05 01:00:07 -0800 woods Exp $"
 /*
  * from: @(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
  */
@@ -73,23 +73,15 @@
 */
 
 /*
- * GNU LibC has a horrible mis-mash of half-baked header files and mangled
- * resolver subroutines, at least as of 2.3.x.  E.g. there's a __NAMESER define
- * in <netdb.h> indicating it to be BIND-8 compatible, but there's no
- * getipnodebyname() in sight.  If we remove the __NAMESER definition then
- * we'll just fall back to assuming BIND-4 compatability, and that does, for
- * now, seem to be true enough.
- */
-#if defined(__NAMESER) && defined(__GLIBC__)
-# undef __NAMESER		/* bloody lying bastards! */
-#endif
-
-/*
  * Every other conceivable version of the BIND-based resolvers should have one
  * or both of __BIND and/or __NAMESER defined to define their API version.
  */
 #if !defined(__BIND) && !defined(__NAMESER)
-# define BIND_4_8	1
+# define BIND_4_8	1	/* XXX this should be ``#include "ERROR!!!"''*/
+#endif
+
+#if !defined(__RES)
+# define __RES		0	/* XXX this should be ``#include "ERROR!!!"''*/
 #endif
 
 /*
@@ -135,6 +127,7 @@ typedef int		bool_t;		/* boolean type */
 # define STDERR_FILENO	2
 #endif
 
+/* XXX should this use __RES instead of __NAMESER?  In addition to? */
 #if !defined(HAVE_INET_ATON) && \
     ((defined(__BIND) && (__BIND - 0) >= 19950621) || \
      (defined(__NAMESER) && (__NAMESER - 0) >= 19961001) || \
@@ -148,10 +141,20 @@ typedef int		bool_t;		/* boolean type */
  *
  * FreeBSD added getipnodeby*() separately, obtaining them from KAME, but
  * without adjusting their resolver API version number (leaving it at the
- * BIND-8.1.2 level)
+ * BIND-8.1.2 level of 19961001)
+ *
+ * GNU LibC has a horrible mis-mash of half-baked header files and mangled
+ * resolver subroutines, at least as of 2.3.x.  E.g. there's a __NAMESER define
+ * in <arpa/nameser.h> indicating it to be BIND-8.2.2 compatible (19991006), but
+ * there's no getipnodebyname() in sight.  __RES is also defined as 19991006.
+ * Even worse the GLIBC implementation of gethostbyaddr() is totally broken and
+ * does not return multiple PTRs.
+ *
+ * PLEASE always build and link against BIND-8.4.0 or newer!
  */
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006 || \
-                           defined(__FreeBSD__) && (__NAMESER - 0) >= 19961001)
+#if defined(__NAMESER) && (!defined(__GLIBC__) || ((__RES - 0) > 19991006)) && \
+	((__NAMESER - 0) >= 19991006 || \
+	 (defined(__FreeBSD__) && (__NAMESER - 0) >= 19961001))
 # define HAVE_GETIPNODEBYNAME	1
 # define HAVE_GETIPNODEBYADDR	1
 # define HAVE_FREEHOSTENT	1
@@ -164,11 +167,13 @@ typedef int		bool_t;		/* boolean type */
  * resolver with non-DNS lookup methods (especially if the target system 'host'
  * will be run on uses such foreign schemes -- host is intended to be used only
  * with the DNS)
+ *
+ * NOTE:  -DHOST_RES_SEND will not usually work with newer BIND-8 libbind.
  */
 #if !defined(HOST_RES_SEND) && \
     (!defined(__BIND) || (__BIND - 0) < 19950621) && \
     (!defined(__NAMESER) || (__NAMESER - 0) < 19961001)
-#  define HOST_RES_SEND	1	/* use the special host res_send() */
+# define HOST_RES_SEND	1	/* use the special host res_send() */
 #endif
 
 /*
@@ -217,7 +222,13 @@ typedef char		nbuf_t;
 typedef u_char		nbuf_t;
 #endif
 
-#if !defined(__NAMESER) && !defined(__GLIBC__)
+/*
+ * I'm not sure when GNU LibC first got ns_*t*(), but for certain 2.1 with
+ * __BIND at 19960801 doesn't have them.
+ */
+#if !defined(__NAMESER) && \
+    (!defined(__GLIBC__) || \
+     (defined(__GLIBC__) && defined(__BIND) && (__BIND - 0) <= 19960801))
 # define ns_get16(src)		_getshort(src)
 # define ns_get32(src)		_getlong(src)
 # define ns_put16(src, dst)	__putshort((unsigned short) src, dst)
@@ -235,20 +246,34 @@ typedef unsigned long	ipaddr_t;
 
 /*
  * FreeBSD (and Darwin in its image) is a bit brain-dead in the way they do
- * this and still follow the ancient 4.4BSD style of using the fact that
- * _BSD_SOCKLEN_T_ is NOT defined in order to typedef socklen_t at the earliest
- * point it's needed.  However they leave no means for applications to know if
- * the typedef has already been done.
+ * their multiple typedef avoidance -- i.e. they still follow the ancient
+ * 4.4BSD style of using the fact that _BSD_SOCKLEN_T_ is NOT defined in order
+ * to typedef socklen_t at the earliest point it's needed.  However they leave
+ * no means for applications to know if the typedef has already been done.
+ *
+ * The most elegant way to protect typedefs is to prefix the type name with
+ * "__" for the typedef and then use a CPP #define to map the true unprefixed
+ * name to the actual typedef name.  This way the presence of the type name as
+ * a #define tells us that the typedef for it has already been done.
+ *
+ * All the other schemes are just inelegant hacks, but at least they're better
+ * than having to know the details of individual OS library implementations!
  *
  * FYI: In NetBSD socklen_t came into use just before 1.3J:
  *
  *	(__NetBSD_Version__ - 0) > 103100000
+ *
+ * Not sure when GNU LibC added socklen_t, but it's in 2.1 at least.
  */
 #if (defined(__FreeBSD__) || defined(__darwin__)) && defined(_BSD_SOCKLEN_T_)
 # include "ERROR: something's wrong with the #includes above!"
 #endif
 /* Sigh, standards are such wonderful things.... */
-#if !defined(socklen_t) && !defined(__FreeBSD__) && !defined(__darwin__) && !defined(_SOCKLEN_T) && !defined(__socklen_t_defined)
+#if !defined(socklen_t) && \
+    !defined(__FreeBSD__) && !defined(__darwin__) && \
+    !defined(_SOCKLEN_T) && !defined(__socklen_t_defined) && \
+    (!defined(__GLIBC__) || (__GLIBC__ - 0) < 2) && \
+    (!defined(__GLIBC_MINOR__) || (__GLIBC_MINOR__ - 0) < 1)
 # if (/* SunOS-4 gcc */defined(__sun__) && !defined(__svr4__)) || \
      (/* SunOS-4 cc */defined(sun) && defined(unix) && !defined(__svr4__)) || \
      (/* 4.3BSD */defined(BSD) && ((BSD - 0) > 0) && ((BSD - 0) < 199506))
@@ -273,7 +298,8 @@ typedef __socklen_t	socklen_t;
  * is now a size_t width integer, but the returned type is only a ssize_t width
  * integer....  Standards.  Sigh.
  *
- * Perhaps the defined(__sun__) shouldn't be there on the _SOCKLEN_T line....
+ * Perhaps the "defined(__sun__)" shouldn't be there on the line with
+ * !defined(_SOCKLEN_T) -- I need a pure SysVr4 system to check on.
  */
 #if !defined(sock_buflen_t)			/* silly dreamer! */
 # if (/* SunOS-4 gcc */defined(__sun__) && !defined(__svr4__)) || \

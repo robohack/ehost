@@ -1,5 +1,5 @@
 #
-#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.15 2003-06-04 06:45:02 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.16 2003-06-05 01:01:45 -0800 woods Exp $"
 #
 # from:	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 991515
 
@@ -85,6 +85,10 @@ DESTCONF = ${DESTDIR}/${CONFDIR}
 #
 # Either install a pure BIND resolver library and link host against it
 # to avoid this, or enable the HOST_RES_SEND option.
+#
+# WARNING:  HOST_RES_SEND does not work with properly with BIND-8
+# because the libbind definition of res_send (actually __res_send) is
+# sucked in by other pre-linked dependencies in libbind.
 #
 #if defined(BIND_4_9) || newer && You still want to use the special host res_send()
 #CONFIGDEFS = -DHOST_RES_SEND
@@ -201,9 +205,11 @@ CFLAGS = $(COPTS) $(CDEBUG) $(COPTIM) $(GCCWARNFLAGS) $(GCC2WARNFLAGS) $(GCC3WAR
 #
 # GNU LibC (i.e. all variants of GNU/Linux) has a horrible mis-mash of
 # half-baked header files and mangled resolver subroutines, at least
-# as of 2.3.x.  E.g. there's a __NAMESER define in <netdb.h>
-# indicating it to be BIND-8 compatible, but there is no implementation
-# of getipnodebyname() in sight.
+# as of 2.3.x.  E.g. there's an __RES define in <resolv.h> and a
+# __NAMESER define in <arpa/nameser.h> indicating it to be BIND-8
+# compatible, but there is no implementation of getipnodebyname() in
+# sight.  Even worse gethostbyaddr() is totally broken and doesn't
+# return multiple PTRs.  PLEASE build & link with BIND-8.4.0 or newer!
 # ----------------------------------------------------------------------
 
 #if defined(SCO) && default
@@ -211,6 +217,9 @@ CFLAGS = $(COPTS) $(CDEBUG) $(COPTIM) $(GCCWARNFLAGS) $(GCC2WARNFLAGS) $(GCC3WAR
 #endif
 #if defined(NEED_LIBRESOLV) || (sunos5.x) || defined(__LINUX__) || defined(__GLIBC__)
 #RES_LIB = -lresolv
+#endif
+#if (RedHat-8.x) && defined(__GLIBC__)
+#RES_LIB = -static -I/usr/lib/debug -lresolv
 #endif
 #if defined(LOCAL_LIBBIND) || (sunos5.x < 5.9)
 #RES_LIB = -L/usr/local/bind/lib -lbind
@@ -234,10 +243,16 @@ LIBRARIES = $(RES_LIB) $(COMPAT_LIB) $(SYS_LIBS)
 
 # host may often be invoked by "root" -- it's safest to static-link it
 #
+# Note on at least RedHat-8.0 it is necessary to link statically,
+# UNLESS you are using libbind from BIND-8.4.0 or newer, as you should
+# be doing.
+#
 # Unfortunately SunOS-5.9 has only libresolv.so !!!
 #
-#if defined(NEED_LIBRESOLV) && !defined(sunos5.x)
+#if defined(NEED_LIBRESOLV) && !defined(sunos5.x) && !(BIND-8.4.x)
 LDFLAGS = -static $(GNULDWARNFLAGS)
+#else
+#LDFLAGS = $(GNULDWARNFLAGS)
 #endif
 
 # ----------------------------------------------------------------------
@@ -319,7 +334,7 @@ clean:
 
 .PHONY: clobber
 clobber: clean
-	rm -f $(PROG) $(UTIL_PROGS) $(MANCAT) host.0 .depend
+	rm -f $(PROG) $(UTIL_PROGS) $(MANCAT) host.0 host.1.gz .depend
 
 # You might need this rule if your default Make rules are too old and
 # broken and don't include $(CPPFLAGS)...
