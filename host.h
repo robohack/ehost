@@ -4,7 +4,7 @@
 ** from: @(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: host.h,v 1.10 2003-04-03 23:17:07 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.11 2003-04-04 04:03:08 -0800 woods Exp $"
 
 #if defined(apollo) && defined(lint)
 # define __attribute(x)		/* XXX ??? */
@@ -88,6 +88,11 @@
 # define NO_DATA	NO_ADDRESS	/* used here only in case authoritative */
 #endif
 
+#define input		/*NOTHING*/	/* read-only input parameter */
+#define output		/*NOTHING*/	/* modified output parameter */
+
+#define HASHSIZE	2003		/* size of various hash tables */
+
 #define NO_RREC		(NO_DATA + 1)	/* non-authoritative NO_DATA */
 #define NO_HOST		(NO_DATA + 2)	/* non-authoritative HOST_NOT_FOUND */
 #define QUERY_REFUSED	(NO_DATA + 3)	/* query explicitly refused by server */
@@ -111,16 +116,18 @@
 # define PACKETSZ	IP_MAXPACKET
 #endif
 
-#if PACKETSZ > (2^16)
-# define MAXPACKET	PACKETSZ
-#else
-# define MAXPACKET	(2^16)		/* maximum TCP answer length... RFC 1035 4.2.2 */
+#if !defined(PACKETSZ)
+# define PACKETSZ	512		/* UDP packet RFC 1035 §2.3.4 */
 #endif
 
-typedef union {
-	HEADER header;			/* from <arpa/nameser.h> */
-	u_char packet[MAXPACKET];
-} querybuf_t;
+#define MAXINT8		255		/* 2^8 */
+#define MAXINT16	65535		/* 2^16 */
+
+#if PACKETSZ > MAXINT16
+# define MAXPACKET	PACKETSZ
+#else
+# define MAXPACKET	MAXINT16	/* maximum TCP answer length... RFC 1035 §4.2.2 */
+#endif
 
 #ifndef HFIXEDSZ
 # define HFIXEDSZ	12		/* actually sizeof(HEADER) */
@@ -128,30 +135,30 @@ typedef union {
 
 #define MAXDLEN		(MAXPACKET - HFIXEDSZ)	/* upper bound for dlen */
 
+typedef union {
+	HEADER header;			/* from <arpa/nameser.h> */
+	u_char packet[MAXPACKET];
+} querybuf_t;
+
 #include "rrec.h"			/* resource record structures */
 
-#define input			/* read-only input parameter */
-#define output			/* modified output parameter */
-
-#define MAXINT8		255
-#define MAXINT16	65535
-
-#define HASHSIZE	2003	/* size of various hash tables */
-
-#if !defined(errno)		/* XXX who defines this? */
+#if !defined(errno)	/* XXX who defines this? */
 extern int errno;
 #endif
 
-#if !defined(h_errno)		/* XXX who defines this? */
-extern int h_errno;		/* defined in the resolver library */
+#if !defined(h_errno)	/* XXX who defines this? */
+extern int h_errno;			/* defined in the resolver library */
 #endif
 
 #ifndef _res
-extern res_state_t _res;	/* defined in res_init.c */
+extern res_state_t _res;		/* defined in res_init.c */
 #endif
 
-#include "defs.h"		/* declaration of functions */
+#include "defs.h"			/* declaration of functions */
 
+/*
+ * Useful macros:
+ */
 #define plural(n)	(((n) == 1) ? "" : "s")
 #define plurale(n)	(((n) == 1) ? "" : "es")
 
