@@ -2,6 +2,7 @@
 host
 host.0
 host.1.gz
+host.core
 mxlookup
 nscheck
 nslookup
