@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.10 2003-03-31 21:57:48 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.11 2003-04-03 23:17:27 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -358,6 +358,8 @@ static char *servername = NULL;		/* name of explicit server to query */
 static char *logfilename = NULL;	/* name of log file to store output */
 static char *cachedirname = NULL;	/* name of local cache directory */
 
+char *argv0 = "HOST";		/* name that host was called with */
+
 int
 main(argc, argv)
 	input int argc;
@@ -365,7 +367,6 @@ main(argc, argv)
 {
 	register char *option;
 	int result;			/* result status of action taken */
-	char *argv0;			/* name that host was called with */
 	bool_t extended = FALSE;	/* accept extended argument syntax */
 
 	assert(sizeof(int) >= 4);	/* probably paranoid */
