@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.17 2003-11-01 00:31:04 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.18 2003-11-01 01:22:08 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -753,7 +753,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	/*
 	 * Print type specific data, if appropriate.
 	 */
-	switch (type){
+	switch (type) {
 	case T_A:
 		if (class == C_IN || class == C_HS) {
 			if (dlen == INADDRSZ) {
