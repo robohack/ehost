@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.6 2003-03-29 19:49:52 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.7 2003-03-30 17:28:23 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -35,7 +35,7 @@ bool_t get_hostinfo	__P((char *, bool_t));
 bool_t get_domaininfo	__P((char *, char *));
 int get_info		__P((querybuf_t *, const char *, int, int));
 bool_t print_info	__P((querybuf_t *, int, const char *, int, int, bool_t));
-void print_data		__P((char *, ...));
+void print_data		__P((const char *, ...));
 u_char *print_rrec	__P((const char *, int, int, u_char *, u_char *, u_char *, bool_t));
 void dump_rrec		__P((u_char *, int, char *));
 u_char *skip_qrec	__P((const char *, int, int, u_char *, u_char *, u_char *));
@@ -59,7 +59,6 @@ void update_zone	__P((const char *));
 bool_t get_mxrec	__P((char *));
 char *get_primary	__P((char *));
 bool_t check_zone	__P((char *, char *));
-bool_t check_cache	__P((char *, char *));
 bool_t compare_soa	__P((char *));
 bool_t get_soainfo	__P((querybuf_t *, int, char *, int, int));
 int load_soa		__P((querybuf_t *, char *));
@@ -99,9 +98,9 @@ void show_types		__P((char *, int, int));
 void ns_error		__P((char *, int, int, char *));
 char *decode_error	__P((int));
 void print_answer	__P((querybuf_t *, int, int));
-void pr_error		__P((char *, ...));
-void pr_warning		__P((char *, ...));
-void pr_timestamp	__P((char *, ...));
+void pr_error		__P((const char *, ...));
+void pr_warning		__P((const char *, ...));
+void pr_timestamp	__P((const char *, ...));
 bool_t want_type	__P((int, int));
 bool_t want_class	__P((int, int));
 bool_t indomain		__P((char *, const char *, bool_t));
@@ -191,23 +190,28 @@ char *inet_ntoa		__P((struct in_addr));
 char *hostalias		__P((const char *));
 #endif
 
-	/* avoid <strings.h> */
-
-#if !defined(index)
-
-char *index		__P((const char *, int));
-char *rindex		__P((const char *, int));
-
-#endif
-
 	/* <string.h> */
 
-#if !defined(NO_STRING_H)
+#if HAVE_STRING_H
+# if !STDC_HEADERS && HAVE_MEMORY_H
+#  include <memory.h>
+# endif
 # include <string.h>
 #else
 
 char *strcpy		__P((char *, const char *));
 char *strncpy		__P((char *, const char *, size_t));
+
+#endif
+
+	/* <strings.h> */
+
+#if HAVE_STRINGS_H
+# include <strings.h>
+#elif defined(sun) && defined(unix)
+
+int strcasecmp		__P((const char *, const char *));
+int strncasecmp		__P((const char *, const char *, size_t));
 
 #endif
 
@@ -228,7 +232,7 @@ void qsort		__P((ptr_t *, size_t, size_t, int (*) __P((const ptr_t *, const ptr_
 
 	/* <unistd.h> */
 
-#if defined(__STDC__) && !defined(apollo) && !defined(WINNT)
+#if defined(HAVE_UNISTD_H) || (defined(__STDC__) && !defined(apollo) && !defined(WINNT))
 # include <unistd.h>
 #else
 
