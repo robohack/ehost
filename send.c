@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.6 2003-03-30 17:34:12 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.7 2003-03-30 20:53:52 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -624,7 +624,7 @@ _res_write(sock, addr, host, buf, bufsize)
 	input char *buf;		/* location of formatted query buffer */
 	input size_t bufsize;		/* length of query buffer */
 {
-	u_short len;
+	u_int len;
 
 	/*
 	 * Protect against remote peer prematurely closing the connection.
@@ -635,9 +635,10 @@ _res_write(sock, addr, host, buf, bufsize)
 	 * Write the length of the query buffer.
 	 */
 #if 0
-	len = htons((u_short)bufsize);
+	len = htons((u_short) bufsize);
+#else
+	ns_put16((u_int) bufsize, (u_char *) &len);
 #endif
-	putshort((u_short) bufsize, (u_char *) &len);	/* XXX from resolv.h, bogus broken API! */
 
 	if (send(sock, (char *) &len, INT16SZ, 0) != INT16SZ) {
 		_res_perror(addr, host, "write query length");
@@ -714,8 +715,11 @@ _res_read(sock, addr, host, buf, bufsize)
 	/*
 	 * Terminate if length is zero.
 	 */
-	/* len = ntohs(len); */
-	len = _getshort((u_char *) &len);
+#if 0
+	len = ntohs(len);
+#else
+	len = ns_get16((u_char *) &len);
+#endif
 	if (len == 0) {
 		errno = EINVAL;		
 		_res_perror(addr, host, "answer has length of zero");
@@ -727,13 +731,15 @@ _res_read(sock, addr, host, buf, bufsize)
 	 * Do not chop the returned length in case of buffer overflow.
 	 */
 	reslen = 0;
-	if ((int)len > bufsize) {
+	if ((int) len > bufsize) {
 		if (bitset(RES_DEBUG, _res.options)) {
 			printf("%sanswer length %d bytes, bufsize only %d bytes\n",
 				dbprefix, (int)len, bufsize);
 		}
 		reslen = len - bufsize;
-		/* len = bufsize; */
+#if 0
+		len = bufsize;
+#endif
 	}
 
 	/*
@@ -846,7 +852,7 @@ recv_sock(sock, buffer, buflen)
 {
 	fd_set fds;
 	struct timeval wait;
-	size_t fromlen;
+	recvfrom_fromlen_t fromlen;
 	register int n;
 
 	wait.tv_sec = timeout;
