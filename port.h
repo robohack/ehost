@@ -4,7 +4,7 @@
 **	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.7 2003-03-30 17:38:57 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.8 2003-03-30 20:53:15 -0800 woods Exp $"
 
 #if defined(__SVR4) || defined(__svr4__)
 # define SVR4
@@ -156,12 +156,42 @@ typedef char	nbuf_t;
 typedef u_char	nbuf_t;
 #endif
 
+#if !defined(__NAMESER)
+# define ns_get16(src)		_getshort(src)
+# define ns_get32(src)		_getlong(src)
+# define ns_put16(src, dst)	__putshort((unsigned short) src, dst)
+# define ns_put32(src, dst)	__putlong((unsigned long) src, dst)
+#endif
+
 #ifndef _IPADDR_T
 # if defined(__alpha) || defined(BIND_4_9)
 typedef u_int	ipaddr_t;
 # else
 typedef u_long	ipaddr_t;
 # endif
+#endif
+
+/*
+ * FreeBSD is a bit brain-dead in the way they do this -- they use the fact
+ * that _BSD_SOCKLEN_T_ is NOT defined in order to typedef socklen_t at the
+ * earliest point it's needed.  However they leave no means for applications to
+ * know if the typedef has already been done.
+ */
+#if defined(__FreeBSD__) && defined(_BSD_SOCKLEN_T_)
+# include "ERROR: something's wrong with the #includes above!"
+#endif
+#if !defined(socklen_t) && !defined(__FreeBSD__) && !defined(__svr4__) && !defined(__socklen_t_defined)
+typedef unsigned int	__socklen_t;	/* socket-related datum length */
+typedef __socklen_t	socklen_t;
+# define socklen_t	__socklen_t
+#endif
+
+#if defined(__NetBSD__) || defined(__linux__)	/* XXX bogus but good enough for now */
+typedef socklen_t	geth_sz_t;
+typedef size_t		recvfrom_fromlen_t;
+#else
+typedef int		geth_sz_t;
+typedef int		recvfrom_fromlen_t;
 #endif
 
 #if defined(apollo) || defined(_BSD_SIGNALS)
