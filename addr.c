@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.7 2003-06-04 06:29:25 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.8 2003-06-04 20:08:07 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)addr.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -117,7 +117,7 @@ check_addr(name)
 
 	free((ptr_t *) inaddr);
 	
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_FREEHOSTENT)
 	freehostent(hp);
 #endif
 
@@ -216,7 +216,7 @@ check_addr_name(inaddr, name)
 			 name, iname);
 	}
 
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_FREEHOSTENT)
 	freehostent(hp);
 #endif
 
@@ -244,7 +244,7 @@ check_name(addr)
 	char *aname, *anamebuf = NULL;
 	unsigned int naliases = 0;
 	unsigned int matched = 0;
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_GETIPNODEBYADDR)
 	int my_h_errno;
 #endif
 
@@ -260,7 +260,7 @@ check_name(addr)
 	 *
 	 * XXX also need to deal properly with IPv6 too....
 	 */
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_GETIPNODEBYADDR)
 	if (!(hp = getipnodebyaddr((void *) &inaddr, sizeof(inaddr), AF_INET, &my_h_errno))) {
 		set_h_errno(my_h_errno);
 		ns_error(iname, T_PTR, C_IN, server);
@@ -330,7 +330,7 @@ check_name(addr)
 
 	free((ptr_t *) anamebuf);
 
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_FREEHOSTENT)
 	freehostent(hp);
 #endif
 
@@ -359,7 +359,7 @@ check_name_addr(name, addr)
 	struct in_addr inaddr;
 	char *iname, inamebuf[MAXDNAME+1];
 	unsigned int matched = 0;
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_GETIPNODEBYNAME)
 	int my_h_errno;
 #endif
 
@@ -375,7 +375,7 @@ check_name_addr(name, addr)
 	 *
 	 * XXX also need to deal properly with IPv6 too....
 	 */
-#if defined(__NAMESER) && ((__NAMESER - 0) >= 19991006)
+#if defined(HAVE_GETIPNODEBYNAME)
 	if (!(hp = getipnodebyname(name, AF_INET, AI_ALL | AI_V4MAPPED, &my_h_errno))) {
 		set_h_errno(my_h_errno);
 		ns_error(name, T_A, C_IN, server);
@@ -415,7 +415,7 @@ check_name_addr(name, addr)
 		pr_error("address %s does not belong to hostname %s",
 			 iname, name);
 	}
-#if defined(__NAMESER) && ((__NAMESER - 0) > 19991006)
+#if defined(HAVE_FREEHOSTENT)
 	freehostent(hp);
 #endif
 
