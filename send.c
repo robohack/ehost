@@ -18,7 +18,7 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 951231";
+static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 960511";
 #endif
 
 #if defined(apollo) && defined(lint)
@@ -82,7 +82,7 @@ void _res_perror	PROTO((struct sockaddr_in *, char *, char *));
 ** -----------------------------------------------------
 **
 **	Returns:
-**		Length of nameserver answer buffer, if obtained.
+**		Length of (untruncated) nameserver answer, if obtained.
 **		-1 if an error occurred (errno set appropriately).
 **
 **	This is a simplified version of the BIND 4.8.3 res_send().
@@ -125,8 +125,8 @@ input int anslen;			/* maximum size of answer buffer */
 	v_circuit = bitset(RES_USEVC, _res.options) || (querylen > PACKETSZ);
 
 	/* reset server failure codes */
-	for (n = 0; n < MAXNS; n++)
-		servfail[n] = 0;
+	for (ns = 0; ns < MAXNS; ns++)
+		servfail[ns] = 0;
 
 /*
  * Do _res.retry attempts for each of the _res.nscount addresses.
@@ -172,10 +172,10 @@ retry:
 			n = send_dgram(addr, query, querylen, answer, anslen);
 
 			/* check truncation; use v_circuit with same server */
-			if (n > 0 && bp->tc)
+			if ((n > 0) && bp->tc)
 			{
 				if (bitset(RES_DEBUG, _res.options))
-					printf("%struncated answer\n", dbprefix);
+					printf("%struncated answer, %d bytes\n", dbprefix, n);
 
 				if (!bitset(RES_IGNTC, _res.options))
 				{
@@ -205,7 +205,7 @@ retry:
 		if (bitset(RES_DEBUG, _res.options))
 		{
 			printf("%sgot answer, %d bytes:\n", dbprefix, n);
-			pr_query(answer, n, stdout);
+			pr_query(answer, (n > anslen) ? anslen : n, stdout);
 		}
 
 		/* we have an answer; clear possible error condition */
@@ -249,8 +249,11 @@ _res_close()
 ** ---------------------------------------------------
 **
 **	Returns:
-**		Length of nameserver answer buffer, if obtained.
+**		Length of (untruncated) nameserver answer, if obtained.
 **		-1 if an error occurred.
+**
+**	A new socket is allocated for each call, and it is never
+**	left open. Checking the packet id is rather redundant.
 **
 **	Note that connect() is the call that is allowed to fail
 **	under normal circumstances. All other failures generate
@@ -267,6 +270,8 @@ output qbuf_t *answer;			/* location of buffer to store answer */
 input int anslen;			/* maximum size of answer buffer */
 {
 	char *host = NULL;		/* name of server is unknown */
+	HEADER *qp = (HEADER *)query;
+	HEADER *bp = (HEADER *)answer;
 	register int n;
 
 /*
@@ -302,11 +307,25 @@ input int anslen;			/* maximum size of answer buffer */
 /*
  * Read the answer buffer.
  */
+wait:
 	n = _res_read(srvsock, addr, host, (char *)answer, anslen);
 	if (n <= 0)
 	{
 		_res_close();
 		return(-1);
+	}
+
+/*
+ * Make sure it is the proper response by checking the packet id.
+ */
+	if (qp->id != bp->id)
+	{
+		if (bitset(RES_DEBUG, _res.options))
+		{
+			printf("%sunexpected answer:\n", dbprefix);
+			pr_query(answer, (n > anslen) ? anslen : n, stdout);
+		}
+		goto wait;
 	}
 
 /*
@@ -321,7 +340,7 @@ input int anslen;			/* maximum size of answer buffer */
 ** -------------------------------------------
 **
 **	Returns:
-**		Length of nameserver answer buffer, if obtained.
+**		Length of nameserver answer, if obtained.
 **		-1 if an error occurred.
 **
 **	Inputs:
@@ -403,7 +422,7 @@ wait:
 		if (bitset(RES_DEBUG, _res.options))
 		{
 			printf("%sold answer:\n", dbprefix);
-			pr_query(answer, n, stdout);
+			pr_query(answer, (n > anslen) ? anslen : n, stdout);
 		}
 		goto wait;
 	}
@@ -520,7 +539,7 @@ input int bufsize;			/* length of query buffer */
 ** -------------------------------------------------------
 **
 **	Returns:
-**		Length of buffer if successfully received.
+**		Length of (untruncated) answer if successfully received.
 **		-1 in case of failure (error message is issued).
 **
 **	The answer is read in two steps: first a single word which
@@ -528,6 +547,10 @@ input int bufsize;			/* length of query buffer */
 **	If the answer is too long to fit into the supplied buffer,
 **	only the portion that fits will be stored, the residu will be
 **	flushed, and the truncation flag will be set.
+**
+**	Note. The returned length is that of the *un*truncated answer,
+**	however, and not the amount of data that is actually available.
+**	This may give the caller a hint about new buffer reallocation.
 */
 
 int
@@ -575,19 +598,21 @@ input int bufsize;			/* maximum size of answer buffer */
 
 /*
  * Check for truncation.
+ * Do not chop the returned length in case of buffer overflow.
  */
 	reslen = 0;
 	if ((int)len > bufsize)
 	{
 		reslen = len - bufsize;
-		len = bufsize;
+		/* len = bufsize; */
 	}
 
 /*
  * Read the answer buffer itself.
+ * Truncate the answer is the supplied buffer is not big enough.
  */
 	buffer = buf;
-	buflen = len;
+	buflen = (reslen > 0) ? bufsize : len;
 
 	while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0)
 	{
@@ -610,12 +635,12 @@ input int bufsize;			/* maximum size of answer buffer */
 		char resbuf[PACKETSZ];
 
 		buffer = resbuf;
-		buflen = reslen < sizeof(resbuf) ? reslen : sizeof(resbuf);
+		buflen = (reslen < sizeof(resbuf)) ? reslen : sizeof(resbuf);
 
 		while (reslen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0)
 		{
 			reslen -= n;
-			buflen = reslen < sizeof(resbuf) ? reslen : sizeof(resbuf);
+			buflen = (reslen < sizeof(resbuf)) ? reslen : sizeof(resbuf);
 		}
 
 		if (reslen != 0)
@@ -625,7 +650,7 @@ input int bufsize;			/* maximum size of answer buffer */
 		}
 
 		if (bitset(RES_DEBUG, _res.options))
-			printf("%sresponse truncated\n", dbprefix);
+			printf("%sresponse truncated to %d bytes\n", dbprefix, bufsize);
 
 		/* set truncation flag */
 		bp->tc = 1;

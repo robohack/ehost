@@ -3,7 +3,7 @@
 **
 **	They belong in <arpa/nameser.h>
 **
-**	@(#)type.h              e07@nikhef.nl (Eric Wassenaar) 941205
+**	@(#)type.h              e07@nikhef.nl (Eric Wassenaar) 960417
 */
 
 /* never used in practice */
@@ -78,14 +78,29 @@
 #define T_GPOS		27
 #endif
 
-/* reserved per RFC 1700 */
+/* reserved per RFC 1700, defined per RFC 1884 and 1886 */
 
 #ifndef T_AAAA
 #define T_AAAA		28
 #endif
 
-/* defined per RFC XXXX */
+/* defined per RFC 1876 */
 
 #ifndef T_LOC
 #define T_LOC		29
+#endif
+
+/* nonstandard types are threatened to become extinct */
+
+#ifndef T_UINFO
+#define T_UINFO		100
+#endif
+#ifndef T_UID
+#define T_UID		101
+#endif
+#ifndef T_GID
+#define T_GID		102
+#endif
+#ifndef T_UNSPEC
+#define T_UNSPEC	103
 #endif

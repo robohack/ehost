@@ -1,7 +1,7 @@
 /*
 ** Declaration of functions.
 **
-**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 951015
+**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 960511
 */
 
 /*
@@ -84,7 +84,7 @@ void clear_statistics	PROTO((void));
 void show_types		PROTO((char *, int, int));
 void ns_error		PROTO((char *, int, int, char *));
 char *decode_error	PROTO((int));
-void print_status	PROTO((querybuf *));
+void print_status	PROTO((querybuf *, int));
 void pr_error		PROTO((char *, ...));
 void pr_warning		PROTO((char *, ...));
 bool want_type		PROTO((int, int));
@@ -111,8 +111,9 @@ int compare_name	PROTO((char **, char **));
 ptr_t *xalloc		PROTO((ptr_t *, siz_t));
 char *itoa		PROTO((int));
 char *utoa		PROTO((int));
-char *stoa		PROTO((u_char *, int));
+char *stoa		PROTO((u_char *, int, bool));
 char *nsap_ntoa		PROTO((u_char *, int));
+char *ipng_ntoa		PROTO((u_char *));
 char *pr_time		PROTO((int, bool));
 char *pr_spherical	PROTO((int, char *, char *));
 char *pr_vertical	PROTO((int, char *, char *));

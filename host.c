@@ -36,7 +36,7 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)host.c	e07@nikhef.nl (Eric Wassenaar) 951231";
+static char Version[] = "@(#)host.c	e07@nikhef.nl (Eric Wassenaar) 960512";
 #endif
 
 #if defined(apollo) && defined(lint)
@@ -73,6 +73,7 @@ static char Version[] = "@(#)host.c	e07@nikhef.nl (Eric Wassenaar) 951231";
  * - Implement new resource record types from RFC 1183 and 1348.
  * - Basic experimental NSAP support as defined in RFC 1637.
  * - Implement new resource record types from RFC 1664 and 1712.
+ * - Implement new resource record types from RFC 1876 and 1886.
  * - Code is extensively documented.
  */
 
@@ -315,10 +316,10 @@ typedef int	bool;		/* boolean type */
 #define BROADCAST_ADDR	((ipaddr_t)0xffffffff)
 #define LOCALHOST_ADDR	((ipaddr_t)0x7f000001)
 
-#if PACKETSZ > 1024
-#define MAXPACKET PACKETSZ
+#if PACKETSZ > 8192
+#define MAXPACKET PACKETSZ	/* PACKETSZ should be the max udp size (512) */
 #else
-#define MAXPACKET 1024
+#define MAXPACKET 8192		/* but tcp packets can be considerably larger */
 #endif
 
 typedef union {
@@ -452,8 +453,10 @@ bool classprint = FALSE;	/* print class value in non-verbose mode */
 #define nulladdr(a)	(((a) == 0) || ((a) == BROADCAST_ADDR))
 #define fakeaddr(a)	(nulladdr(a) || ((a) == htonl(LOCALHOST_ADDR)))
 #define incopy(a)	*((struct in_addr *)a)
+#define querysize(n)	(((n) > sizeof(querybuf)) ? sizeof(querybuf) : (n))
 
 #define newlist(a,n,t)	(t *)xalloc((ptr_t *)a, (siz_t)((n)*sizeof(t)))
+#define newstruct(t)	(t *)xalloc((ptr_t *)NULL, (siz_t)(sizeof(t)))
 #define newstring(s)	(char *)xalloc((ptr_t *)NULL, (siz_t)(strlen(s)+1))
 #define newstr(s)	strcpy(newstring(s), s)
 #define xfree(a)	(void) free((ptr_t *)a)
@@ -1861,7 +1864,7 @@ input int class;			/* specific resource record class */
  * Analyze the status of the answer from the nameserver.
  */
 	if (debug || verbose)
-		print_status(answerbuf);
+		print_status(answerbuf, n);
 
 	bp = (HEADER *)answerbuf;
 	ancount = ntohs(bp->ancount);
@@ -1895,8 +1898,9 @@ input int class;			/* specific resource record class */
 		return(-1);
 	}
 
+	/* valid answer received, avoid buffer overrun */
 	h_errno = 0;
-	return(n);
+	return(querysize(n));
 }
 
 /*
@@ -2257,7 +2261,7 @@ input bool listing;			/* set if this is a zone listing */
 				cp += INADDRSZ;
 				break;
 			}
-
+#ifdef obsolete
 			if (dlen == INADDRSZ + 1 + INT16SZ)
 			{
 				bcopy((char *)cp, (char *)&inaddr, INADDRSZ);
@@ -2273,7 +2277,7 @@ input bool listing;			/* set if this is a zone listing */
 				cp += INT16SZ;
 				break;
 			}
-
+#endif
 			address = 0;
 			break;
 		}
@@ -2310,13 +2314,13 @@ input bool listing;			/* set if this is a zone listing */
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t\"%s\"", stoa(cp, n)))
+		doprintf(("\t\"%s\"", stoa(cp, n, TRUE)))
 		cp += n;
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t\"%s\"", stoa(cp, n)))
+		doprintf(("\t\"%s\"", stoa(cp, n, TRUE)))
 		cp += n;
 		break;
 
@@ -2414,7 +2418,7 @@ input bool listing;			/* set if this is a zone listing */
 	    case T_TXT:
 		if (dlen > 0)
 		{
-			doprintf(("\t\"%s\"", stoa(cp, dlen)))
+			doprintf(("\t\"%s\"", stoa(cp, dlen, TRUE)))
 			cp += dlen;
 		}
 		break;
@@ -2424,7 +2428,7 @@ input bool listing;			/* set if this is a zone listing */
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t\"%s", stoa(cp, n)))
+		doprintf(("\t\"%s", stoa(cp, n, TRUE)))
 		cp += n;
 
 		while (cp < eor)
@@ -2432,7 +2436,7 @@ input bool listing;			/* set if this is a zone listing */
 			if (check_size(rname, type, cp, msg, eor, 1) < 0)
 				break;
 			n = *cp++;
-			doprintf(("%s", stoa(cp, n)))
+			doprintf(("%s", stoa(cp, n, TRUE)))
 			cp += n;
 		}
 		doprintf(("\""))
@@ -2475,7 +2479,7 @@ input bool listing;			/* set if this is a zone listing */
 		break;
 
 	    case T_UINFO:
-		doprintf(("\t\"%s\"", stoa(cp, dlen)))
+		doprintf(("\t\"%s\"", stoa(cp, dlen, TRUE)))
 		cp += dlen;
 		break;
 
@@ -2525,7 +2529,7 @@ input bool listing;			/* set if this is a zone listing */
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t%s", stoa(cp, n)))
+		doprintf(("\t%s", stoa(cp, n, FALSE)))
 		cp += n;
 		break;
 
@@ -2533,7 +2537,7 @@ input bool listing;			/* set if this is a zone listing */
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t%s", stoa(cp, n)))
+		doprintf(("\t%s", stoa(cp, n, FALSE)))
 		cp += n;
 
 		if (cp < eor)
@@ -2541,7 +2545,7 @@ input bool listing;			/* set if this is a zone listing */
 			if (check_size(rname, type, cp, msg, eor, 1) < 0)
 				break;
 			n = *cp++;
-			doprintf((" %s", stoa(cp, n)))
+			doprintf((" %s", stoa(cp, n, FALSE)))
 			cp += n;
 		}
 		break;
@@ -2583,19 +2587,19 @@ input bool listing;			/* set if this is a zone listing */
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t%s", stoa(cp, n)))
+		doprintf(("\t%s", stoa(cp, n, FALSE)))
 		cp += n;
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t%s", stoa(cp, n)))
+		doprintf(("\t%s", stoa(cp, n, FALSE)))
 		cp += n;
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t%s", stoa(cp, n)))
+		doprintf(("\t%s", stoa(cp, n, FALSE)))
 		cp += n;
 		break;
 
@@ -2636,9 +2640,16 @@ input bool listing;			/* set if this is a zone listing */
 		cp += dlen;
 		break;
 
+	    case T_AAAA:
+		if (dlen == IPNGSIZE)
+		{
+			doprintf(("\t%s", ipng_ntoa(cp)))
+			cp += IPNGSIZE;
+		}
+		break;
+
 	    case T_SIG:
 	    case T_KEY:
-	    case T_AAAA:
 		doprintf(("\t(not yet implemented)"))
 		cp += dlen;
 		break;
@@ -2650,6 +2661,7 @@ input bool listing;			/* set if this is a zone listing */
 	}
 
 /*
+ * End of specific data type processing.
  * Terminate resource record printout.
  */
 	doprintf(("\n"))
@@ -2861,9 +2873,9 @@ int nservers = 0;				/* count of nameservers */
 
 #ifdef notyet
 typedef struct srvr_data {
-	char nsname[MAXDNAME+1];		/* nameserver host name */
-	struct in_addr ipaddr[MAXIPADDR];	/* nameserver addresses */
-	int naddrs;				/* count of addresses */
+	char sd_nsname[MAXDNAME+1];		/* nameserver host name */
+	struct in_addr sd_ipaddr[MAXIPADDR];	/* nameserver addresses */
+	int sd_naddrs;				/* count of addresses */
 } srvr_data_t;
 
 srvr_data_t nsinfo[MAXNSNAME];	/* nameserver info */
@@ -2879,27 +2891,34 @@ bool lameserver;		/* server could not provide SOA service */
  * that do not belong to the zone are not stored. Glue records that belong
  * to a delegated zone will be filtered out later during the host count scan.
  * The host names are allocated dynamically.
-#ifdef notyet
- * The host data should have been allocated dynamically to avoid static
- * limits, but this is less important since it is not saved across calls.
- * In case the static limit is reached, increase MAXHOSTS and recompile.
-#endif
+ * The list itself is also allocated dynamically, to avoid static limits,
+ * and to keep the initial bss of the executable to a reasonable size.
+ * Allocation is done in chunks, to reduce considerable malloc overhead.
+ * Note that the list will not shrink during recursive processing.
  */
 
+#ifdef obsolete
 char *hostname[MAXHOSTS];	/* host name of host in zone */
 ipaddr_t hostaddr[MAXHOSTS];	/* first host address */
 bool multaddr[MAXHOSTS];	/* set if this is a multiple address host */
-int hostcount = 0;		/* count of hosts in zone */
+#endif
 
-#ifdef notyet
 typedef struct host_data {
-	char *hostname;		/* host name of host in zone */
-	ipaddr_t hostaddr;	/* first host address */
-	bool multaddr;		/* set if this is a multiple address host */
+	char *hd_hostname;	/* host name of host in zone */
+	ipaddr_t hd_hostaddr;	/* first host address */
+	bool hd_multaddr;	/* set if this is a multiple address host */
 } host_data_t;
 
-host_data_t hostlist[MAXHOSTS];	/* info on hosts in zone */
-#endif
+host_data_t *hostlist = NULL;	/* info on hosts in zone */
+int hostcount = 0;		/* count of hosts in zone */
+
+int maxhosts = 0;		/* number of allocated hostlist entries */
+
+#define MAXHOSTINCR	4096	/* chunk size to increment hostlist */
+
+#define hostname(i)	hostlist[i].hd_hostname
+#define hostaddr(i)	hostlist[i].hd_hostaddr
+#define multaddr(i)	hostlist[i].hd_multaddr
 
 /*
  * Delegated zone information.
@@ -3080,21 +3099,21 @@ input char *name;			/* name of zone to process */
 	for (n = i; n < hostcount; n++)
 	{
 		/* skip fake hosts using a very rudimentary test */
-		if (fakename(hostname[n]) || fakeaddr(hostaddr[n]))
+		if (fakename(hostname(n)) || fakeaddr(hostaddr(n)))
 			continue;
 #ifdef justfun
 		/* save longest host name encountered so far */
-		if (verbose && ((i = strlength(hostname[n])) > longsize))
+		if (verbose && ((i = strlength(hostname(n))) > longsize))
 		{
 			longsize = i;
-			(void) strcpy(longname, hostname[n]);
+			(void) strcpy(longname, hostname(n));
 		}
 #endif
 		/* skip apparent glue records */
-		if (gluerecord(hostname[n], name, zonename, nzones))
+		if (gluerecord(hostname(n), name, zonename, nzones))
 		{
 			if (verbose > 1)
-				printf("%s is glue record\n", hostname[n]);
+				printf("%s is glue record\n", hostname(n));
 			continue;
 		}
 
@@ -3104,37 +3123,37 @@ input char *name;			/* name of zone to process */
 	/*
 	 * Mark hosts not residing directly in the zone as extrazone host.
 	 */
-		if (!samedomain(hostname[n], name, TRUE))
+		if (!samedomain(hostname(n), name, TRUE))
 		{
 			nextrs++;
 			if (extrmode || (verbose > 1))
-				printf("%s is extrazone host\n", hostname[n]);
+				printf("%s is extrazone host\n", hostname(n));
 		}
 
 	/*
 	 * Mark hosts with more than one address as gateway host.
 	 * These are not checked for duplicate addresses.
 	 */
-		if (multaddr[n])
+		if (multaddr(n))
 		{
 			ngates++;
 			if (gatemode || (verbose > 1))
-				printf("%s is gateway host\n", hostname[n]);
+				printf("%s is gateway host\n", hostname(n));
 		}
 		
 	/*
 	 * Compare single address hosts against global list of addresses.
 	 * Multiple address hosts are too complicated to handle this way.
 	 */
-		else if (check_dupl(hostaddr[n]))
+		else if (check_dupl(hostaddr(n)))
 		{
 			struct in_addr inaddr;
-			inaddr.s_addr = hostaddr[n];
+			inaddr.s_addr = hostaddr(n);
 
 			ndupls++;
 			if (duplmode || (verbose > 1))
 				printf("%s is duplicate host with address %s\n",
-					hostname[n], inet_ntoa(inaddr));
+					hostname(n), inet_ntoa(inaddr));
 		}
 	}
 
@@ -3180,7 +3199,7 @@ input char *name;			/* name of zone to process */
  * The names of the hosts were allocated dynamically.
  */
 	for (n = 0; n < hostcount; n++)
-		xfree(hostname[n]);
+		xfree(hostname(n));
 
 /*
  * Check for mailable delegated zones within this zone.
@@ -3990,7 +4009,7 @@ input char *host;			/* name of server to be queried */
  * The information gathered is used by list_zone() after the zone transfer.
  */
 	for (n = 0; n < hostcount; n++)
-		xfree(hostname[n]);
+		xfree(hostname(n));
 
 	for (n = 0; n < zonecount; n++)
 		xfree(zonename[n]);
@@ -4126,7 +4145,7 @@ input char *host;			/* name of server to be queried */
 		if (debug > 1)
 		{
 			printf("%sgot answer, %d bytes:\n", dbprefix, n);
-			pr_query((qbuf_t *)&answer, n, stdout);
+			pr_query((qbuf_t *)&answer, querysize(n), stdout);
 		}
 
 	/*
@@ -4141,7 +4160,7 @@ input char *host;			/* name of server to be queried */
 		if (bp->rcode != NOERROR || ancount == 0)
 		{
 			if (debug || verbose)
-				print_status(&answer);
+				print_status(&answer, n);
 
 			switch (bp->rcode)
 			{
@@ -4179,23 +4198,23 @@ input char *host;			/* name of server to be queried */
 			return(FALSE);
 		}
 
+		/* valid answer received, avoid buffer overrun */
 		h_errno = 0;
+		n = querysize(n);
 
 	/*
 	 * The nameserver and additional info section should be empty,
 	 * and there should be a single answer in the answer section.
 	 */
-		if (ancount != 1)
+		if (ancount > 1)
 			pr_error("multiple answers during %s for %s from %s",
 				pr_type(T_AXFR), name, host);
 
-		i = ntohs(bp->nscount);
-		if (i != 0)
+		if (ntohs(bp->nscount) != 0)
 			pr_error("nonzero nscount during %s for %s from %s",
 				pr_type(T_AXFR), name, host);
 
-		i = ntohs(bp->arcount);
-		if (i != 0)
+		if (ntohs(bp->arcount) != 0)
 			pr_error("nonzero arcount during %s for %s from %s",
 				pr_type(T_AXFR), name, host);
 
@@ -4247,26 +4266,26 @@ input char *host;			/* name of server to be queried */
 	 */
 		if (adrname && indomain(adrname, name, FALSE) && !reverse)
 		{
-			i = host_index(adrname, (hostcount < MAXHOSTS));
+			i = host_index(adrname, TRUE);
 #ifdef obsolete
 			for (i = 0; i < hostcount; i++)
-				if (sameword(hostname[i], adrname))
+				if (sameword(hostname(i), adrname))
 					break;	/* duplicate */
 #endif
-			if (i < hostcount && address != hostaddr[i])
-				multaddr[i] = TRUE;
-
-			if (i >= hostcount && hostcount < MAXHOSTS)
+			if (i >= hostcount)
 			{
-				hostname[hostcount] = newstr(adrname);
-				hostaddr[hostcount] = address;
-				multaddr[hostcount] = FALSE;
+				if (hostcount >= maxhosts)
+				{
+					maxhosts += MAXHOSTINCR;
+					hostlist = newlist(hostlist, maxhosts, host_data_t);
+				}
+				hostname(hostcount) = newstr(adrname);
+				hostaddr(hostcount) = address;
+				multaddr(hostcount) = FALSE;
 				hostcount++;
-
-				if (hostcount == MAXHOSTS)
-					pr_error("maximum %s hosts reached within %s from %s",
-						itoa(hostcount), name, host);
 			}
+			else if (address != hostaddr(i))
+				multaddr(i) = TRUE;
 		}
 		/* check for unauthoritative glue records */
 		else if (adrname && !indomain(adrname, name, TRUE))
@@ -4304,7 +4323,7 @@ input char *host;			/* name of server to be queried */
 		i = host_index(zonename[n], FALSE);
 #ifdef obsolete
 		for (i = 0; i < hostcount; i++)
-			if (sameword(hostname[i], zonename[n]))
+			if (sameword(hostname(i), zonename[n]))
 				break;	/* found */
 #endif
 		if (i < hostcount)
@@ -4822,7 +4841,7 @@ input int type, class, ttl;		/* resource record fixed values */
 	if (s == NULL)
 	{
 		/* ps = &ttltab[hfunc]; */
-		s = newlist(NULL, 1, ttl_tab_t);
+		s = newstruct(ttl_tab_t);
 
 		/* initialize new entry */
 		s->name = newstr(name);
@@ -4936,7 +4955,7 @@ input bool enter;			/* add to table if not found */
 	{
 		if (s->slot >= hostcount)
 			continue;
-		if (sameword(hostname[s->slot], name))
+		if (sameword(hostname(s->slot), name))
 			break;
 	}
 
@@ -4946,7 +4965,7 @@ input bool enter;			/* add to table if not found */
 	if ((s == NULL) && enter)
 	{
 		/* ps = &hosttab[hfunc]; */
-		s = newlist(NULL, 1, host_tab_t);
+		s = newstruct(host_tab_t);
 
 		/* initialize new entry */
 		s->slot = hostcount;
@@ -5055,7 +5074,7 @@ input bool enter;			/* add to table if not found */
 	if ((s == NULL) && enter)
 	{
 		/* ps = &zonetab[hfunc]; */
-		s = newlist(NULL, 1, zone_tab_t);
+		s = newstruct(zone_tab_t);
 
 		/* initialize new entry */
 		s->slot = zonecount;
@@ -5161,7 +5180,7 @@ input char *name;			/* the domain name to check */
 	if (s == NULL)
 	{
 		/* ps = &canontab[hfunc]; */
-		s = newlist(NULL, 1, canon_tab_t);
+		s = newstruct(canon_tab_t);
 
 		/* initialize new entry */
 		s->name = newstr(name);
@@ -6016,8 +6035,9 @@ input int rcode;			/* error code from bp->rcode */
 */
 
 void
-print_status(answerbuf)
+print_status(answerbuf, answerlen)
 input querybuf *answerbuf;		/* location of answer buffer */
+input int answerlen;			/* length of answer buffer */
 {
 	HEADER *bp;
 	int ancount;
@@ -6027,13 +6047,26 @@ input querybuf *answerbuf;		/* location of answer buffer */
 	ancount = ntohs(bp->ancount);
 	failed = (bp->rcode != NOERROR || ancount == 0);
 
-	printf("%sQuery %s, %d answer%s%s, %sstatus: %s\n",
-		verbose ? "" : dbprefix,
-		failed ? "failed" : "done",
-		ancount, plural(ancount),
-		bp->tc ? " (truncated)" : "",
-		bp->aa ? "authoritative " : "",
-		decode_error((int)bp->rcode));
+	printf("%s", verbose ? "" : dbprefix);
+
+	printf("Query %s", failed ? "failed" : "done");
+
+	if (bp->tc || (answerlen > PACKETSZ))
+		printf(", %d byte%s", answerlen, plural(answerlen));
+
+	if (bp->tc)
+	{
+		if (answerlen > sizeof(querybuf))
+			printf(" (truncated to %d)", sizeof(querybuf));
+		else
+			printf(" (truncated)");
+	}
+
+	printf(", %d answer%s", ancount, plural(ancount));
+
+	printf(", %s", bp->aa ? "authoritative " : "");
+
+	printf("status: %s\n", decode_error((int)bp->rcode));
 }
 
 /*
@@ -6438,7 +6471,7 @@ char *
 pr_type(type)
 input int type;				/* resource record type */
 {
-	static char buf[30];
+	static char buf[30];		/* sufficient for 64-bit values */
 
 	switch (type)
 	{
@@ -6502,7 +6535,7 @@ char *
 pr_class(class)
 input int class;			/* resource record class */
 {
-	static char buf[30];
+	static char buf[30];		/* sufficient for 64-bit values */
 
 	switch (class)
 	{
@@ -6518,7 +6551,7 @@ input int class;			/* resource record class */
 }
 
 /*
-** EXPAND_NAME -- Expand compressed domain name in a recource record
+** EXPAND_NAME -- Expand compressed domain name in a resource record
 ** -----------------------------------------------------------------
 **
 **	Returns:
@@ -6621,6 +6654,8 @@ input int size;				/* required record size remaining */
 **	wildcarding. It is valid only in the LHS resource record name,
 **	in definitions in zone files only as the first component.
 **	Used primarily in wildcard MX record definitions.
+**
+**	Note. This routine is much too liberal.
 */
 
 char *specials = ".()<>@,;:\\\"[]";	/* RFC 822 specials */
@@ -6851,7 +6886,7 @@ char *
 itoa(n)
 input int n;				/* value to convert */
 {
-	static char buf[30];
+	static char buf[30];		/* sufficient for 64-bit values */
 
 	(void) sprintf(buf, "%d", n);
 	return(buf);
@@ -6870,26 +6905,30 @@ char *
 utoa(n)
 input int n;				/* value to convert */
 {
-	static char buf[30];
+	static char buf[30];		/* sufficient for 64-bit values */
 
 	(void) sprintf(buf, "%u", (unsigned)n);
 	return(buf);
 }
 
 /*
-** STOA -- Extract partial ascii string
-** ------------------------------------
+** STOA -- Extract partial ascii string, escape if necessary
+** ---------------------------------------------------------
 **
 **	Returns:
 **		Pointer to string.
 */
 
 char *
-stoa(cp, size)
+stoa(cp, size, escape)
 input u_char *cp;			/* current position in answer buf */
 input int size;				/* number of bytes to extract */
+input bool escape;			/* escape special characters if set */
 {
-	static char buf[MAXDLEN+1];
+	static char buf[2*MAXDLEN+1];
+	register char *p;
+	register char c;
+	register int i;
 
 	if (size > MAXDLEN)
 		size = MAXDLEN;
@@ -6900,8 +6939,16 @@ input int size;				/* number of bytes to extract */
 	else
 		(void) sprintf(buf, "%s", "");
 #endif
-	bcopy((char *)cp, buf, size);
-	buf[size] = '\0';
+
+	for (p = buf, i = 0; i < size; i++)
+	{
+		c = *cp++;
+		if (escape && (c == '\n' || c == '\\' || c == '"'))
+			*p++ = '\\';
+		*p++ = c;
+	}
+	*p = '\0';
+
 	return(buf);
 }
 
@@ -6945,6 +6992,39 @@ input int size;				/* number of bytes to extract */
 	*p = '\0';
 
 	return(buf);
+}
+
+/*
+** IPNG_NTOA -- Convert binary ip v6 address to ascii
+** --------------------------------------------------
+**
+**	Returns:
+**		Pointer to string.
+**
+**	As per RFC 1886 an ip v6 address is encoded in binary form
+**	in the resource record. The size is fixed.
+*/
+
+char *
+ipng_ntoa(cp)
+input u_char *cp;			/* current position in answer buf */
+{
+	static char buf[5*(IPNGSIZE/2)+1];
+	register char *p;
+	register int n;
+	register int i;
+
+	for (p = buf, i = 0; i < IPNGSIZE/2; i++)
+	{
+		n = _getshort(cp);
+		cp += INT16SZ;
+
+		(void) sprintf(p, ":%X", n);
+		p += strlength(p);
+	}
+	*p = '\0';
+
+	return(buf + 1);
 }
 
 /*
