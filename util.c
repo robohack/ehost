@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.6 2003-03-30 17:32:27 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.7 2003-03-30 20:55:14 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -1785,5 +1785,5 @@ compare_name(a, b)
 	input const ptr_t *a;		/* first name */
 	input const ptr_t *b;		/* second name */
 {
-	return (strcasecmp(*((const char **) a), *((const char **) b)));
+	return (strcasecmp(*((const char * const *) a), *((const char * const *) b)));
 }
