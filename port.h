@@ -4,7 +4,7 @@
 **	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.9 2003-03-30 22:57:18 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.10 2003-03-30 23:38:21 -0800 woods Exp $"
 
 #if defined(__SVR4) || defined(__svr4__)
 # define SVR4
@@ -186,8 +186,10 @@ typedef u_long	ipaddr_t;
 #endif
 /* Sigh, standards are such wonderful things.... */
 #if !defined(socklen_t) && !defined(__FreeBSD__) && !defined(_SOCKLEN_T) && !defined(__socklen_t_defined)
-# if defined(__sun__) || ((BSD - 0) < 199506)
-typedef int		__socklen_t;	/* P1003.1g socket-related datum length */
+# if (defined(__sun__) && !defined(SVR4)) || \
+     (defined(sun) && defined(unix)) || \
+     ((BSD - 0 > 0) && ((BSD - 0) < 199506))
+typedef int		__socklen_t;	/* 4.3BSD and older */
 # else
 typedef size_t		__socklen_t;	/* P1003.1g socket-related datum length */
 # endif
@@ -196,14 +198,23 @@ typedef __socklen_t	socklen_t;
 #endif
 
 /*
- * Deal with the other parts of the P1003.1g API change.
+ * BSD Socket API buffer length type.
+ *
+ * Deal with the other parts of the P1003.1g API change which the POSIX
+ * committee didn't seem to address....
+ *
+ * (using the NetBSD template for __socklen_t and socklen_t).
+ *
+ * Perhaps the defined(__sun__) shouldn't be there on the _SOCKLEN_T line....
  */
-#if !defined(sock_buflen_t)
-# if (defined(__sun__) && !defined(SVR4)) || \
+#if !defined(sock_buflen_t)			/* silly dreamer! */
+# if (defined(sun) && defined(unix)) || \
+     (defined(__sun__) && !defined(SVR4)) || \
+     (defined(__sun__) && defined(__svr4__) && !defined(_SOCKLEN_T)) || \
      ((BSD - 0 > 0) && ((BSD - 0) < 199506))
-typedef int		__sock_buflen_t;	/* socket API buffer lengths */
+typedef int		__sock_buflen_t;	/* 4.3BSD and older used int */
 # else
-typedef size_t		__sock_buflen_t;	/* socket API buffer lengths */
+typedef size_t		__sock_buflen_t;	/* P1003.1g adherents use size_t */
 # endif
 typedef __sock_buflen_t	sock_buflen_t;
 # define sock_buflen_t	__sock_buflen_t
