@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.23 2003-12-04 03:32:33 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.24 2004-08-10 20:09:03 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1302,7 +1302,7 @@ do_check(name)
 
 		/* flag an error if server should not have failed */
 		if (lameserver && authserver) {
-			pr_error("%s has lame delegation to delegated nameserver %s",
+			pr_error("%s has lame delegation to the nameserver %s",
 				 name, server);
 		} else if (lameserver) {
 			pr_warning("%s no SOA found at the specified nameserver %s",
