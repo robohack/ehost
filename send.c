@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.5 2003-03-28 22:19:57 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.6 2003-03-30 17:34:12 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -637,7 +637,7 @@ _res_write(sock, addr, host, buf, bufsize)
 #if 0
 	len = htons((u_short)bufsize);
 #endif
-	putshort((u_int16_t) bufsize, (u_char *) &len);	/* XXX from resolv.h, bogus broken API! */
+	putshort((u_short) bufsize, (u_char *) &len);	/* XXX from resolv.h, bogus broken API! */
 
 	if (send(sock, (char *) &len, INT16SZ, 0) != INT16SZ) {
 		_res_perror(addr, host, "write query length");
@@ -846,7 +846,7 @@ recv_sock(sock, buffer, buflen)
 {
 	fd_set fds;
 	struct timeval wait;
-	int fromlen;
+	size_t fromlen;
 	register int n;
 
 	wait.tv_sec = timeout;
