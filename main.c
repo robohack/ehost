@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.8 2003-03-30 17:31:24 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.9 2003-03-30 20:51:41 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -755,7 +755,7 @@ main(argc, argv)
 	/*
 	 * Set default preferred server for zone listings, if not specified.
 	 */
-	if (listmode && (prefserver == NULL))
+	if (listmode && !checkmode && (prefserver == NULL))
 		prefserver = myhostname();
 
 	/*
