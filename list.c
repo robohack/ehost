@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.16 2003-04-04 04:10:48 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.17 2003-04-05 03:30:35 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -730,6 +730,8 @@ find_servers(name)
 			printf("Found %d address%s for %s\n",
 				naddrs[0], plurale(naddrs[0]), nsname[0]);
 		nservers = 1;
+		geth_freehostent(hp);
+
 		return (TRUE);
 	}
 
@@ -779,6 +781,8 @@ find_servers(name)
 				pr_warning("%s nameserver %s is not canonical (%s)",
 					   name, nsname[n], hp->h_name);
 			}
+			if (hp)
+				geth_freehostent(hp);
 		} else {
 			if (verbose) {
 				printf("Found %d address%s for %s\n",

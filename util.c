@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.12 2003-04-04 22:36:13 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.13 2003-04-05 03:30:35 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -1658,6 +1658,7 @@ canonical(name)
 	int status;
 	int save_errno;
 	int save_herrno;
+	int result = 0;
 	
 	/*
 	 * Preserve state when querying, to avoid clobbering current values.
@@ -1688,7 +1689,11 @@ canonical(name)
 	 * The name of this A record should be the name we queried about.
 	 * If this is not the case then the answer was probably a CNAME.
 	 */
-	return sameword(hp->h_name, name) ? 0 : HOST_NOT_CANON;
+	result = sameword(hp->h_name, name) ? 0 : HOST_NOT_CANON;
+
+	geth_freehostent(hp);
+
+	return (result);
 }
 
 /* 
@@ -1741,22 +1746,29 @@ mapreverse(name, inaddr)
 	 * Check whether the ``official'' host name matches.
 	 * This is the name in the first (or only) PTR record encountered.
 	 */
-	if (sameword(hp->h_name, name))
+	if (sameword(hp->h_name, name)) {
+		geth_freehostent(hp);
 		return (name);
+	}
 
 	/*
 	 * If not, a match may be found among the aliases.
 	 * They are available (as of BIND 4.9) in case multipe PTR records are used.
 	 */
 	for (i = 0; hp->h_aliases[i]; i++) {
-		if (sameword(hp->h_aliases[i], name))
+		if (sameword(hp->h_aliases[i], name)) {
+			geth_freehostent(hp);
 			return (name);
+		}
 	}
 
 	/*
 	 * The reverse mapping did not yield the given name.
 	 */
-	return ((char *) hp->h_name);
+	name = strdup(hp->h_name);
+	geth_freehostent(hp);
+
+	return (name);
 }
 
 /* 
