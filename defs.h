@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.2 2002-01-11 22:32:12 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.3 2003-03-21 18:49:57 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -165,7 +165,8 @@ static sigtype_t timer	PROTO((int));
 int _res_connect	PROTO((int, struct sockaddr_in *, int));
 int _res_write		PROTO((int, struct sockaddr_in *, char *, char *, int));
 int _res_read		PROTO((int, struct sockaddr_in *, char *, char *, int));
-static int recv_sock	PROTO((int, char *, int));
+int _res_read_stream	PROTO((int, struct sockaddr_in *, char *, char *, int));
+int recv_sock		PROTO((int, char *, int));
 void _res_perror	PROTO((struct sockaddr_in *, char *, char *));
 
 /*
