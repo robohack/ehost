@@ -1,6 +1,6 @@
 # -*-indented-text-*-
 #
-#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.9 2003-06-05 01:14:12 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.10 2003-11-01 17:14:13 -0800 woods Exp $"
 #
 
 	URL:		ftp://ftp.weird.com/pub/local/host.tar.gz
@@ -21,6 +21,21 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 # Description of important user-visible changes per release
 # ----------------------------------------------------------------------
 
+2003/11/01
+
+	- fixed the canonical check used to test MX and NS records so
+	  that if '-v' is given it shows the errant CNAME and, if
+	  available, the hostname being pointed to.
+
+	- improved various other debug and verbose messages.
+
+	- partially fixed canonical host check (was ignoring
+	  non-existant hosts unless '-v' was used, and then only a
+	  debugging message showed the problem)
+
+	- fixed off-by-one report of hostname count (reported by
+	  Matthias Andree <matthias.andree@gmx.de>)
+
 2003/06/04
 
 	- bug fixes for zone transfer read timeout handling.
@@ -28,15 +43,15 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 	- more minor portability fixes for FreeBSD.
 
 	- more portability fixes for GNU/Linux/GNU LibC, though not much
-          more can be done without some way of forcing use of libbind
-          from BIND-8.4.0 or newer.
+	  more can be done without some way of forcing use of libbind
+	  from BIND-8.4.0 or newer.
 
 2003/05/27
 
 	- minor updates for some DNS blacklists in the rblookup script, etc.
 
 	- fixed minor portability issues for GNU/Linux (really GNU LibC), as
-          well as for FreeBSD.
+	  well as for FreeBSD.
 
 2003/04/05
 
@@ -46,8 +61,8 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 	  issue mentioned in the 991527 notes still exists)
 
 	- host no longer needs to know the system hostname, though it
-          will warn if it can't be found and verified and if '-P'
-          doesn't give an alternate preferred nameserver domain.
+	  will warn if it can't be found and verified and if '-P'
+	  doesn't give an alternate preferred nameserver domain.
 
 	- the undocumented --dump and --load disk cache options work (again?).
 
