@@ -1,0 +1,2 @@
+- check that the names in the answer records match the names we asked
+  for (taking CNAMEs into account where they're allowed).
