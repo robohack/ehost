@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.12 2003-04-04 04:10:49 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.13 2003-04-04 22:35:50 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -1536,7 +1536,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	 * perhaps to specify a network mask as suggested in RFC 1101.
 	 */
 	if (addrmode && test_adr(type, address)) {
-		if ((host = mapreverse(rname, inaddr))) {
+		if (!(host = mapreverse(rname, inaddr))) {
 			pr_warning("%s address %s is not registered",
 				   rname, inet_ntoa(inaddr));
 		} else if (host != rname) {
