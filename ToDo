@@ -35,6 +35,17 @@ suggestions and comments are also encouraged.
 
 - clean up the host_res_*() mess.
 
+- don't strip the trailing dot from PTR targets that have only one label.
+
+- maybe '-P' should be the default for '-C', but then we'd need
+  something like a '--not-parent' or '--listed-ns' variant to explicitly
+  check the nameservers listed inside the zone and it all gets a whole
+  lot messier....
+
+- check for both A and AAAA records.  The check for canonical hostnames
+  in NS and MX records should be extended to include also AAAA records.
+  Originally asked by Matti Aarnio <matti.aarnio@sonera.fi>
+
 - try to build a regression test suite (but how do we feed it known
   bogus junk to test error handling?  nc?).
 
