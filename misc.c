@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: misc.c,v 1.6 2003-03-30 20:51:16 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: misc.c,v 1.7 2003-03-31 21:58:16 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)misc.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -177,10 +177,10 @@ base_ntoa(cp, size)
 		size = MAXMD5SIZE;
 
 	for (p = buf; size > 2; cp += 3, size -= 3) {
-		c1 = (((int) cp[0] >> 2) & 0x3f);
-		c2 = (((int) cp[0] & 0x03) << 4) + (((int) cp[1] >> 4) & 0x0f);
-		c3 = (((int) cp[1] & 0x0f) << 2) + (((int) cp[2] >> 6) & 0x03);
-		c4 =  ((int) cp[2] & 0x3f);
+		c1 = (((u_int) cp[0] >> 2) & 0x3f);
+		c2 = (((u_int) cp[0] & 0x03) << 4) + (((u_int) cp[1] >> 4) & 0x0f);
+		c3 = (((u_int) cp[1] & 0x0f) << 2) + (((u_int) cp[2] >> 6) & 0x03);
+		c4 =  ((u_int) cp[2] & 0x3f);
 
 		*p++ = b64tab[c1];
 		*p++ = b64tab[c2];
@@ -189,17 +189,17 @@ base_ntoa(cp, size)
 	}
     
 	if (size == 2) {
-		c1 = (((int) cp[0] >> 2) & 0x3f);
-		c2 = (((int) cp[0] & 0x03) << 4) + (((int) cp[1] >> 4) & 0x0f);
-		c3 = (((int) cp[1] & 0x0f) << 2);
+		c1 = (((u_int) cp[0] >> 2) & 0x3f);
+		c2 = (((u_int) cp[0] & 0x03) << 4) + (((u_int) cp[1] >> 4) & 0x0f);
+		c3 = (((u_int) cp[1] & 0x0f) << 2);
 
 		*p++ = b64tab[c1];
 		*p++ = b64tab[c2];
 		*p++ = b64tab[c3];
 		*p++ = '=';
 	} else if (size == 1) {
-		c1 = (((int)cp[0] >> 2) & 0x3f);
-		c2 = (((int)cp[0] & 0x03) << 4);
+		c1 = (((u_int) cp[0] >> 2) & 0x3f);
+		c2 = (((u_int) cp[0] & 0x03) << 4);
 
 		*p++ = b64tab[c1];
 		*p++ = b64tab[c2];
@@ -238,9 +238,9 @@ nsap_ntoa(cp, size)
 		size = MAXNSAP;
 
 	for (p = buf, i = 0; i < size; i++, cp++) {
-		c = ((int) (*cp) >> 4) & 0x0f;
+		c = ((u_int) (*cp) >> 4) & 0x0f;
 		*p++ = hexdigit(c);
-		c = ((int) (*cp) >> 0) & 0x0f;
+		c = ((u_int) (*cp) >> 0) & 0x0f;
 		*p++ = hexdigit(c);
 
 		/* add dots for readability */
@@ -415,7 +415,7 @@ pr_spherical(value, pos, neg)
 	/*
 	 * Normalize.
 	 */
-	value -= (int)((unsigned)1 << 31);
+	value -= (int) ((u_int) 1 << 31);
 
 	direction = pos;
 	if (value < 0) {
@@ -540,7 +540,7 @@ unsigned int poweroften[10] = {
 
 char *
 pr_precision(value)
-	input int value;		/* the precision to be converted */
+	input unsigned int value;	/* the precision to be converted */
 {
 	static char buf[256];
 	register char *p = buf;
@@ -552,8 +552,8 @@ pr_precision(value)
 	/*
 	 * Normalize.
 	 */
-	mantissa = ((value >> 4) & 0x0f) % 10;
-	exponent = ((value >> 0) & 0x0f) % 10;
+	mantissa = (((u_int) value >> 4) & 0x0f) % 10;
+	exponent = (((u_int) value >> 0) & 0x0f) % 10;
 	precision = mantissa * poweroften[exponent];
 
 	/*
