@@ -4,7 +4,7 @@
 **	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.8 2003-03-30 20:53:15 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.9 2003-03-30 22:57:18 -0800 woods Exp $"
 
 #if defined(__SVR4) || defined(__svr4__)
 # define SVR4
@@ -176,22 +176,37 @@ typedef u_long	ipaddr_t;
  * that _BSD_SOCKLEN_T_ is NOT defined in order to typedef socklen_t at the
  * earliest point it's needed.  However they leave no means for applications to
  * know if the typedef has already been done.
+ *
+ * FYI: In NetBSD socklen_t came into use just before 1.3J:
+ *
+ *	(__NetBSD_Version__ - 0) > 103100000
  */
 #if defined(__FreeBSD__) && defined(_BSD_SOCKLEN_T_)
 # include "ERROR: something's wrong with the #includes above!"
 #endif
-#if !defined(socklen_t) && !defined(__FreeBSD__) && !defined(__svr4__) && !defined(__socklen_t_defined)
-typedef unsigned int	__socklen_t;	/* socket-related datum length */
+/* Sigh, standards are such wonderful things.... */
+#if !defined(socklen_t) && !defined(__FreeBSD__) && !defined(_SOCKLEN_T) && !defined(__socklen_t_defined)
+# if defined(__sun__) || ((BSD - 0) < 199506)
+typedef int		__socklen_t;	/* P1003.1g socket-related datum length */
+# else
+typedef size_t		__socklen_t;	/* P1003.1g socket-related datum length */
+# endif
 typedef __socklen_t	socklen_t;
 # define socklen_t	__socklen_t
 #endif
 
-#if defined(__NetBSD__) || defined(__linux__)	/* XXX bogus but good enough for now */
-typedef socklen_t	geth_sz_t;
-typedef size_t		recvfrom_fromlen_t;
-#else
-typedef int		geth_sz_t;
-typedef int		recvfrom_fromlen_t;
+/*
+ * Deal with the other parts of the P1003.1g API change.
+ */
+#if !defined(sock_buflen_t)
+# if (defined(__sun__) && !defined(SVR4)) || \
+     ((BSD - 0 > 0) && ((BSD - 0) < 199506))
+typedef int		__sock_buflen_t;	/* socket API buffer lengths */
+# else
+typedef size_t		__sock_buflen_t;	/* socket API buffer lengths */
+# endif
+typedef __sock_buflen_t	sock_buflen_t;
+# define sock_buflen_t	__sock_buflen_t
 #endif
 
 #if defined(apollo) || defined(_BSD_SIGNALS)
