@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.2 2002-01-11 22:35:11 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.3 2003-03-21 18:52:34 -0800 woods Exp $"
 
 #ifndef lint
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -501,8 +501,10 @@ input bool regular;			/* set if this is a regular lookup */
 
 	if (nscount)
 	{
-		if (type != T_NS)
-			printf("Authority information:\n");
+		if (type == T_NS && ntohs((u_short)bp->ancount) == 0) /* ancount already used up! */
+			printf("Refer to the following authoritative servers:\n");
+		else
+			printf("Authority section contains:\n");
 
 		while (nscount > 0 && cp < eom)
 		{
@@ -1528,25 +1530,25 @@ input bool regular;			/* set if this is a regular lookup */
  */
 	if (test_valid(type) && !valid_name(rname, TRUE, FALSE, underskip))
 	{
-		pr_warning("%s %s record has illegal name",
-			rname, pr_type(type));
+		pr_error("%s %s record has invalid name",
+			 rname, pr_type(type));
 	}
 
 	if (test_canon(type) && !valid_name(dname, FALSE, FALSE, underskip))
 	{
-		pr_warning("%s %s host %s has illegal name",
-			rname, pr_type(type), dname);
+		pr_error("%s %s host %s has invalid name",
+			 rname, pr_type(type), dname);
 	}
 
 	if (test_ptr(type, rname) && !valid_name(dname, FALSE, FALSE, underskip))
 	{
-		pr_warning("%s %s host %s has illegal name",
-			rname, pr_type(type), dname);
+		pr_error("%s %s host %s has invalid name",
+			 rname, pr_type(type), dname);
 	}
 
 /*
- * The RHS of various resource records should refer to a canonical host name,
- * i.e. it should exist and have an A record and not be a CNAME.
+ * The RHS of various resource records MUST refer to a canonical host name,
+ * i.e. it must exist, and have an A record, and not be a CNAME.
  * By default this test is suppressed during deep recursive zone listings.
  * Results are cached globally, not on a per-zone basis.
  */
@@ -1554,13 +1556,13 @@ input bool regular;			/* set if this is a regular lookup */
 	{
 		/* only report definitive target host failures */
 		if (n == HOST_NOT_FOUND)
-			pr_warning("%s %s host %s does not exist",
+			pr_error("%s %s host %s does not exist",
 				rname, pr_type(type), dname);
 		else if (n == NO_DATA)
-			pr_warning("%s %s host %s has no A record",
+			pr_error("%s %s host %s has no A record",
 				rname, pr_type(type), dname);
 		else if (n == HOST_NOT_CANON)
-			pr_warning("%s %s host %s is not canonical",
+			pr_error("%s %s host %s is not canonical",
 				rname, pr_type(type), dname);
 
 		/* authoritative failure to find nameserver target host */
