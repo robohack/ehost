@@ -4,7 +4,7 @@
 ** from: @(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: host.h,v 1.7 2003-03-30 17:59:36 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.8 2003-03-30 20:50:26 -0800 woods Exp $"
 
 #if defined(apollo) && defined(lint)
 # define __attribute(x)		/* XXX ??? */
@@ -33,8 +33,8 @@
 # include <sys/cdefs.h>
 #endif
 
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #include <stdio.h>
 #include <assert.h>
@@ -146,7 +146,9 @@ extern int errno;
 extern int h_errno;		/* defined in the resolver library */
 #endif
 
+#ifndef _res
 extern res_state_t _res;	/* defined in res_init.c */
+#endif
 
 #include "defs.h"		/* declaration of functions */
 
