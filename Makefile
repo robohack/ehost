@@ -1,14 +1,18 @@
-#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 971216
+#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 991515
+
+#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.8 2002-01-12 08:07:25 -0800 woods Exp $"
 
 # ----------------------------------------------------------------------
 # Adapt the installation directories to your local standards.
 # ----------------------------------------------------------------------
 
+PREFIX = /usr/local
+
 # This is where the host executable will go.
-DESTBIN = /usr/local/bin
+DESTBIN = ${PREFIX}/bin
 
 # This is where the host manual page will go.
-DESTMAN = /usr/local/man
+DESTMAN = ${PREFIX}/man
 
 BINDIR = $(DESTBIN)
 MANDIR = $(DESTMAN)/man1
@@ -19,7 +23,7 @@ MANDIR = $(DESTMAN)/man1
 # ----------------------------------------------------------------------
 
 #if defined(_AIX)
-SYSDEFS = -D_BSD -D_BSD_INCLUDES -U__STR__ -DBIT_ZERO_ON_LEFT
+SYSDEFS = -D_BSD -D_BSD_INCLUDES -U__STR__ -DBIT_ZERO_ON_LEFT -DHAVE_INET_ATON
 #endif
  
 #if defined(SCO) && You have either OpenDeskTop 3 or OpenServer 5
@@ -31,14 +35,18 @@ SYSDEFS = -DULTRIX_RESOLV
 #endif
  
 #if defined(solaris) && You do not want to use BSD compatibility mode
-SYSDEFS = -DSYSV
+SYSDEFS = -DSYSV -DHAVE_INET_ATON
 #endif
  
 #if defined(solaris) && You are using its default broken resolver library
 SYSDEFS = -DNO_YP_LOOKUP
 #endif
 
-SYSDEFS =
+#if you have a sane, modern, system
+SYSDEFS = -DHAVE_INET_ATON
+
+#if defined(NetBSD) && you have not removed support for $HOSTALIASES
+SYSDEFS = ${ALLOW_HOSTALIASES}
 
 # ----------------------------------------------------------------------
 # Configuration definitions.
@@ -59,6 +67,8 @@ CONFIGDEFS = -DHOST_RES_SEND
 
 # This is the default in either case if you compile stand-alone.
 CONFIGDEFS = -DBIND_RES_SEND
+CONFIGDEFS = -DHOST_RES_SEND
+CONFIGDEFS = 
 
 # ----------------------------------------------------------------------
 # Include file directories.
@@ -68,6 +78,7 @@ CONFIGDEFS = -DBIND_RES_SEND
 
 INCL = ../../include
 INCL = .
+#INCL = /usr/local/bind/include
 
 COMPINCL = ../../compat/include
 COMPINCL = .
@@ -81,6 +92,7 @@ INCLUDES = -I$(INCL) -I$(COMPINCL)
 DEFS = $(CONFIGDEFS) $(SYSDEFS) $(INCLUDES)
 
 COPTS =
+COPTS = -O -DDEBUG
 COPTS = -O
 
 CFLAGS = $(COPTS) $(DEFS)
@@ -107,9 +119,10 @@ CC = cc
 # ----------------------------------------------------------------------
 
 RES = -lsocket				#if defined(SCO) && default
-RES =
 RES = ../../res/libresolv.a
 RES = -lresolv
+RES = -L/usr/local/bind/lib -lbind
+RES =					#if BSD
 
 COMPLIB = ../../compat/lib/lib44bsd.a
 COMPLIB = -lnet
@@ -147,14 +160,22 @@ SHELL = /bin/sh
 # Files.
 # ----------------------------------------------------------------------
 
-PROG = host
-HDRS = port.h conf.h exit.h type.h rrec.h defs.h host.h
-SRCS = host.c send.c vers.c
-OBJS = host.o send.o vers.o
-MANS = host.1
-DOCS = RELEASE_NOTES
+PROG =	host
+HDRS =	port.h conf.h exit.h type.h rrec.h defs.h host.h glob.h
+SRCS =	main.c info.c list.c addr.c geth.c util.c misc.c test.c \
+	file.c send.c vers.c
+OBJS =	main.o info.o list.o addr.o geth.o util.o misc.o test.o \
+	file.o send.o vers.o
+MANS =	host.1
+DOCS =	RELEASE_NOTES
 
-UTILS = nslookup mxlookup rblookup
+# the scripts need to be renamed with a ".sh" extension so that their
+# generated targets can be created with no extension, ready for
+# installation....
+#
+UTILS = nscheck.sh nslookup.sh mxlookup.sh rblookup.sh
+UTIL_PROGS = nscheck nslookup mxlookup rblookup
+
 MISCS = malloc.c README_NT
 
 FILES = Makefile $(DOCS) $(HDRS) $(SRCS) $(MANS) $(UTILS) $(MISCS)
@@ -162,32 +183,45 @@ FILES = Makefile $(DOCS) $(HDRS) $(SRCS) $(MANS) $(UTILS) $(MISCS)
 PACKAGE = host
 TARFILE = $(PACKAGE).tar
 
-CLEANUP = $(PROG) $(OBJS) $(TARFILE) $(TARFILE).Z
+CLEANUP = $(OBJS) $(TARFILE) $(TARFILE).Z
 
 # ----------------------------------------------------------------------
 # Rules for installation.
 # ----------------------------------------------------------------------
 
-OWNER = root
-GROUP = staff
-MODE  = 755
-STRIP = -s
+BINOWN = root
+BINGRP = staff
+BINMODE  = 755
+STRIPFLAG = -s
 
-all: $(PROG)
+all: $(PROG) $(UTIL_PROGS)
 
-$(OBJS): $(SRCS) $(HDRS)
+$(OBJS): $(HDRS)
 
 $(PROG): $(OBJS)
 	$(CC) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBRARIES)
 
 install: $(PROG)
-	$(INSTALL) -m $(MODE) -o $(OWNER) -g $(GROUP) $(STRIP) $(PROG) $(BINDIR)
+	$(INSTALL) -m $(BINMODE) -o $(BINOWN) -g $(BINGRP) $(STRIPFLAG) $(PROG) $(BINDIR)
 
-man: $(MANS)
+install-utils: $(UTIL_PROGS)
+	$(INSTALL) -m $(BINMODE) -o $(BINOWN) -g $(BINGRP) $(UTIL_PROGS) $(BINDIR)
+
+install-man: $(MANS)
 	$(INSTALL) -m 444 host.1 $(MANDIR)
 
 clean:
 	rm -f $(CLEANUP) *.o a.out core
+
+clobber: clean
+	rm -f $(PROG) $(UTIL_PROGS) *.tmp
+
+.SUFFIXES: .tmp
+
+.sh:
+	@rm -f $@
+	sed 's,@DESTBIN@,$(DESTBIN),g' < $@.sh > $@
+	chmod +x $@
 
 # ----------------------------------------------------------------------
 # host may be called with alternative names, querytype names and "zone".
@@ -196,10 +230,10 @@ clean:
 
 ABBREVIATIONS = a ns cname soa wks ptr hinfo mx txt	# standard
 ABBREVIATIONS = mb mg mr minfo				# deprecated
-ABBREVIATIONS = md mf null				# obsolete
+ABBREVIATIONS = md mf null gpos				# obsolete
 ABBREVIATIONS = rp afsdb x25 isdn rt nsap nsap-ptr	# new
-ABBREVIATIONS = sig key px gpos aaaa loc nxt srv	# very new
-ABBREVIATIONS = eid nimloc atma naptr kx		# draft
+ABBREVIATIONS = sig key px aaaa loc nxt srv kx cert	# very new
+ABBREVIATIONS = eid nimloc atma naptr			# draft
 ABBREVIATIONS = uinfo uid gid unspec			# nonstandard
 ABBREVIATIONS = maila mailb any				# filters
 
@@ -230,8 +264,6 @@ dist:
 	tar cf $(TARFILE) $(FILES)
 	compress $(TARFILE)
 
-depend:
-	mkdep $(DEFS) $(SRCS)
-
-# DO NOT DELETE THIS LINE -- mkdep uses it.
-# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
+# Keep it simple....
+#
+$(OBJS): $(HDRS)
