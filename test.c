@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: test.c,v 1.4 2003-03-28 22:19:57 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: test.c,v 1.5 2003-03-31 21:04:22 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)test.c	e07@nikhef.nl (Eric Wassenaar) 991515";
@@ -35,7 +35,8 @@ static char Version[] = "@(#)test.c	e07@nikhef.nl (Eric Wassenaar) 991515";
 **		FALSE otherwise.
 */
 
-bool_t /*ARGSUSED*/
+/*ARGSUSED*/
+bool_t
 test(name, addr)
 	input char *name;		/* name to query about */
 	input ipaddr_t addr;		/* explicit address of query */
