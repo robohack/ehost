@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.8 2003-10-31 23:53:53 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.9 2003-12-01 20:58:46 -0800 woods Exp $"
 #
 # rblookup - Lookup a dotted quad IP address, or hostname in one of many
 #		Reverse/Realtime DNS-based Lists
@@ -147,9 +147,17 @@ ALL_RBLS="${DORKSLAYERS_ROOT} ${ALL_RBLS}"
 DSBL_ROOT="list.dsbl.org unconfirmed.dsbl.org multihop.dsbl.org"
 ALL_RBLS="${DSBL_ROOT} ${ALL_RBLS}"
 
+# ABUSEAT lists
+# <URL:http://www.abuseat.org/>
+#
+ABUSEAT_ROOT="cbl.abuseat.org"
+ALL_RBLS="${DSBL_ROOT} ${ALL_RBLS}"
+
 # Easynet.nl (formerly WireHub.nl) lists
 # <URL:http://abuse.easynet.nl/blackholes.html>
 # AUP at <URL:http://www.nl.easynet.net/pub/av/en/>
+#
+# NOTICE:  These zones will apparently be empty as of December 1, 2003 
 #
 #     * Easynet DynaBlocker (dynamic IP ranges; a lot of
 #       spam comes straight from dial-up users)
@@ -477,35 +485,29 @@ fatal ()
 
 verbose=false
 rbllist=""
+params=""
 
-for i in ${1+$@}; do
-	case "$i" in
-	-M)
-		ALL_RBLS="${MAPS_BLACKHOLES_ROOT} ${MAPS_DUL_ROOT} ${MAPS_RSS_ROOT} ${ALL_RBLS}"
-		;;
-	-d)
+while getopts dMr:v OPT; do
+	case "$OPT" in
+	d)
 		show_or_exec=echo
 		;;
-	-r)
-		rbllist="$2";
-		shift
+	M)
+		ALL_RBLS="${MAPS_BLACKHOLES_ROOT} ${MAPS_DUL_ROOT} ${MAPS_RSS_ROOT} ${ALL_RBLS}"
 		;;
-	-v)
+	r)
+		rbllist="$OPTARG";
+		;;
+	v)
 		verbose=true
 		;;
-	-?)
+	\?)
 		fatal "$usage"
 		;;
-	-*)
-		fatal "$argv0: Unknown option $i"
-		;;
-	*)
-		break
-		;;
 	esac
-	params="$params $i"
-	shift
+	params="$params -$OPT $OPTARG"
 done
+shift $(($OPTIND - 1))
 
 [ $# -lt 1 ] && fatal "$usage"
 
@@ -563,7 +565,7 @@ invert ()
 
 exitstat=""
 
-for name in ${1+$@}; do
+for name in $@; do
 	# Canonicalise the case and remove any trailing dots.
 	name=$(echo $name | tr '[A-Z]' '[a-z]' | sed 's/\.*$//')
 
