@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.11 2003-04-03 18:25:06 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.12 2003-04-03 23:16:02 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -101,6 +101,7 @@ void print_answer	__P((querybuf_t *, size_t, int));
 void pr_error		__P((const char *, ...));
 void pr_warning		__P((const char *, ...));
 void pr_timestamp	__P((const char *, ...));
+void sys_error		__P((const char *, ...));
 bool_t want_type	__P((int, int));
 bool_t want_class	__P((int, int));
 bool_t indomain		__P((char *, const char *, bool_t));
