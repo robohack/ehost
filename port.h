@@ -1,16 +1,18 @@
 /*
 ** Various portability definitions.
 **
-**	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 960417
+**	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 961010
 */
 
 #if defined(SYSV) || defined(SVR4)
+#define SYSV_MALLOC
 #define SYSV_MEMSET
 #define SYSV_STRCHR
 #define SYSV_SETVBUF
 #endif
 
 #if defined(__hpux) || defined(hpux)
+#define SYSV_MALLOC
 #define SYSV_SETVBUF
 #endif
 
@@ -31,11 +33,9 @@
 #ifndef INT16SZ
 #define	INT16SZ		2	/* for systems without 16-bit ints */
 #endif
-
 #ifndef INT32SZ
 #define	INT32SZ		4	/* for systems without 32-bit ints */
 #endif
-
 #ifndef INADDRSZ
 #define	INADDRSZ	4	/* for sizeof(struct inaddr) != 4 */
 #endif
@@ -86,9 +86,15 @@ typedef int	sigtype_t;
 typedef void	sigtype_t;
 #endif
 
-/* too primitive */
+#if defined(SYSV_MALLOC)
+typedef void	ptr_t;		/* generic pointer type */
+typedef u_int	siz_t;		/* general size type */
+typedef void	free_t;
+#else
 typedef char	ptr_t;		/* generic pointer type */
 typedef u_int	siz_t;		/* general size type */
+typedef int	free_t;
+#endif
 
 #ifdef SYSV_MEMSET
 #define bzero(a,n)	(void) memset(a,'\0',n)
@@ -128,6 +134,10 @@ typedef u_int	siz_t;		/* general size type */
 */
 
 #define PROTO(TYPES)	()
+
+#if !defined(__STDC__) || defined(apollo)
+#define const
+#endif
 
 #if defined(__STDC__) && defined(BIND_49)
 #define CONST	const

@@ -1,4 +1,4 @@
-#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 960417
+#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 961012
 
 # ----------------------------------------------------------------------
 # Adapt the installation directories to your local standards.
@@ -84,6 +84,7 @@ CFLAGS = $(COPTS) $(DEFS)
 # Select your favorite compiler.
 CC = /usr/ucb/cc			#if defined(solaris) && BSD
 CC = /bin/cc -arch m68k -arch i386	#if defined(next)
+CC = /bin/cc -Olimit 1000		#if defined(ultrix)
 CC = /bin/cc
 CC = cc
 
@@ -150,8 +151,9 @@ MANS = host.1
 DOCS = RELEASE_NOTES
 
 UTILS = nslookup mxlookup
+MISCS = malloc.c
 
-FILES = Makefile $(DOCS) $(HDRS) $(SRCS) $(MANS) $(UTILS)
+FILES = Makefile $(DOCS) $(HDRS) $(SRCS) $(MANS) $(UTILS) $(MISCS)
 
 PACKAGE = host
 TARFILE = $(PACKAGE).tar
@@ -187,7 +189,8 @@ ABBREVIATIONS = a ns cname soa wks ptr hinfo mx txt	# standard
 ABBREVIATIONS = mb mg mr minfo				# deprecated
 ABBREVIATIONS = md mf null				# obsolete
 ABBREVIATIONS = rp afsdb x25 isdn rt nsap nsap-ptr	# new
-ABBREVIATIONS = sig key px gpos aaaa loc		# very new
+ABBREVIATIONS = sig key px gpos aaaa loc nxt srv	# very new
+ABBREVIATIONS = eid nimloc atma naptr			# draft
 ABBREVIATIONS = uinfo uid gid unspec			# nonstandard
 ABBREVIATIONS = maila mailb any				# filters
 
@@ -204,6 +207,9 @@ links:
 
 lint:
 	lint $(DEFS) $(SRCS)
+
+alint:
+	alint $(DEFS) $(SRCS)
 
 llint:
 	lint $(DEFS) $(SRCS) -lresolv
