@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.3 2003-03-21 18:49:57 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.4 2003-03-28 21:57:23 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -12,162 +12,163 @@
 */
 	/* main.c */
 
-int main		PROTO((int, char **));
-void set_defaults	PROTO((char *, int, char **));
-int getval		PROTO((char *, char *, int, int));
-char *cvtopt		PROTO((char *));
-int process_argv	PROTO((int, char **));
-int process_file	PROTO((FILE *));
-int process_name	PROTO((char *));
-int execute_name	PROTO((char *));
-bool execute		PROTO((char *, ipaddr_t));
-bool host_query		PROTO((char *, ipaddr_t));
-char *myhostname	PROTO((void));
-void set_server		PROTO((char *));
-void set_logfile	PROTO((char *));
-void set_cachedir	PROTO((char *));
-void fatal		PROTO((char *, ...));
-void errmsg		PROTO((char *, ...));
+int main		__P((int, char **));
+void set_defaults	__P((char *, int, char **));
+int getval		__P((char *, char *, int, int));
+char *cvtopt		__P((char *));
+int process_argv	__P((int, char **));
+int process_file	__P((FILE *));
+int process_name	__P((char *));
+int execute_name	__P((char *));
+bool_t execute		__P((char *, ipaddr_t));
+bool_t host_query	__P((char *, ipaddr_t));
+char *myhostname	__P((void));
+void set_server		__P((char *));
+void set_logfile	__P((char *));
+void set_cachedir	__P((char *));
+void fatal		__P((char *, ...));
+void errmsg		__P((char *, ...));
 
 	/* info.c */
 
-bool get_hostinfo	PROTO((char *, bool));
-bool get_domaininfo	PROTO((char *, char *));
-int get_info		PROTO((querybuf *, char *, int, int));
-bool print_info		PROTO((querybuf *, int, char *, int, int, bool));
-void print_data		PROTO((char *, ...));
-u_char *print_rrec	PROTO((char *, int, int, u_char *, u_char *, u_char *, bool));
-void dump_rrec		PROTO((u_char *, int, char *));
-u_char *skip_qrec	PROTO((char *, int, int, u_char *, u_char *, u_char *));
-bool get_recursive	PROTO((char **));
+bool_t get_hostinfo	__P((char *, bool_t));
+bool_t get_domaininfo	__P((char *, char *));
+int get_info		__P((querybuf_t *, const char *, int, int));
+bool_t print_info	__P((querybuf_t *, int, const char *, int, int, bool_t));
+void print_data		__P((char *, ...));
+u_char *print_rrec	__P((const char *, int, int, u_char *, u_char *, u_char *, bool_t));
+void dump_rrec		__P((u_char *, int, char *));
+u_char *skip_qrec	__P((const char *, int, int, u_char *, u_char *, u_char *));
+bool_t get_recursive	__P((char **));
 
 	/* list.c */
 
-bool list_zone		PROTO((char *));
-bool find_servers	PROTO((char *));
-bool get_servers	PROTO((char *));
-bool get_nsinfo		PROTO((querybuf *, int, char *, int, int));
-void sort_servers	PROTO((void));
-bool skip_transfer	PROTO((char *));
-void do_check		PROTO((char *));
-void do_soa		PROTO((char *, struct in_addr, char *));
-bool do_transfer	PROTO((char *));
-bool transfer_zone	PROTO((char *, struct in_addr, char *));
-bool get_zone		PROTO((char *, struct in_addr, char *));
-void update_zone	PROTO((char *));
-bool get_mxrec		PROTO((char *));
-char *get_primary	PROTO((char *));
-bool check_zone		PROTO((char *, char *));
-bool check_cache	PROTO((char *, char *));
-bool compare_soa	PROTO((char *));
-bool get_soainfo	PROTO((querybuf *, int, char *, int, int));
-int load_soa		PROTO((querybuf *, char *));
-void check_soa		PROTO((querybuf *, char *, char *));
-bool check_dupl		PROTO((ipaddr_t));
-bool check_ttl		PROTO((char *, int, int, int));
-void clear_ttltab	PROTO((void));
-int host_index		PROTO((char *, bool));
-void clear_hosttab	PROTO((void));
-int zone_index		PROTO((char *, bool));
-void clear_zonetab	PROTO((void));
-int check_canon		PROTO((char *));
+bool_t list_zone	__P((char *));
+bool_t use_servers	__P((char *));
+bool_t find_servers	__P((char *));
+bool_t get_servers	__P((char *));
+bool_t get_nsinfo	__P((querybuf_t *, int, char *, int, int));
+void sort_servers	__P((void));
+bool_t skip_transfer	__P((char *));
+void do_check		__P((char *));
+void do_soa		__P((char *, struct in_addr, char *));
+bool_t do_transfer	__P((char *));
+bool_t transfer_zone	__P((char *, struct in_addr, char *));
+bool_t get_zone		__P((char *, struct in_addr, char *));
+void update_zone	__P((const char *));
+bool_t get_mxrec	__P((char *));
+char *get_primary	__P((char *));
+bool_t check_zone	__P((char *, char *));
+bool_t check_cache	__P((char *, char *));
+bool_t compare_soa	__P((char *));
+bool_t get_soainfo	__P((querybuf_t *, int, char *, int, int));
+int load_soa		__P((querybuf_t *, char *));
+void check_soa		__P((querybuf_t *, char *, char *));
+bool_t check_dupl	__P((ipaddr_t));
+bool_t check_ttl	__P((char *, int, int, int));
+void clear_ttltab	__P((void));
+int host_index		__P((char *, bool_t));
+void clear_hosttab	__P((void));
+int zone_index		__P((char *, bool_t));
+void clear_zonetab	__P((void));
+int check_canon		__P((char *));
 
 	/* addr.c */
 
-bool check_addr		PROTO((char *));
-bool check_addr_name	PROTO((struct in_addr, char *));
-bool check_name		PROTO((ipaddr_t));
-bool check_name_addr	PROTO((char *, ipaddr_t));
+bool_t check_addr	__P((char *));
+bool_t check_addr_name	__P((struct in_addr, char *));
+bool_t check_name	__P((ipaddr_t));
+bool_t check_name_addr	__P((char *, ipaddr_t));
 
 	/* geth.c */
 
-struct hostent *geth_byname	PROTO((CONST char *));
-struct hostent *geth_byaddr	PROTO((CONST char *, int, int));
+struct hostent *geth_byname	__P((const char *));
+struct hostent *geth_byaddr	__P((const char *, size_t, int));
 
 	/* util.c */
 
-int parse_type		PROTO((char *));
-int parse_class		PROTO((char *));
-char *in_addr_arpa	PROTO((char *));
-char *nsap_int		PROTO((char *));
-void print_host		PROTO((char *, struct hostent *));
-void show_res		PROTO((void));
-void print_stats	PROTO((int *, int, char *, int, int));
-void clear_stats	PROTO((int *));
-void show_types		PROTO((char *, int, int));
-void ns_error		PROTO((char *, int, int, char *));
-char *decode_error	PROTO((int));
-void print_answer	PROTO((querybuf *, int, int));
-void pr_error		PROTO((char *, ...));
-void pr_warning		PROTO((char *, ...));
-void pr_timestamp	PROTO((char *, ...));
-bool want_type		PROTO((int, int));
-bool want_class		PROTO((int, int));
-bool indomain		PROTO((char *, char *, bool));
-bool samedomain		PROTO((char *, char *, bool));
-bool gluerecord		PROTO((char *, char *, char **, int));
-int matchlabels		PROTO((char *, char *));
-char *pr_domain		PROTO((char *, bool));
-char *pr_dotname	PROTO((char *));
-char *pr_nsap		PROTO((char *));
-char *pr_type		PROTO((int));
-char *pr_class		PROTO((int));
-int expand_name		PROTO((char *, int, u_char *, u_char *, u_char *, char *));
-int check_size		PROTO((char *, int, u_char *, u_char *, u_char *, int));
-bool valid_name		PROTO((char *, bool, bool, bool));
-int canonical		PROTO((char *));
-char *mapreverse	PROTO((char *, struct in_addr));
-int anyrecord		PROTO((char *));
-int compare_name	Proto((const ptr_t *, const ptr_t *));
+int parse_type		__P((char *));
+int parse_class		__P((char *));
+char *in_addr_arpa	__P((char *));
+char *nsap_int		__P((char *));
+void print_host		__P((char *, struct hostent *));
+void show_res		__P((void));
+void print_stats	__P((int *, int, char *, int, int));
+void clear_stats	__P((int *));
+void show_types		__P((char *, int, int));
+void ns_error		__P((char *, int, int, char *));
+char *decode_error	__P((int));
+void print_answer	__P((querybuf_t *, int, int));
+void pr_error		__P((char *, ...));
+void pr_warning		__P((char *, ...));
+void pr_timestamp	__P((char *, ...));
+bool_t want_type	__P((int, int));
+bool_t want_class	__P((int, int));
+bool_t indomain		__P((char *, const char *, bool_t));
+bool_t samedomain	__P((char *, char *, bool_t));
+bool_t gluerecord	__P((char *, char *, char **, int));
+int matchlabels		__P((char *, char *));
+char *pr_domain		__P((char *, bool_t));
+char *pr_dotname	__P((char *));
+char *pr_nsap		__P((char *));
+char *pr_type		__P((int));
+char *pr_class		__P((int));
+int expand_name		__P((const char *, int, u_char *, u_char *, u_char *, char *));
+int check_size		__P((char *, int, u_char *, u_char *, u_char *, int));
+bool_t valid_name	__P((char *, bool_t, bool_t, bool_t));
+int canonical		__P((char *));
+char *mapreverse	__P((char *, struct in_addr));
+int anyrecord		__P((char *));
+int compare_name	__P((const ptr_t *, const ptr_t *));
 
 	/* misc.c */
 
-ptr_t *xalloc		PROTO((ptr_t *, siz_t));
-char *dtoa		PROTO((int));
-char *utoa		PROTO((int));
-char *xtoa		PROTO((int));
-char *stoa		PROTO((u_char *, int, bool));
-char *base_ntoa		PROTO((u_char *, int));
-char *nsap_ntoa		PROTO((u_char *, int));
-char *ipng_ntoa		PROTO((u_char *));
-char *pr_date		PROTO((int));
-char *pr_time		PROTO((int, bool));
-char *pr_spherical	PROTO((int, char *, char *));
-char *pr_vertical	PROTO((int, char *, char *));
-char *pr_precision	PROTO((int));
-int convtime		PROTO((char *, char));
+ptr_t *xalloc		__P((ptr_t *, size_t));
+char *dtoa		__P((int));
+char *utoa		__P((int));
+char *xtoa		__P((int));
+char *stoa		__P((u_char *, int, bool_t));
+char *base_ntoa		__P((u_char *, int));
+char *nsap_ntoa		__P((u_char *, int));
+char *ipng_ntoa		__P((u_char *));
+char *pr_date		__P((int));
+char *pr_time		__P((int, bool_t));
+char *pr_spherical	__P((int, char *, char *));
+char *pr_vertical	__P((int, char *, char *));
+char *pr_precision	__P((int));
+int convtime		__P((char *, int));
 
 	/* test.c */
 
-bool test		PROTO((char *, ipaddr_t));
+bool_t test		__P((char *, ipaddr_t));
 
 	/* file.c */
 
-char *cachename		PROTO((char *, char *, char));
-int cache_open		PROTO((char *, bool));
-int cache_close		PROTO((bool));
-int cache_write		PROTO((char *, int));
-int cache_read		PROTO((char *, int));
-void cache_perror	PROTO((char *, char *));
+char *cachename		__P((char *, char *, int));
+int cache_open		__P((char *, bool_t));
+int cache_close		__P((bool_t));
+int cache_write		__P((char *, size_t));
+int cache_read		__P((char *, size_t));
+void cache_perror	__P((char *, char *));
 
 	/* send.c */
 
 #ifdef HOST_RES_SEND
-int res_send		PROTO((CONST qbuf_t *, int, qbuf_t *, int));
-void _res_close		PROTO((void));
-static bool check_from	PROTO((void));
-static int send_stream	PROTO((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
-static int send_dgram	PROTO((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
+int res_send		__P((const qbuf_t *, int, qbuf_t *, int));
+void _res_close		__P((void));
+static bool_t check_from __P((void));
+static int send_stream	__P((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
+static int send_dgram	__P((struct sockaddr_in *, qbuf_t *, int, qbuf_t *, int));
 #endif /*HOST_RES_SEND*/
-int _res_socket		PROTO((int, int, int));
-int _res_blocking	PROTO((int, bool));
-static sigtype_t timer	PROTO((int));
-int _res_connect	PROTO((int, struct sockaddr_in *, int));
-int _res_write		PROTO((int, struct sockaddr_in *, char *, char *, int));
-int _res_read		PROTO((int, struct sockaddr_in *, char *, char *, int));
-int _res_read_stream	PROTO((int, struct sockaddr_in *, char *, char *, int));
-int recv_sock		PROTO((int, char *, int));
-void _res_perror	PROTO((struct sockaddr_in *, char *, char *));
+int _res_socket		__P((int, int, int));
+int _res_blocking	__P((int, bool_t));
+sigtype_t timer		__P((int));
+int _res_connect	__P((int, struct sockaddr_in *, size_t));
+int _res_write		__P((int, struct sockaddr_in *, char *, char *, size_t));
+int _res_read		__P((int, struct sockaddr_in *, char *, char *, size_t));
+int _res_read_stream	__P((int, struct sockaddr_in *, char *, char *, size_t));
+int recv_sock		__P((int, char *, size_t));
+void _res_perror	__P((struct sockaddr_in *, char *, char *));
 
 /*
 ** External library functions
@@ -175,62 +176,62 @@ void _res_perror	PROTO((struct sockaddr_in *, char *, char *));
 */
 	/* extern */
 
-time_t time		PROTO((time_t *));
+time_t time		__P((time_t *));
 
 #if !defined(NO_INET_H)
-#include <arpa/inet.h>
+# include <arpa/inet.h>
 #else
 
-ipaddr_t inet_addr	PROTO((CONST char *));
-char *inet_ntoa		PROTO((struct in_addr));
+ipaddr_t inet_addr	__P((const char *));
+char *inet_ntoa		__P((struct in_addr));
 
 #endif
 
 #if defined(BIND_48)
-char *hostalias		PROTO((CONST char *));
+char *hostalias		__P((const char *));
 #endif
 
 	/* avoid <strings.h> */
 
 #if !defined(index)
 
-char *index		PROTO((const char *, int));
-char *rindex		PROTO((const char *, int));
+char *index		__P((const char *, int));
+char *rindex		__P((const char *, int));
 
 #endif
 
 	/* <string.h> */
 
 #if !defined(NO_STRING_H)
-#include <string.h>
+# include <string.h>
 #else
 
-char *strcpy		PROTO((char *, const char *));
-char *strncpy		PROTO((char *, const char *, siz_t));
+char *strcpy		__P((char *, const char *));
+char *strncpy		__P((char *, const char *, size_t));
 
 #endif
 
 	/* <stdlib.h> */
 
 #if defined(__STDC__) && !defined(apollo)
-#include <stdlib.h>
+# include <stdlib.h>
 #else
 
-char *getenv		PROTO((const char *));
-ptr_t *malloc		PROTO((siz_t));
-ptr_t *realloc		PROTO((ptr_t *, siz_t));
-free_t free		PROTO((ptr_t *));
-void exit		PROTO((int));
-void qsort		PROTO((ptr_t *, siz_t, siz_t, int (*)(const ptr_t *, const ptr_t *)));
+char *getenv		__P((const char *));
+ptr_t *malloc		__P((size_t));
+ptr_t *realloc		__P((ptr_t *, size_t));
+free_t free		__P((ptr_t *));
+void exit		__P((int));
+void qsort		__P((ptr_t *, size_t, size_t, int (*) __P((const ptr_t *, const ptr_t *))));
 
 #endif
 
 	/* <unistd.h> */
 
 #if defined(__STDC__) && !defined(apollo) && !defined(WINNT)
-#include <unistd.h>
+# include <unistd.h>
 #else
 
-unsigned int alarm	PROTO((unsigned int));
+unsigned int alarm	__P((unsigned int));
 
 #endif

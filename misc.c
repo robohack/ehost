@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: misc.c,v 1.2 2002-01-11 22:15:31 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: misc.c,v 1.3 2003-03-28 21:57:23 -0800 woods Exp $"
 
 #ifndef lint
 static char Version[] = "@(#)misc.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -37,21 +37,20 @@ static char Version[] = "@(#)misc.c	e07@nikhef.nl (Eric Wassenaar) 991529";
 
 ptr_t *
 xalloc(buf, size)
-register ptr_t *buf;			/* current start of buffer space */
-input siz_t size;			/* number of bytes to allocate */
+	register ptr_t *buf;		/* current start of buffer space */
+	input size_t size;		/* number of bytes to allocate */
 {
 	if (buf == NULL)
 		buf = malloc(size);
 	else
 		buf = realloc(buf, size);
 
-	if (buf == NULL)
-	{
+	if (buf == NULL) {
 		errmsg("Out of memory");
 		exit(EX_OSERR);
 	}
 
-	return(buf);
+	return (buf);
 }
 
 /*
@@ -64,12 +63,13 @@ input siz_t size;			/* number of bytes to allocate */
 
 char *
 dtoa(n)
-input int n;				/* value to convert */
+	input int n;			/* value to convert */
 {
 	static char buf[30];		/* sufficient for 64-bit values */
 
 	(void) sprintf(buf, "%d", n);
-	return(buf);
+
+	return (buf);
 }
 
 /*
@@ -82,12 +82,13 @@ input int n;				/* value to convert */
 
 char *
 utoa(n)
-input int n;				/* value to convert */
+	input int n;			/* value to convert */
 {
 	static char buf[30];		/* sufficient for 64-bit values */
 
 	(void) sprintf(buf, "%u", (unsigned)n);
-	return(buf);
+
+	return (buf);
 }
 
 /*
@@ -100,12 +101,13 @@ input int n;				/* value to convert */
 
 char *
 xtoa(n)
-input int n;				/* value to convert */
+	input int n;			/* value to convert */
 {
 	static char buf[17];		/* sufficient for 64-bit values */
 
 	(void) sprintf(buf, "%X", (unsigned)n);
-	return(buf);
+
+	return (buf);
 }
 
 /*
@@ -118,9 +120,9 @@ input int n;				/* value to convert */
 
 char *
 stoa(cp, size, escape)
-input u_char *cp;			/* current position in answer buf */
-input int size;				/* number of bytes to extract */
-input bool escape;			/* escape special characters if set */
+	input u_char *cp;		/* current position in answer buf */
+	input int size;			/* number of bytes to extract */
+	input bool_t escape;		/* escape special characters if set */
 {
 	static char buf[2*MAXDLEN+1];
 	register char *p;
@@ -132,13 +134,12 @@ input bool escape;			/* escape special characters if set */
 
 #ifdef obsolete
 	if (size > 0)
-		(void) sprintf(buf, "%.*s", size, (char *)cp);
+		(void) sprintf(buf, "%.*s", size, (char *) cp);
 	else
 		(void) sprintf(buf, "%s", "");
 #endif
 
-	for (p = buf, i = 0; i < size; i++)
-	{
+	for (p = buf, i = 0; i < size; i++) {
 		c = *cp++;
 		if (escape && (c == '\n' || c == '\\' || c == '"'))
 			*p++ = '\\';
@@ -146,7 +147,7 @@ input bool escape;			/* escape special characters if set */
 	}
 	*p = '\0';
 
-	return(buf);
+	return (buf);
 }
 
 /*
@@ -165,8 +166,8 @@ char b64tab[] =
 
 char *
 base_ntoa(cp, size)
-input u_char *cp;			/* current position in answer buf */
-input int size;				/* number of bytes to extract */
+	input u_char *cp;		/* current position in answer buf */
+	input int size;			/* number of bytes to extract */
 {
 	static char buf[MAXB64SIZE+1];
 	register char *p;
@@ -175,12 +176,11 @@ input int size;				/* number of bytes to extract */
 	if (size > MAXMD5SIZE)
 		size = MAXMD5SIZE;
 
-	for (p = buf; size > 2; cp += 3, size -= 3)
-	{
-		c1 = (((int)cp[0] >> 2) & 0x3f);
-		c2 = (((int)cp[0] & 0x03) << 4) + (((int)cp[1] >> 4) & 0x0f);
-		c3 = (((int)cp[1] & 0x0f) << 2) + (((int)cp[2] >> 6) & 0x03);
-		c4 =  ((int)cp[2] & 0x3f);
+	for (p = buf; size > 2; cp += 3, size -= 3) {
+		c1 = (((int) cp[0] >> 2) & 0x3f);
+		c2 = (((int) cp[0] & 0x03) << 4) + (((int) cp[1] >> 4) & 0x0f);
+		c3 = (((int) cp[1] & 0x0f) << 2) + (((int) cp[2] >> 6) & 0x03);
+		c4 =  ((int) cp[2] & 0x3f);
 
 		*p++ = b64tab[c1];
 		*p++ = b64tab[c2];
@@ -188,19 +188,16 @@ input int size;				/* number of bytes to extract */
 		*p++ = b64tab[c4];
 	}
     
-	if (size == 2)
-	{
-		c1 = (((int)cp[0] >> 2) & 0x3f);
-		c2 = (((int)cp[0] & 0x03) << 4) + (((int)cp[1] >> 4) & 0x0f);
-		c3 = (((int)cp[1] & 0x0f) << 2);
+	if (size == 2) {
+		c1 = (((int) cp[0] >> 2) & 0x3f);
+		c2 = (((int) cp[0] & 0x03) << 4) + (((int) cp[1] >> 4) & 0x0f);
+		c3 = (((int) cp[1] & 0x0f) << 2);
 
 		*p++ = b64tab[c1];
 		*p++ = b64tab[c2];
 		*p++ = b64tab[c3];
 		*p++ = '=';
-	}
-	else if (size == 1)
-	{
+	} else if (size == 1) {
 		c1 = (((int)cp[0] >> 2) & 0x3f);
 		c2 = (((int)cp[0] & 0x03) << 4);
 
@@ -211,7 +208,7 @@ input int size;				/* number of bytes to extract */
 	}
 	*p = '\0';
 
-	return(buf);
+	return (buf);
 }
 
 /*
@@ -229,8 +226,8 @@ input int size;				/* number of bytes to extract */
 
 char *
 nsap_ntoa(cp, size)
-input u_char *cp;			/* current position in answer buf */
-input int size;				/* number of bytes to extract */
+	input u_char *cp;		/* current position in answer buf */
+	input int size;			/* number of bytes to extract */
 {
 	static char buf[3*MAXNSAP+1];
 	register char *p;
@@ -240,11 +237,10 @@ input int size;				/* number of bytes to extract */
 	if (size > MAXNSAP)
 		size = MAXNSAP;
 
-	for (p = buf, i = 0; i < size; i++, cp++)
-	{
-		c = ((int)(*cp) >> 4) & 0x0f;
+	for (p = buf, i = 0; i < size; i++, cp++) {
+		c = ((int) (*cp) >> 4) & 0x0f;
 		*p++ = hexdigit(c);
-		c = ((int)(*cp) >> 0) & 0x0f;
+		c = ((int) (*cp) >> 0) & 0x0f;
 		*p++ = hexdigit(c);
 
 		/* add dots for readability */
@@ -253,7 +249,7 @@ input int size;				/* number of bytes to extract */
 	}
 	*p = '\0';
 
-	return(buf);
+	return (buf);
 }
 
 /*
@@ -269,15 +265,14 @@ input int size;				/* number of bytes to extract */
 
 char *
 ipng_ntoa(cp)
-input u_char *cp;			/* current position in answer buf */
+	input u_char *cp;		/* current position in answer buf */
 {
 	static char buf[5*(IPNGSIZE/2)+1];
 	register char *p;
 	register int n;
 	register int i;
 
-	for (p = buf, i = 0; i < IPNGSIZE/2; i++)
-	{
+	for (p = buf, i = 0; i < IPNGSIZE/2; i++) {
 		n = _getshort(cp);
 		cp += INT16SZ;
 
@@ -286,7 +281,7 @@ input u_char *cp;			/* current position in answer buf */
 	}
 	*p = '\0';
 
-	return(buf + 1);
+	return (buf + 1);
 }
 
 /*
@@ -301,7 +296,7 @@ input u_char *cp;			/* current position in answer buf */
 
 char *
 pr_date(value)
-input int value;			/* the clock value to be converted */
+	input int value;		/* the clock value to be converted */
 {
 	static char buf[sizeof("YYYYMMDDHHMMSS")+1];
 	time_t clocktime = value;
@@ -312,10 +307,10 @@ input int value;			/* the clock value to be converted */
 	t->tm_mon += 1;
 
 	(void) sprintf(buf, "%04d%02d%02d%02d%02d%02d",
-		t->tm_year, t->tm_mon, t->tm_mday,
-		t->tm_hour, t->tm_min, t->tm_sec);
+		       t->tm_year, t->tm_mon, t->tm_mday,
+		       t->tm_hour, t->tm_min, t->tm_sec);
 
-	return(buf);
+	return (buf);
 }
 
 /*
@@ -330,8 +325,8 @@ input int value;			/* the clock value to be converted */
 
 char *
 pr_time(value, brief)
-input int value;			/* the interval to be converted */
-input bool brief;			/* use brief format if set */
+	input int value;		/* the interval to be converted */
+	input bool_t brief;		/* use brief format if set */
 {
 	static char buf[256];
 	register char *p = buf;
@@ -339,70 +334,58 @@ input bool brief;			/* use brief format if set */
 
 	/* special cases */
 	if (value < 0)
-		return("negative");
-	if ((value == 0) && !brief)
-		return("zero seconds");
+		return ("negative");
 
-/*
- * Decode the components.
- */
+	if ((value == 0) && !brief)
+		return ("zero seconds");
+
+	/*
+	 * Decode the components.
+	 */
 	secs = value % 60; value /= 60;
 	mins = value % 60; value /= 60;
 	hour = value % 24; value /= 24;
 	days = value;
 
-	if (!brief)
-	{
+	if (!brief) {
 		days = value % 7; value /= 7;
 		week = value;
 	}
 
-/*
- * Now turn it into a sexy form.
- */
-	if (brief)
-	{
-		if (days > 0)
-		{
+	/*
+	 * Now turn it into a sexy form.
+	 */
+	if (brief) {
+		if (days > 0) {
 			(void) sprintf(p, "%d+", days);
 			p += strlength(p);
 		}
 
 		(void) sprintf(p, "%02d:%02d:%02d", hour, mins, secs);
-		return(buf);
+		return (buf);
 	}
-
-	if (week > 0)
-	{
+	if (week > 0) {
 		(void) sprintf(p, ", %d week%s", week, plural(week));
 		p += strlength(p);
 	}
-
-	if (days > 0)
-	{
+	if (days > 0) {
 		(void) sprintf(p, ", %d day%s", days, plural(days));
 		p += strlength(p);
 	}
-
-	if (hour > 0)
-	{
+	if (hour > 0) {
 		(void) sprintf(p, ", %d hour%s", hour, plural(hour));
 		p += strlength(p);
 	}
-
-	if (mins > 0)
-	{
+	if (mins > 0) {
 		(void) sprintf(p, ", %d minute%s", mins, plural(mins));
 		p += strlength(p);
 	}
-
-	if (secs > 0)
-	{
+	if (secs > 0) {
 		(void) sprintf(p, ", %d second%s", secs, plural(secs));
 		/* p += strlength(p); */
 	}
 
-	return(buf + 2);
+	return (buf + 2);
 }
 
 /*
@@ -419,55 +402,51 @@ input bool brief;			/* use brief format if set */
 
 char *
 pr_spherical(value, pos, neg)
-input int value;			/* the location to be converted */
-input char *pos;			/* suffix if value positive */
-input char *neg;			/* suffix if value negative */
+	input int value;		/* the location to be converted */
+	input char *pos;		/* suffix if value positive */
+	input char *neg;		/* suffix if value negative */
 {
 	static char buf[256];
 	register char *p = buf;
 	char *direction;
 	int degrees, minutes, seconds, fracsec;
 
-/*
- * Normalize.
- */
+	/*
+	 * Normalize.
+	 */
 	value -= (int)((unsigned)1 << 31);
 
 	direction = pos;
-	if (value < 0)
-	{
+	if (value < 0) {
 		direction = neg;
 		value = -value;
 	}
 
-/*
- * Decode the components.
- */
+	/*
+	 * Decode the components.
+	 */
 	fracsec = value % 1000; value /= 1000;
 	seconds = value % 60;   value /= 60;
 	minutes = value % 60;   value /= 60;
 	degrees = value;
 
-/*
- * Construct output string.
- */
+	/*
+	 * Construct output string.
+	 */
 	(void) sprintf(p, "%d", degrees);
 	p += strlength(p);
 
-	if (minutes > 0 || seconds > 0 || fracsec > 0)
-	{
+	if (minutes > 0 || seconds > 0 || fracsec > 0) {
 		(void) sprintf(p, " %02d", minutes);
 		p += strlength(p);
 	}
 
-	if (seconds > 0 || fracsec > 0)
-	{
+	if (seconds > 0 || fracsec > 0) {
 		(void) sprintf(p, " %02d", seconds);
 		p += strlength(p);
 	}
 
-	if (fracsec > 0)
-	{
+	if (fracsec > 0) {
 		(void) sprintf(p, ".%03d", fracsec);
 		p += strlength(p);
 	}
@@ -476,9 +455,10 @@ input char *neg;			/* suffix if value negative */
 
 #ifdef obsolete
 	(void) sprintf(buf, "%d %02d %02d.%03d %s",
-		degrees, minutes, seconds, fracsec, direction);
+		       degrees, minutes, seconds, fracsec, direction);
 #endif
-	return(buf);
+
+	return (buf);
 }
 
 /*
@@ -495,9 +475,9 @@ input char *neg;			/* suffix if value negative */
 
 char *
 pr_vertical(value, pos, neg)
-input int value;			/* the location to be converted */
-input char *pos;			/* prefix if value positive */
-input char *neg;			/* prefix if value negative */
+	input int value;		/* the location to be converted */
+	input char *pos;		/* prefix if value positive */
+	input char *neg;		/* prefix if value negative */
 {
 	static char buf[256];
 	register char *p = buf;
@@ -506,32 +486,29 @@ input char *neg;			/* prefix if value negative */
 	unsigned int altitude;
 	unsigned int reference;
 
-/*
- * Normalize.
- */
+	/*
+	 * Normalize.
+	 */
 	altitude = value;
 	reference = 100000*100;
 
-	if (altitude < reference)
-	{
+	if (altitude < reference) {
 		direction = neg;
 		altitude = reference - altitude;
-	}
-	else
-	{
+	} else {
 		direction = pos;
 		altitude = altitude - reference;
 	}
 
-/*
- * Decode the components.
- */
+	/*
+	 * Decode the components.
+	 */
 	centimeters = altitude % 100; altitude /= 100;
 	meters = altitude;
 
-/*
- * Construct output string.
- */
+	/*
+	 * Construct output string.
+	 */
 	(void) sprintf(p, "%s%d", direction, meters);
 	p += strlength(p);
 
@@ -541,7 +518,8 @@ input char *neg;			/* prefix if value negative */
 #ifdef obsolete
 	(void) sprintf(buf, "%s%d.%02d", direction, meters, centimeters);
 #endif
-	return(buf);
+
+	return (buf);
 }
 
 /*
@@ -555,12 +533,13 @@ input char *neg;			/* prefix if value negative */
 **	as 4-bit mantissa and 4-bit power of 10 (each ranging 0-9).
 */
 
-unsigned int poweroften[10] =
-{1,10,100,1000,10000,100000,1000000,10000000,100000000,1000000000};
+unsigned int poweroften[10] = {
+	1,10,100,1000,10000,100000,1000000,10000000,100000000,1000000000
+};
 
 char *
 pr_precision(value)
-input int value;			/* the precision to be converted */
+	input int value;		/* the precision to be converted */
 {
 	static char buf[256];
 	register char *p = buf;
@@ -569,22 +548,22 @@ input int value;			/* the precision to be converted */
 	register int mantissa;
 	register int exponent;
 
-/*
- * Normalize.
- */
+	/*
+	 * Normalize.
+	 */
 	mantissa = ((value >> 4) & 0x0f) % 10;
 	exponent = ((value >> 0) & 0x0f) % 10;
 	precision = mantissa * poweroften[exponent];
 
-/*
- * Decode the components.
- */
+	/*
+	 * Decode the components.
+	 */
 	centimeters = precision % 100; precision /= 100;
 	meters = precision;
 
-/*
- * Construct output string.
- */
+	/*
+	 * Construct output string.
+	 */
 	(void) sprintf(p, "%d", meters);
 	p += strlength(p);
 
@@ -594,7 +573,8 @@ input int value;			/* the precision to be converted */
 #ifdef obsolete
 	(void) sprintf(buf, "%d.%02d", meters, centimeters);
 #endif
-	return(buf);
+
+	return (buf);
 }
 
 /*
@@ -612,19 +592,18 @@ input int value;			/* the precision to be converted */
 
 int
 convtime(string, defunits)
-input char *string;			/* time specification in ascii */
-input char defunits;			/* default units if none specified */
+	input char *string;		/* time specification in ascii */
+	input int defunits;		/* default units if none specified */
 {
 	int period = 0;			/* overall result value */
 	register int value;		/* intermediate value of component */
 	register char units;
 	register char *p = string;
 
-	while (*p != '\0')
-	{
+	while (*p) {
 		/* must start with numeric value */
 		if (!is_digit(*p))
-			return(-1);
+			return (-1);
 
 		/* assemble numeric value */
 		for (value = 0; is_digit(*p); p++)
@@ -636,39 +615,38 @@ input char defunits;			/* default units if none specified */
 		else
 			units = defunits;
 
-		switch (lowercase(units))
-		{
-		    case 'w':		/* weeks */
+		switch (lowercase(units)) {
+		case 'w':		/* weeks */
 			value *= 7;
 			/*FALLTHROUGH*/
 
-		    case 'd':		/* days */
+		case 'd':		/* days */
 			value *= 24;
 			/*FALLTHROUGH*/
 
-		    case 'h':		/* hours */
+		case 'h':		/* hours */
 			value *= 60;
 			/*FALLTHROUGH*/
 
-		    case 'm':		/* minutes */
+		case 'm':		/* minutes */
 			value *= 60;
 			/*FALLTHROUGH*/
 
-		    case 's':		/* seconds */
+		case 's':		/* seconds */
 			break;
 
-		    default:		/* unknown */
+		default:		/* unknown */
 			value = -1;
 			break;
 		}
 
 		/* must be reasonable */
 		if (value < 0)
-			return(-1);
+			return (-1);
 
 		/* accumulate total */
 		period += value;
 	}
 
-	return(period);
+	return (period);
 }

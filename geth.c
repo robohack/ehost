@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.2 2002-01-11 22:15:31 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.3 2003-03-28 21:57:23 -0800 woods Exp $"
 
 #ifndef lint
 static char Version[] = "@(#)geth.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -40,28 +40,25 @@ static char Version[] = "@(#)geth.c	e07@nikhef.nl (Eric Wassenaar) 990605";
 
 struct hostent *
 geth_byname(name)
-input CONST char *name;			/* name to do forward lookup for */
+	input const char *name;		/* name to do forward lookup for */
 {
-	querybuf answer;
+	querybuf_t answer;
 	struct hostent *hp;
 	register int n;
 
-	hp = gethostbyname(name);
-	if (hp != NULL)
-		return(hp);
+	if ((hp = gethostbyname(name)))
+		return (hp);
 
 	if (verbose > print_level)
 		printf("Finding addresses for %s ...\n", name);
 
-	n = get_info(&answer, name, T_A, C_IN);
-	if (n < 0)
-		return(NULL);
+	if ((n = get_info(&answer, name, T_A, C_IN)) < 0)
+		return (NULL);
 
 	if ((verbose > print_level + 1) && (print_level < 1))
 		(void) print_info(&answer, n, name, T_A, C_IN, FALSE);
 
-	hp = gethostbyname(name);
-	return(hp);
+	return gethostbyname(name);
 }
 
 /*
@@ -75,42 +72,37 @@ input CONST char *name;			/* name to do forward lookup for */
 
 struct hostent *
 geth_byaddr(addr, size, family)
-input CONST char *addr;			/* address to do reverse mapping for */
-input int size;				/* size of the address */
-input int family;			/* address family */
+	input const char *addr;		/* address to do reverse mapping for */
+	input size_t size;		/* size of the address */
+	input int family;		/* address family */
 {
-	char addrbuf[4*4 + sizeof(ARPA_ROOT) + 1];
+	char addrbuf[(4 * 4) + sizeof(ARPA_ROOT) + 1];
 	char *name = addrbuf;
-	u_char *a = (u_char *)addr;
-	querybuf answer;
+	u_char *a = (u_char *) addr;
+	querybuf_t answer;
 	struct hostent *hp;
 	register int n;
 
 	if (size != INADDRSZ || family != AF_INET)
-	{
-		hp = gethostbyaddr(addr, size, family);
-		return(hp);
-	}
+		return gethostbyaddr(addr, size, family);
 
-	hp = gethostbyaddr(addr, size, family);
-	if (hp != NULL)
-		return(hp);
+	if ((hp = gethostbyaddr(addr, size, family)))
+		return (hp);
 
 	/* construct absolute reverse name *without* trailing dot */
 	(void) sprintf(addrbuf, "%u.%u.%u.%u.%s",
-		a[3]&0xff, a[2]&0xff, a[1]&0xff, a[0]&0xff, ARPA_ROOT);
+		       a[3] & 0xff, a[2] & 0xff, a[1] & 0xff, a[0] & 0xff, ARPA_ROOT);
 
-	if (verbose > print_level)
+	if (verbose > print_level) {
 		printf("Finding reverse mapping for %s ...\n",
-			inet_ntoa(incopy(addr)));
+		       inet_ntoa(incopy(addr)));
+	}
 
-	n = get_info(&answer, name, T_PTR, C_IN);
-	if (n < 0)
-		return(NULL);
+	if ((n = get_info(&answer, name, T_PTR, C_IN)) < 0)
+		return (NULL);
 
 	if ((verbose > print_level + 1) && (print_level < 1))
 		(void) print_info(&answer, n, name, T_PTR, C_IN, FALSE);
 
-	hp = gethostbyaddr(addr, size, family);
-	return(hp);
+	return gethostbyaddr(addr, size, family);
 }

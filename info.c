@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.3 2003-03-21 18:52:34 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.4 2003-03-28 21:57:23 -0800 woods Exp $"
 
 #ifndef lint
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -51,103 +51,97 @@ static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
 **	simulated with the undocumented option -B.
 */
 
-bool
+bool_t
 get_hostinfo(name, qualified)
-input char *name;			/* name to query about */
-input bool qualified;			/* assume fully qualified if set */
+	input char *name;		/* name to query about */
+	input bool_t qualified;		/* assume fully qualified if set */
 {
 	register char **domain;
 	register char *cp;
 	int dot;			/* number of dots in query name */
-	bool result;			/* result status of action taken */
-	char oldnamebuf[2*MAXDNAME+2];
+	bool_t result;			/* result status of action taken */
+	char oldnamebuf[(2 * MAXDNAME) + 2];
 	char *oldname;			/* saved actual name when NO_DATA */
 	int nodata = 0;			/* NO_DATA status during DNSRCH */
 	int nquery = 0;			/* number of extra search queries */
 
-/*
- * Single dot means root zone.
- */
+	/*
+	 * Single dot means root zone.
+	 */
 	if (sameword(name, "."))
 		qualified = TRUE;
 
-/*
- * Names known to be fully qualified are just tried ``as is''.
- */
-	if (qualified)
-	{
-		result = get_domaininfo(name, (char *)NULL);
-		return(result);
+	/*
+	 * Names known to be fully qualified are just tried ``as is''.
+	 */
+	if (qualified) {
+		result = get_domaininfo(name, (char *) NULL);
+		return (result);
 	}
 
-/*
- * Count number of dots. Move to the end of the name.
- */
-	for (dot = 0, cp = name; *cp != '\0'; cp++)
+	/*
+	 * Count number of dots. Move to the end of the name.
+	 */
+	for (dot = 0, cp = name; *cp != '\0'; cp++) {
 		if (*cp == '.')
 			dot++;
+	}
 
 #ifdef ALLOW_HOSTALIASES
-/*
- * Check for aliases of single name.
- * Note that the alias is supposed to be fully qualified.
- */
-	if (dot == 0 && (cp = (char *)hostalias(name)) != NULL)
-	{
+	/*
+	 * Check for aliases of single name.
+	 * Note that the alias is supposed to be fully qualified.
+	 */
+	if (dot == 0 && (cp = (char *) hostalias(name)) != NULL) {
 		if (verbose)
 			printf("Aliased %s to %s\n", name, cp);
 
-		result = get_domaininfo(cp, (char *)NULL);
-		return(result);
+		result = get_domaininfo(cp, (char *) NULL);
+		return (result);
 	}
 #endif
 
-/*
- * Trailing dot means absolute (fully qualified) address.
- */
-	if (dot != 0 && cp[-1] == '.')
-	{
+	/*
+	 * Trailing dot means absolute (fully qualified) address.
+	 */
+	if (dot != 0 && cp[-1] == '.') {
 		cp[-1] = '\0';
-		result = get_domaininfo(name, (char *)NULL);
+		result = get_domaininfo(name, (char *) NULL);
 		cp[-1] = '.';
-		return(result);
+		return (result);
 	}
 
-/*
- * Append own default domain and other search domains if appropriate.
- */
+	/*
+	 * Append own default domain and other search domains if appropriate.
+	 */
 	if ((dot == 0 && bitset(RES_DEFNAMES, _res.options)) ||
-	    (dot != 0 && bitset(RES_DNSRCH, _res.options)))
-	{
-		for (domain = _res.dnsrch; *domain; domain++)
-		{
-			result = get_domaininfo(name, *domain);
-			if (result)
-				return(result);
+	    (dot != 0 && bitset(RES_DNSRCH, _res.options))) {
+		for (domain = _res.dnsrch; *domain; domain++) {
+
+			if ((result = get_domaininfo(name, *domain)))
+				return (result);
 
 			/* keep count of extra search queries */
 			nquery++;
 
 			/* in case nameserver not present */
 			if (errno == ECONNREFUSED)
-				return(FALSE);
+				return (FALSE);
 
 			/* if no further search desired (single name) */
 			if (!bitset(RES_DNSRCH, _res.options))
 				break;
 
 			/* if name exists but has not requested type */
-			if (h_errno == NO_DATA || h_errno == NO_RREC)
-			{
-				if (bindcompat)
-				{
+			if (h_errno == NO_DATA || h_errno == NO_RREC) {
+				if (bindcompat) {
 					/* remember status and search up */
 					oldname = strcpy(oldnamebuf, realname);
 					nodata = h_errno;
 					continue;
 				}
 
-				return(FALSE);
+				return (FALSE);
 			}
 
 			/* retry only if name does not exist at all */
@@ -156,18 +150,16 @@ input bool qualified;			/* assume fully qualified if set */
 		}
 	}
 
-/*
- * Single name lookup failed.
- */
-	if (dot == 0)
-	{
+	/*
+	 * Single name lookup failed.
+	 */
+	if (dot == 0) {
 		/* unclear what actual name should be */
 		if (nquery != 1)
 			realname = NULL;
 
 		/* restore nodata status from search */
-		if (bindcompat && nodata)
-		{
+		if (bindcompat && nodata) {
 			realname = strcpy(realnamebuf, oldname);
 			seth_errno(nodata);
 		}
@@ -176,22 +168,21 @@ input bool qualified;			/* assume fully qualified if set */
 		if (!bitset(RES_DEFNAMES, _res.options))
 			seth_errno(HOST_NOT_FOUND);
 
-		return(FALSE);
+		return (FALSE);
 	}
 
-/*
- * Rest means fully qualified.
- */
-	result = get_domaininfo(name, (char *)NULL);
+	/*
+	 * Rest means fully qualified.
+	 */
+	result = get_domaininfo(name, (char *) NULL);
 
 	/* restore nodata status from search */
-	if (!result && bindcompat && nodata)
-	{
+	if (!result && bindcompat && nodata) {
 		realname = strcpy(realnamebuf, oldname);
 		seth_errno(nodata);
 	}
 
-	return(result);
+	return (result);
 }
 
 /*
@@ -217,21 +208,20 @@ input bool qualified;			/* assume fully qualified if set */
 **	In this default case we do only one query and we have no problem.
 */
 
-bool
+bool_t
 get_domaininfo(name, domain)
-input char *name;			/* name to query about */
-input char *domain;			/* domain to which name is relative */
+	input char *name;		/* name to query about */
+	input char *domain;		/* domain to which name is relative */
 {
 	char namebuf[2*MAXDNAME+2];	/* buffer to store full domain name */
-	querybuf answer;
+	querybuf_t answer;
 	register int n;
-	bool result;			/* result status of action taken */
+	bool_t result;			/* result status of action taken */
 
-/*
- * Show what we are about to query.
- */
-	if (verbose)
-	{
+	/*
+	 * Show what we are about to query.
+	 */
+	if (verbose) {
 		if (domain == NULL || domain[0] == '\0')
 			printf("Trying %s", name);
 		else
@@ -243,21 +233,20 @@ input char *domain;			/* domain to which name is relative */
 		printf(" ...\n");
 	}
 
-/*
- * Construct the actual domain name.
- * A null domain means the given name is already fully qualified.
- * If the composite name is too long, res_mkquery() will fail.
- */
+	/*
+	 * Construct the actual domain name.
+	 * A null domain means the given name is already fully qualified.
+	 * If the composite name is too long, res_mkquery() will fail.
+	 */
 	if (domain == NULL || domain[0] == '\0')
 		(void) sprintf(namebuf, "%.*s", MAXDNAME, name);
 	else
-		(void) sprintf(namebuf, "%.*s.%.*s",
-				MAXDNAME, name, MAXDNAME, domain);
+		(void) sprintf(namebuf, "%.*s.%.*s", MAXDNAME, name, MAXDNAME, domain);
 	name = namebuf;
 
-/*
- * Fetch the desired info.
- */
+	/*
+	 * Fetch the desired info.
+	 */
 	n = get_info(&answer, name, querytype, queryclass);
 	result = (n < 0) ? FALSE : TRUE;
 
@@ -265,20 +254,20 @@ input char *domain;			/* domain to which name is relative */
 	if (n < 0 && n != -1)
 		n = -n;
 
-/*
- * Print the relevant data.
- * If we got a positive answer, the data may still be corrupted.
- */
+	/*
+	 * Print the relevant data.
+	 * If we got a positive answer, the data may still be corrupted.
+	 */
 	if (n > 0 && !print_info(&answer, n, name, querytype, queryclass, TRUE))
 		result = FALSE;
 
-/*
- * Remember the actual name that was queried.
- * Must be at the end to avoid clobbering during recursive calls.
- */
+	/*
+	 * Remember the actual name that was queried.
+	 * Must be at the end to avoid clobbering during recursive calls.
+	 */
 	realname = strcpy(realnamebuf, name);
 
-	return(result);
+	return (result);
 }
 
 /*
@@ -294,100 +283,97 @@ input char *domain;			/* domain to which name is relative */
 
 int
 get_info(answerbuf, name, type, class)
-output querybuf *answerbuf;		/* location of buffer to store answer */
-input char *name;			/* full name to query about */
-input int type;				/* specific resource record type */
-input int class;			/* specific resource record class */
+	output querybuf_t *answerbuf;	/* location of buffer to store answer */
+	input const char *name;		/* full name to query about */
+	input int type;			/* specific resource record type */
+	input int class;		/* specific resource record class */
 {
-	querybuf query;
+	querybuf_t query;
 	HEADER *bp;
 	int ancount;
 	int nscount;
 	register int n;
 
-/*
- * Construct query, and send it to the nameserver.
- * res_send() will fail if no nameserver responded. In the BIND version the
- * possible values for errno are ECONNREFUSED and ETIMEDOUT. If we did get
- * an answer, errno should be reset, since res_send() may have left an errno
- * in case it has used datagrams. Our private version of res_send() will leave
- * also other error statuses, and will clear errno if an answer was obtained.
- */
+	/*
+	 * Construct query, and send it to the nameserver.  res_send() will
+	 * fail if no nameserver responded.  In the BIND version the possible
+	 * values for errno are ECONNREFUSED and ETIMEDOUT.  If we did get an
+	 * answer, errno should be reset, since res_send() may have left an
+	 * errno in case it has used datagrams.  Our private version of
+	 * res_send() will leave also other error statuses, and will clear
+	 * errno if an answer was obtained.
+	 */
 	seterrno(0);	/* reset before querying nameserver */
 
-	n = res_mkquery(QUERY, name, class, type, (qbuf_t *)NULL, 0,
-			(rrec_t *)NULL, (qbuf_t *)&query, sizeof(querybuf));
-	if (n < 0)
-	{
+	if ((n = res_mkquery(QUERY, name, class, type, (qbuf_t *) NULL, 0,
+			     (rrec_t *) NULL, (qbuf_t *) &query, sizeof(querybuf_t))) < 0) {
 		if (debug)
 			printf("%sres_mkquery failed\n", dbprefix);
 		seth_errno(NO_RECOVERY);
-		return(-1);
+		return (-1);
 	}
 
-	n = res_send((qbuf_t *)&query, n, (qbuf_t *)answerbuf, sizeof(querybuf));
-	if (n < 0)
-	{
+	if ((n = res_send((qbuf_t *) &query, n, (qbuf_t *) answerbuf, sizeof(querybuf_t))) < 0) {
 		if (debug)
 			printf("%sres_send failed\n", dbprefix);
 		seth_errno(TRY_AGAIN);
-		return(-1);
+		return (-1);
 	}
 
 	seterrno(0);	/* reset after we got an answer */
 
-	if (n < HFIXEDSZ)
-	{
+	if (n < HFIXEDSZ) {
 		pr_error("answer length %s too short after %s query for %s",
-			dtoa(n), pr_type(type), name);
+			 dtoa(n), pr_type(type), name);
 		seth_errno(NO_RECOVERY);
-		return(-1);
+		return (-1);
 	}
 
-/*
- * Analyze the status of the answer from the nameserver.
- */
+	/*
+	 * Analyze the status of the answer from the nameserver.
+	 */
 	if ((verbose > print_level) || debug)
 		print_answer(answerbuf, n, type);
 
-	bp = (HEADER *)answerbuf;
-	ancount = ntohs((u_short)bp->ancount);
-	nscount = ntohs((u_short)bp->nscount);
+	bp = (HEADER *) answerbuf;
+	ancount = ntohs((u_short) bp->ancount);
+	nscount = ntohs((u_short) bp->nscount);
 
-	if (bp->rcode != NOERROR || (type != T_NS && ancount == 0) || (type == T_NS && (nscount == 0 && ancount == 0)))
-	{
-		switch (bp->rcode)
-		{
-		    case NXDOMAIN:
+	if (bp->rcode != NOERROR || (type != T_NS && ancount == 0) ||
+	    (type == T_NS && (nscount == 0 && ancount == 0))) {
+		switch (bp->rcode) {
+		case NXDOMAIN:
 			/* distinguish between authoritative or not */
 			seth_errno(bp->aa ? HOST_NOT_FOUND : NO_HOST);
 			break;
 
-		    case NOERROR:
+		case NOERROR:
 			/* distinguish between authoritative or not */
 			seth_errno(bp->aa ? NO_DATA : NO_RREC);
 			break;
 
-		    case SERVFAIL:
+		case SERVFAIL:
 			seth_errno(SERVER_FAILURE); /* instead of TRY_AGAIN */
 			break;
 
-		    case REFUSED:
+		case REFUSED:
 			seth_errno(QUERY_REFUSED); /* instead of NO_RECOVERY */
 			break;
 
-		    default:
+		default:
 			seth_errno(NO_RECOVERY); /* FORMERR NOTIMP NOCHANGE */
 			break;
 		}
 		n = querysize(n);
-		return(-n);
+
+		return (-n);
 	}
 
 	/* valid answer received, avoid buffer overrun */
 	seth_errno(0);
 	n = querysize(n);
-	return(n);
+
+	return (n);
 }
 
 /*
@@ -403,71 +389,64 @@ input int class;			/* specific resource record class */
 **		See also side effects of the print_rrec() routine.
 */
 
-bool
+bool_t
 print_info(answerbuf, answerlen, name, type, class, regular)
-input querybuf *answerbuf;		/* location of answer buffer */
-input int answerlen;			/* length of answer buffer */
-input char *name;			/* full name we are querying about */
-input int type;				/* record type we are querying about */
-input int class;			/* record class we are querying about */
-input bool regular;			/* set if this is a regular lookup */
+	input querybuf_t *answerbuf;	/* location of answer buffer */
+	input int answerlen;		/* length of answer buffer */
+	input const char *name;		/* full name we are querying about */
+	input int type;			/* record type we are querying about */
+	input int class;		/* record class we are querying about */
+	input bool_t regular;		/* set if this is a regular lookup */
 {
 	HEADER *bp;
 	int qdcount, ancount, nscount, arcount;
 	u_char *msg, *eom;
 	register u_char *cp;
 
-	bp = (HEADER *)answerbuf;
-	qdcount = ntohs((u_short)bp->qdcount);
-	ancount = ntohs((u_short)bp->ancount);
-	nscount = ntohs((u_short)bp->nscount);
-	arcount = ntohs((u_short)bp->arcount);
+	bp = (HEADER *) answerbuf;
+	qdcount = ntohs((u_short) bp->qdcount);
+	ancount = ntohs((u_short) bp->ancount);
+	nscount = ntohs((u_short) bp->nscount);
+	arcount = ntohs((u_short) bp->arcount);
 
-	msg = (u_char *)answerbuf;
-	eom = (u_char *)answerbuf + answerlen;
-	cp  = (u_char *)answerbuf + HFIXEDSZ;
+	msg = (u_char *) answerbuf;
+	eom = (u_char *) answerbuf + answerlen;
+	cp  = (u_char *) answerbuf + HFIXEDSZ;
 
-/*
- * Skip the query section in the response (present only in normal queries).
- */
-	if (qdcount)
-	{
-		while (qdcount > 0 && cp < eom)	/* process all records */
-		{
-			cp = skip_qrec(name, type, class, cp, msg, eom);
-			if (cp == NULL)
-				return(FALSE);
+	/*
+	 * Skip the query section in the response (present only in normal queries).
+	 */
+	if (qdcount) {
+		while (qdcount > 0 && cp < eom) { /* process all records */
+			if (!(cp = skip_qrec(name, type, class, cp, msg, eom)))
+				return (FALSE);
 			qdcount--;
 		}
-
-		if (qdcount)
-		{
+		if (qdcount) {
 			pr_error("invalid qdcount after %s query for %s",
 				pr_type(type), name);
 			seth_errno(NO_RECOVERY);
-			return(FALSE);
+			return (FALSE);
 		}
 	}
 
-/*
- * Process the actual answer section in the response.
- * During zone transfers, this is the only section available.
- */
-	if (ancount)
-	{
+	/*
+	 * Process the actual answer section in the response.
+	 * During zone transfers, this is the only section available.
+	 */
+	if (ancount) {
 		if ((type != T_AXFR) && verbose && !bp->aa)
 			printf("The following answer is not authoritative:\n");
 
-		while (ancount > 0 && cp < eom)
-		{
+		while (ancount > 0 && cp < eom) {
 			/* reset for each record during zone listings */
 			soaname = NULL, subname = NULL, adrname = NULL, address = 0;
 
 			print_level++;
 			cp = print_rrec(name, type, class, cp, msg, eom, regular);
 			print_level--;
-			if (cp == NULL)
-				return(FALSE);
+			if (!cp)
+				return (FALSE);
 			ancount--;
 
 			/* update zone information during zone listings */
@@ -476,83 +455,73 @@ input bool regular;			/* set if this is a regular lookup */
 
 			/* we trace down CNAME chains ourselves */
 			if (regular && !verbose && cname)
-				return(TRUE);
+				return (TRUE);
 
 			/* recursively expand MR/MG records into MB records */
 			if (regular && mailmode && mname)
 				(void) get_recursive(&mname);
 		}
-
-		if (ancount)
-		{
+		if (ancount) {
 			pr_error("invalid ancount after %s query for %s",
-				pr_type(type), name);
+				 pr_type(type), name);
 			seth_errno(NO_RECOVERY);
-			return(FALSE);
+			return (FALSE);
 		}
 	}
 
-/*
- * The nameserver and additional info section are normally not processed.
- * Both sections shouldn't exist in zone transfers.
- */
+	/*
+	 * The nameserver and additional info section are normally not
+	 * processed.  Both sections shouldn't exist in zone transfers.
+	 */
 	if (type != T_NS && (!verbose || exclusive))
-		return(TRUE);
+		return (TRUE);
 
-	if (nscount)
-	{
-		if (type == T_NS && ntohs((u_short)bp->ancount) == 0) /* ancount already used up! */
+	if (nscount) {
+		if (type == T_NS && ntohs((u_short) bp->ancount) == 0) /* ancount already used up! */
 			printf("Refer to the following authoritative servers:\n");
 		else
 			printf("Authority section contains:\n");
 
-		while (nscount > 0 && cp < eom)
-		{
+		while (nscount > 0 && cp < eom) {
 			print_level++;
 			cp = print_rrec(name, type, class, cp, msg, eom, FALSE);
 			print_level--;
-			if (cp == NULL)
-				return(FALSE);
+			if (!cp)
+				return (FALSE);
 			nscount--;
 		}
-
-		if (nscount)
-		{
+		if (nscount) {
 			pr_error("invalid nscount after %s query for %s",
 				pr_type(type), name);
 			seth_errno(NO_RECOVERY);
-			return(FALSE);
+			return (FALSE);
 		}
 	}
 
 	if (!verbose || exclusive)
-		return(TRUE);
+		return (TRUE);
 
-	if (arcount)
-	{
+	if (arcount) {
 		printf("Additional information:\n");
 
-		while (arcount > 0 && cp < eom)
-		{
+		while (arcount > 0 && cp < eom) {
 			print_level++;
 			cp = print_rrec(name, type, class, cp, msg, eom, FALSE);
 			print_level--;
-			if (cp == NULL)
-				return(FALSE);
+			if (!cp)
+				return (FALSE);
 			arcount--;
 		}
-
-		if (arcount)
-		{
+		if (arcount) {
 			pr_error("invalid arcount after %s query for %s",
 				pr_type(type), name);
 			seth_errno(NO_RECOVERY);
-			return(FALSE);
+			return (FALSE);
 		}
 	}
 
 	/* all sections were processed successfully */
-	return(TRUE);
+	return (TRUE);
 }
 
 /*
@@ -567,30 +536,39 @@ input bool regular;			/* set if this is a regular lookup */
 **		if we need to print the data.
 */
 
-static bool doprint;		/* indicates whether or not to print */
+static bool_t doprint;		/* indicates whether or not to print */
 
-void /*VARARGS1*/
-print_data(fmt, a, b, c, d)
-input char *fmt;			/* format of message */
-input char *a, *b, *c, *d;		/* optional arguments */
+/*VARARGS1*/
+#ifdef __STDC__
+void
+print_data(char *fmt, ...)
+#else
+void
+print_data(fmt, va_alist)
+	input char *fmt;		/* format of message */
+	va_dcl				/* arguments for printf */
+#endif
 {
-	/* if (doprint) */
-	{
-		if (!suppress)
-			printf(fmt, a, b, c, d);
+	va_list ap;
 
-		if (logfile != NULL)
-			(void) fprintf(logfile, fmt, a, b, c, d);
-	}
+	VA_START(ap, fmt);
+
+	if (!suppress)
+		vprintf(fmt, ap);
+
+	if (logfile != NULL)
+		(void) vfprintf(logfile, fmt, ap);
+
+	va_end(ap);
+
+	return;
 }
 
-#define doprintf(x)\
-{\
-	if (doprint)\
-	{\
-		print_data x ;\
-	}\
-}
+/*
+ * this macro helps us avoid a function call if doprint is false...
+ */
+#define doprintf(x)	(doprint) ? print_data x : 0
+
 
 /*
 ** PRINT_RREC -- Decode single resource record and output relevant data
@@ -632,19 +610,19 @@ input char *a, *b, *c, *d;		/* optional arguments */
 
 u_char *
 print_rrec(name, qtype, qclass, cp, msg, eom, regular)
-input char *name;			/* full name we are querying about */
-input int qtype;			/* record type we are querying about */
-input int qclass;			/* record class we are querying about */
-register u_char *cp;			/* current position in answer buf */
-input u_char *msg, *eom;		/* begin and end of answer buf */
-input bool regular;			/* set if this is a regular lookup */
+	input const char *name;		/* full name we are querying about */
+	input int qtype;		/* record type we are querying about */
+	input int qclass;		/* record class we are querying about */
+	input register u_char *cp;	/* current position in answer buf */
+	input u_char *msg, *eom;	/* begin and end of answer buf */
+	input bool_t regular;		/* set if this is a regular lookup */
 {
 	char rname[MAXDNAME+1];		/* record name in LHS */
 	char dname[MAXDNAME+1];		/* domain name in RHS */
 	int type, class, ttl, dlen;	/* fixed values in every record */
 	u_char *eor;			/* predicted position of next record */
-	bool classmatch;		/* set if we want to see this class */
-	bool listing;			/* set if this is a zone listing */
+	bool_t classmatch;		/* set if we want to see this class */
+	bool_t listing;			/* set if this is a zone listing */
 	char *host = listhost;		/* contacted host for zone listings */
 	char *dumpmsg = NULL;		/* set if data should be dumped */
 	register int n, c;
@@ -652,17 +630,16 @@ input bool regular;			/* set if this is a regular lookup */
 	struct protoent *protocol;
 	struct servent *service;
 
-/*
- * Pickup the standard values present in each resource record.
- */
-	n = expand_name(name, T_NONE, cp, msg, eom, rname);
-	if (n < 0)
-		return(NULL);
-	cp += n;
+	/*
+	 * Pickup the standard values present in each resource record.
+	 */
+	if ((n = expand_name(name, T_NONE, cp, msg, eom, rname)) < 0)
+		return (NULL);
 
-	n = 3*INT16SZ + INT32SZ;
+	cp += n;
+	n = (3 * INT16SZ) + INT32SZ;
 	if (check_size(rname, T_NONE, cp, msg, eom, n) < 0)
-		return(NULL);
+		return (NULL);
 
 	type = _getshort(cp);
 	cp += INT16SZ;
@@ -677,25 +654,21 @@ input bool regular;			/* set if this is a regular lookup */
 	cp += INT16SZ;
 
 	if (check_size(rname, type, cp, msg, eom, dlen) < 0)
-		return(NULL);
+		return (NULL);
 	eor = cp + dlen;
 
-/*
- * Decide whether or not to print this resource record.
- */
+	/*
+	 * Decide whether or not to print this resource record.
+	 */
 	listing = (qtype == T_AXFR || qtype == T_IXFR) ? TRUE : FALSE;
 
-	if (listing)
-	{
+	if (listing) {
 		classmatch = want_class(class, queryclass);
 		doprint = classmatch && want_type(type, querytype);
-	}
-	else
-	{
+	} else {
 		classmatch = want_class(class, C_ANY);
 		doprint = classmatch && want_type(type, T_ANY);
 	}
-
 	if (doprint && exclusive && !indomain(rname, name, TRUE))
 		doprint = FALSE;
 
@@ -709,72 +682,66 @@ input bool regular;			/* set if this is a regular lookup */
 		doprint = FALSE;
 #endif
 
-/*
- * Print name and common values, if appropriate.
- */
-	doprintf(("%-20s", pr_name(rname)))
+	/*
+	 * Print name and common values, if appropriate.
+	 */
+	doprintf(("%-20s", pr_name(rname)));
 
-	if (verbose || ttlprint)
-		doprintf(("\t%s", dtoa(ttl)))
+	if (verbose || ttlprint) {
+		doprintf(("\t%s", dtoa(ttl)));
+	}
 
-	if (verbose || classprint || (class != qclass))
-		doprintf(("\t%s", pr_class(class)))
+	if (verbose || classprint || (class != qclass)) {
+		doprintf(("\t%s", pr_class(class)));
+	}
 
-	doprintf(("\t%s", pr_type(type)))
+	doprintf(("\t%s", pr_type(type)));
 
-/*
- * Update resource record statistics for zone listing.
- */
-	if (listing && classmatch)
-	{
+	/*
+	 * Update resource record statistics for zone listing.
+	 */
+	if (listing && classmatch) {
 		if (type >= T_FIRST && type <= T_LAST)
 			record_stats[type]++;
 	}
 
-/*
- * Save the domain name of an SOA or NS or A record for zone listing.
- */
-	if (listing && classmatch)
-	{
+	/*
+	 * Save the domain name of an SOA or NS or A record for zone listing.
+	 */
+	if (listing && classmatch) {
 		if (type == T_A)
 			adrname = strcpy(adrnamebuf, rname);
-
 		else if (type == T_NS)
 			subname = strcpy(subnamebuf, rname);
-
 		else if (type == T_SOA)
 			soaname = strcpy(soanamebuf, rname);
 	}
 
-/*
- * Print type specific data, if appropriate.
- */
-	switch (type)
-	{
-	    case T_A:
-		if (class == C_IN || class == C_HS)
-		{
-			if (dlen == INADDRSZ)
-			{
-				bcopy((char *)cp, (char *)&inaddr, INADDRSZ);
+	/*
+	 * Print type specific data, if appropriate.
+	 */
+	switch (type){
+	case T_A:
+		if (class == C_IN || class == C_HS) {
+			if (dlen == INADDRSZ) {
+				bcopy((char *) cp, (char *) &inaddr, INADDRSZ);
 				address = inaddr.s_addr;
-				doprintf(("\t%s", inet_ntoa(inaddr)))
+				doprintf(("\t%s", inet_ntoa(inaddr)));
 				cp += INADDRSZ;
 				break;
 			}
 #ifdef obsolete
-			if (dlen == INADDRSZ + 1 + INT16SZ)
-			{
-				bcopy((char *)cp, (char *)&inaddr, INADDRSZ);
+			if (dlen == INADDRSZ + 1 + INT16SZ) {
+				bcopy((char *) cp, (char *) &inaddr, INADDRSZ);
 				address = inaddr.s_addr;
-				doprintf(("\t%s", inet_ntoa(inaddr)))
+				doprintf(("\t%s", inet_ntoa(inaddr)));
 				cp += INADDRSZ;
 
 				n = *cp++;
-				doprintf((" ; proto = %s", dtoa(n)))
+				doprintf((" ; proto = %s", dtoa(n)));
 
 				n = _getshort(cp);
-				doprintf((", port = %s", dtoa(n)))
+				doprintf((", port = %s", dtoa(n)));
 				cp += INT16SZ;
 				break;
 			}
@@ -786,326 +753,306 @@ input bool regular;			/* set if this is a regular lookup */
 		cp += dlen;
 		break;
 
-	    case T_MX:
+	case T_MX:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf(("\t%s", dtoa(n)))
+		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf((" %s", pr_name(dname)))
+		doprintf((" %s", pr_name(dname)));
 		cp += n;
 		break;
 
-	    case T_NS:
-	    case T_PTR:
-	    case T_CNAME:
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+	case T_NS:
+	case T_PTR:
+	case T_CNAME:
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf(("\t%s", pr_name(dname)))
+		doprintf(("\t%s", pr_name(dname)));
 		cp += n;
 		break;
 
-	    case T_HINFO:
+	case T_HINFO:
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t\"%s\"", stoa(cp, n, TRUE)))
+		doprintf(("\t\"%s\"", stoa(cp, n, TRUE)));
 		cp += n;
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t\"%s\"", stoa(cp, n, TRUE)))
+		doprintf(("\t\"%s\"", stoa(cp, n, TRUE)));
 		cp += n;
 		break;
 
-	    case T_SOA:
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+	case T_SOA:
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf(("\t%s", pr_name(dname)))
+		doprintf(("\t%s", pr_name(dname)));
 		cp += n;
 
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf((" %s", pr_name(dname)))
+		doprintf((" %s", pr_name(dname)));
 		cp += n;
 
-		n = 5*INT32SZ;
+		n = 5 * INT32SZ;
 		if (check_size(rname, type, cp, msg, eor, n) < 0)
 			break;
-		doprintf((" ("))
+		doprintf((" ("));
 
 		n = _getlong(cp);
-		doprintf(("\n\t\t\t%s", utoa(n)))
-		doprintf(("\t;serial number (version)"))
+		doprintf(("\n\t\t\t%s", utoa(n)));
+		doprintf(("\t;serial number (version)"));
 		cp += INT32SZ;
 
 		n = _getlong(cp);
-		doprintf(("\n\t\t\t%s", dtoa(n)))
-		doprintf(("\t;slave refresh period (%s)", pr_time(n, FALSE)))
+		doprintf(("\n\t\t\t%s", dtoa(n)));
+		doprintf(("\t;slave refresh period (%s)", pr_time(n, FALSE)));
 		cp += INT32SZ;
 
 		n = _getlong(cp);
-		doprintf(("\n\t\t\t%s", dtoa(n)))
-		doprintf(("\t;slave retry interval (%s)", pr_time(n, FALSE)))
+		doprintf(("\n\t\t\t%s", dtoa(n)));
+		doprintf(("\t;slave retry interval (%s)", pr_time(n, FALSE)));
 		cp += INT32SZ;
 
 		n = _getlong(cp);
-		doprintf(("\n\t\t\t%s", dtoa(n)))
-		doprintf(("\t;slave expire time (%s)", pr_time(n, FALSE)))
+		doprintf(("\n\t\t\t%s", dtoa(n)));
+		doprintf(("\t;slave expire time (%s)", pr_time(n, FALSE)));
 		cp += INT32SZ;
 
 		n = _getlong(cp);
-		doprintf(("\n\t\t\t%s", dtoa(n)))
-		doprintf(("\t;negative response ttl (%s)", pr_time(n, FALSE)))
+		doprintf(("\n\t\t\t%s", dtoa(n)));
+		doprintf(("\t;negative response ttl (%s)", pr_time(n, FALSE)));
 		cp += INT32SZ;
 
-		doprintf(("\n\t\t\t)"))
+		doprintf(("\n\t\t\t)"));
 		break;
 
-	    case T_WKS:
+	case T_WKS:
 		if (check_size(rname, type, cp, msg, eor, INADDRSZ) < 0)
 			break;
-		bcopy((char *)cp, (char *)&inaddr, INADDRSZ);
-		doprintf(("\t%s", inet_ntoa(inaddr)))
+		bcopy((char *) cp, (char *) &inaddr, INADDRSZ);
+		doprintf(("\t%s", inet_ntoa(inaddr)));
 		cp += INADDRSZ;
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
 
-		protocol = getprotobynumber(n);
-		if (protocol != NULL)
-			doprintf((" %s", protocol->p_name))
+		if ((protocol = getprotobynumber(n)))
+			doprintf((" %s", protocol->p_name));
 		else
-			doprintf((" %s", dtoa(n)))
+			doprintf((" %s", dtoa(n)));
 
-		doprintf((" ("))
+		doprintf((" ("));
 		n = 0;
-		while (cp < eor)
-		{
-		    c = *cp++;
-		    do
-		    {
- 			if (c & 0200)
-			{
-			    int port;
+		while (cp < eor) {
+			c = *cp++;
+			do {
+				if (c & 0200) {
+					int port;
 
-			    port = htons((u_short)n);
-			    if (protocol != NULL)
-				    service = getservbyport(port, protocol->p_name);
-			    else
-				    service = NULL;
+					port = htons((u_short) n);
+					if (protocol != NULL)
+						service = getservbyport(port, protocol->p_name);
+					else
+						service = NULL;
 
-			    if (service != NULL)
-				    doprintf((" %s", service->s_name))
-			    else
-				    doprintf((" %s", dtoa(n)))
-			}
- 			c <<= 1;
-		    } while (++n & 07);
+					if (service != NULL)
+						doprintf((" %s", service->s_name));
+					else
+						doprintf((" %s", dtoa(n)));
+				}
+				c <<= 1;
+			} while (++n & 07);
 		}
-		doprintf((" )"))
+		doprintf((" )"));
 		break;
 
 #ifdef obsolete
-	    case T_TXT:
-		/* if (dlen > 0) */
+	case T_TXT:
+# if 0
+		if (dlen > 0)
+# endif
 		{
-			doprintf(("\t\"%s\"", stoa(cp, dlen, TRUE)))
+			doprintf(("\t\"%s\"", stoa(cp, dlen, TRUE)));
 			cp += dlen;
 		}
 		break;
 #endif
 
-	    case T_TXT:
+	case T_TXT:
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t\"%s\"", stoa(cp, n, TRUE)))
+		doprintf(("\t\"%s\"", stoa(cp, n, TRUE)));
 		cp += n;
 
-		while (cp < eor)
-		{
+		while (cp < eor) {
 			if (check_size(rname, type, cp, msg, eor, 1) < 0)
 				break;
 			n = *cp++;
-			doprintf((" \"%s\"", stoa(cp, n, TRUE)))
+			doprintf((" \"%s\"", stoa(cp, n, TRUE)));
 			cp += n;
 		}
 		break;
 
-	    case T_MINFO:
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+	case T_MINFO:
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf(("\t%s", pr_name(dname)))
+		doprintf(("\t%s", pr_name(dname)));
 		cp += n;
 
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf((" %s", pr_name(dname)))
+		doprintf((" %s", pr_name(dname)));
 		cp += n;
 		break;
 
-	    case T_MB:
-	    case T_MG:
-	    case T_MR:
-	    case T_MD:
-	    case T_MF:
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+	case T_MB:
+	case T_MG:
+	case T_MR:
+	case T_MD:
+	case T_MF:
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf(("\t%s", pr_name(dname)))
+		doprintf(("\t%s", pr_name(dname)));
 		cp += n;
 		break;
 
-	    case T_UID:
-	    case T_GID:
-		if (dlen == INT32SZ)
-		{
+	case T_UID:
+	case T_GID:
+		if (dlen == INT32SZ) {
 			n = _getlong(cp);
-			doprintf(("\t%s", dtoa(n)))
+			doprintf(("\t%s", dtoa(n)));
 			cp += INT32SZ;
 		}
 		break;
 
-	    case T_UINFO:
-		doprintf(("\t\"%s\"", stoa(cp, dlen, TRUE)))
+	case T_UINFO:
+		doprintf(("\t\"%s\"", stoa(cp, dlen, TRUE)));
 		cp += dlen;
 		break;
 
-	    case T_RP:
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+	case T_RP:
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf(("\t%s", pr_name(dname)))
+		doprintf(("\t%s", pr_name(dname)));
 		cp += n;
 
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf((" %s", pr_name(dname)))
+		doprintf((" %s", pr_name(dname)));
 		cp += n;
 		break;
 
-	    case T_RT:
+	case T_RT:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf(("\t%s", dtoa(n)))
+		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf((" %s", pr_name(dname)))
+		doprintf((" %s", pr_name(dname)));
 		cp += n;
 		break;
 
-	    case T_AFSDB:
+	case T_AFSDB:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf(("\t%s", dtoa(n)))
+		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf((" %s", pr_name(dname)))
+		doprintf((" %s", pr_name(dname)));
 		cp += n;
 		break;
 
-	    case T_X25:
+	case T_X25:
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t%s", stoa(cp, n, FALSE)))
+		doprintf(("\t%s", stoa(cp, n, FALSE)));
 		cp += n;
 		break;
 
-	    case T_ISDN:
+	case T_ISDN:
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t%s", stoa(cp, n, FALSE)))
+		doprintf(("\t%s", stoa(cp, n, FALSE)));
 		cp += n;
 
-		if (cp < eor)
-		{
+		if (cp < eor) {
 			if (check_size(rname, type, cp, msg, eor, 1) < 0)
 				break;
 			n = *cp++;
-			doprintf((" %s", stoa(cp, n, FALSE)))
+			doprintf((" %s", stoa(cp, n, FALSE)));
 			cp += n;
 		}
 		break;
 
-	    case T_NSAP:
-		doprintf(("\t0x%s", nsap_ntoa(cp, dlen)))
+	case T_NSAP:
+		doprintf(("\t0x%s", nsap_ntoa(cp, dlen)));
 		cp += dlen;
 		break;
 
-	    case T_NSAPPTR:
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+	case T_NSAPPTR:
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf(("\t%s", pr_name(dname)))
+		doprintf(("\t%s", pr_name(dname)));
 		cp += n;
 		break;
 
-	    case T_PX:
+	case T_PX:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf(("\t%s", dtoa(n)))
+		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf((" %s", pr_name(dname)))
+		doprintf((" %s", pr_name(dname)));
 		cp += n;
 
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf((" %s", pr_name(dname)))
+		doprintf((" %s", pr_name(dname)));
 		cp += n;
 		break;
 
-	    case T_GPOS:
+	case T_GPOS:
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t%s", stoa(cp, n, FALSE)))
+		doprintf(("\t%s", stoa(cp, n, FALSE)));
 		cp += n;
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t%s", stoa(cp, n, FALSE)))
+		doprintf(("\t%s", stoa(cp, n, FALSE)));
 		cp += n;
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf(("\t%s", stoa(cp, n, FALSE)))
+		doprintf(("\t%s", stoa(cp, n, FALSE)));
 		cp += n;
 		break;
 
-	    case T_LOC:
-		if ((n = *cp) != T_LOC_VERSION)
-		{
+	case T_LOC:
+		if ((n = *cp) != T_LOC_VERSION) {
 			pr_error("invalid version %s in %s record for %s",
 				dtoa(n), pr_type(type), rname);
 			cp += dlen;
@@ -1119,88 +1066,85 @@ input bool regular;			/* set if this is a regular lookup */
 		cp += INT32SZ;
 
 		n = _getlong(cp);
-		doprintf(("\t%s ", pr_spherical(n, "N", "S")))
+		doprintf(("\t%s ", pr_spherical(n, "N", "S")));
 		cp += INT32SZ;
 
 		n = _getlong(cp);
-		doprintf((" %s ", pr_spherical(n, "E", "W")))
+		doprintf((" %s ", pr_spherical(n, "E", "W")));
 		cp += INT32SZ;
 
 		n = _getlong(cp);
-		doprintf((" %sm ", pr_vertical(n, "", "-")))
+		doprintf((" %sm ", pr_vertical(n, "", "-")));
 		cp += INT32SZ;
 
-		doprintf((" %sm", pr_precision((c >> 16) & 0xff)))
-		doprintf((" %sm", pr_precision((c >>  8) & 0xff)))
-		doprintf((" %sm", pr_precision((c >>  0) & 0xff)))
+		doprintf((" %sm", pr_precision((c >> 16) & 0xff)));
+		doprintf((" %sm", pr_precision((c >>  8) & 0xff)));
+		doprintf((" %sm", pr_precision((c >>  0) & 0xff)));
 		break;
 
-	    case T_UNSPEC:
-	    case T_NULL:
+	case T_UNSPEC:
+	case T_NULL:
 		cp += dlen;
 		break;
 
-	    case T_AAAA:
-		if (dlen == IPNGSIZE)
-		{
-			doprintf(("\t%s", ipng_ntoa(cp)))
+	case T_AAAA:
+		if (dlen == IPNGSIZE) {
+			doprintf(("\t%s", ipng_ntoa(cp)));
 			cp += IPNGSIZE;
 		}
 		break;
 
-	    case T_SIG:
+	case T_SIG:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
 		if (n >= T_FIRST && n <= T_LAST)
-			doprintf(("\t%s", pr_type(n)))
+			doprintf(("\t%s", pr_type(n)));
 		else
-			doprintf(("\t%s", dtoa(n)))
+			doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf((" %s", dtoa(n)))
+		doprintf((" %s", dtoa(n)));
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf((" %s", dtoa(n)))
+		doprintf((" %s", dtoa(n)));
 
-		n = 3*INT32SZ + INT16SZ;
+		n = (3 * INT32SZ) + INT16SZ;
 		if (check_size(rname, type, cp, msg, eor, n) < 0)
 			break;
-		doprintf((" ("))
+		doprintf((" ("));
 
 		n = _getlong(cp);
-		doprintf(("\n\t\t\t%s", dtoa(n)))
-		doprintf(("\t\t;original ttl"))
+		doprintf(("\n\t\t\t%s", dtoa(n)));
+		doprintf(("\t\t;original ttl"));
 		cp += INT32SZ;
 
 		n = _getlong(cp);
-		doprintf(("\n\t\t\t%s", pr_date(n)))
-		doprintf(("\t;signature expiration"))
+		doprintf(("\n\t\t\t%s", pr_date(n)));
+		doprintf(("\t;signature expiration"));
 		cp += INT32SZ;
 
 		n = _getlong(cp);
-		doprintf(("\n\t\t\t%s", pr_date(n)))
-		doprintf(("\t;signature inception"))
+		doprintf(("\n\t\t\t%s", pr_date(n)));
+		doprintf(("\t;signature inception"));
 		cp += INT32SZ;
 
 		n = _getshort(cp);
-		doprintf(("\n\t\t\t%s", dtoa(n)))
-		doprintf(("\t\t;key tag"))
+		doprintf(("\n\t\t\t%s", dtoa(n)));
+		doprintf(("\t\t;key tag"));
 		cp += INT16SZ;
 
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf(("\n\t\t\t%s", pr_name(dname)))
+		doprintf(("\n\t\t\t%s", pr_name(dname)));
 		cp += n;
 
-		if (cp < eor)
-		{
+		if (cp < eor) {
 			register char *buf;
 			register int size;
 
@@ -1209,34 +1153,32 @@ input bool regular;			/* set if this is a regular lookup */
 			size = strlength(buf);
 			cp += n;
 
-			while ((n = (size > 64) ? 64 : size) > 0)
-			{
-				doprintf(("\n\t%s", stoa((u_char *)buf, n, FALSE)))
+			while ((n = (size > 64) ? 64 : size) > 0) {
+				doprintf(("\n\t%s", stoa((u_char *) buf, n, FALSE)));
 				buf += n; size -= n;
 			}
 		}
-		doprintf(("\n\t\t\t)"))
+		doprintf(("\n\t\t\t)"));
 		break;
 
-	    case T_KEY:
+	case T_KEY:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf(("\t0x%s", xtoa(n)))
+		doprintf(("\t0x%s", xtoa(n)));
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf((" %s", dtoa(n)))
+		doprintf((" %s", dtoa(n)));
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf((" %s", dtoa(n)))
+		doprintf((" %s", dtoa(n)));
 
-		if (cp < eor)
-		{
+		if (cp < eor) {
 			register char *buf;
 			register int size;
 
@@ -1245,139 +1187,130 @@ input bool regular;			/* set if this is a regular lookup */
 			size = strlength(buf);
 			cp += n;
 
-			doprintf((" ("))
-			while ((n = (size > 64) ? 64 : size) > 0)
-			{
-				doprintf(("\n\t%s", stoa((u_char *)buf, n, FALSE)))
+			doprintf((" ("));
+			while ((n = (size > 64) ? 64 : size) > 0) {
+				doprintf(("\n\t%s", stoa((u_char *) buf, n, FALSE)));
 				buf += n; size -= n;
 			}
-			doprintf(("\n\t\t\t)"))
+			doprintf(("\n\t\t\t)"));
 		}
 		break;
 
-	    case T_NXT:
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+	case T_NXT:
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf(("\t%s", pr_name(dname)))
+		doprintf(("\t%s", pr_name(dname)));
 		cp += n;
 
 		n = 0;
-		while (cp < eor)
-		{
-		    c = *cp++;
-		    do
-		    {
- 			if (c & 0200)
-			{
-			    if (n >= T_FIRST && n <= T_LAST)
-				    doprintf((" %s", pr_type(n)))
-			    else
-				    doprintf((" %s", dtoa(n)))
-			}
- 			c <<= 1;
-		    } while (++n & 07);
+		while (cp < eor) {
+			c = *cp++;
+			do {
+				if (c & 0200) {
+					if (n >= T_FIRST && n <= T_LAST)
+						doprintf((" %s", pr_type(n)));
+					else
+						doprintf((" %s", dtoa(n)));
+				}
+				c <<= 1;
+			} while (++n & 07);
 		}
 		break;
 
-	    case T_SRV:
+	case T_SRV:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf(("\t%s", dtoa(n)))
+		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf((" %s", dtoa(n)))
+		doprintf((" %s", dtoa(n)));
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf((" %s", dtoa(n)))
+		doprintf((" %s", dtoa(n)));
 		cp += INT16SZ;
 
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf((" %s", pr_name(dname)))
+		doprintf((" %s", pr_name(dname)));
 		cp += n;
 		break;
 
-	    case T_NAPTR:
+	case T_NAPTR:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf(("\t%s", dtoa(n)))
+		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf((" %s", dtoa(n)))
+		doprintf((" %s", dtoa(n)));
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf((" \"%s\"", stoa(cp, n, TRUE)))
+		doprintf((" \"%s\"", stoa(cp, n, TRUE)));
 		cp += n;
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf((" \"%s\"", stoa(cp, n, TRUE)))
+		doprintf((" \"%s\"", stoa(cp, n, TRUE)));
 		cp += n;
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf((" \"%s\"", stoa(cp, n, TRUE)))
+		doprintf((" \"%s\"", stoa(cp, n, TRUE)));
 		cp += n;
 
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf((" %s", pr_name(dname)))
+		doprintf((" %s", pr_name(dname)));
 		cp += n;
 		break;
 
-	    case T_KX:
+	case T_KX:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf(("\t%s", dtoa(n)))
+		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
-		n = expand_name(rname, type, cp, msg, eom, dname);
-		if (n < 0)
+		if ((n = expand_name(rname, type, cp, msg, eom, dname)) < 0)
 			break;
-		doprintf((" %s", pr_name(dname)))
+		doprintf((" %s", pr_name(dname)));
 		cp += n;
 		break;
 
-	    case T_CERT:
+	case T_CERT:
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf(("\t%s", dtoa(n)))
+		doprintf(("\t%s", dtoa(n)));
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, INT16SZ) < 0)
 			break;
 		n = _getshort(cp);
-		doprintf((" %s", dtoa(n)))
+		doprintf((" %s", dtoa(n)));
 		cp += INT16SZ;
 
 		if (check_size(rname, type, cp, msg, eor, 1) < 0)
 			break;
 		n = *cp++;
-		doprintf((" %s", dtoa(n)))
+		doprintf((" %s", dtoa(n)));
 
-		if (cp < eor)
-		{
+		if (cp < eor) {
 			register char *buf;
 			register int size;
 
@@ -1386,67 +1319,66 @@ input bool regular;			/* set if this is a regular lookup */
 			size = strlength(buf);
 			cp += n;
 
-			doprintf((" ("))
-			while ((n = (size > 64) ? 64 : size) > 0)
-			{
-				doprintf(("\n\t%s", stoa((u_char *)buf, n, FALSE)))
+			doprintf((" ("));
+			while ((n = (size > 64) ? 64 : size) > 0) {
+				doprintf(("\n\t%s", stoa((u_char *) buf, n, FALSE)));
 				buf += n; size -= n;
 			}
-			doprintf(("\n\t\t\t)"))
+			doprintf(("\n\t\t\t)"));
 		}
 		break;
 
-	    case T_EID:
+	case T_EID:
 		dumpmsg = "not implemented";
 		cp += dlen;
 		break;
 
-	    case T_NIMLOC:
+	case T_NIMLOC:
 		dumpmsg = "not implemented";
 		cp += dlen;
 		break;
 
-	    case T_ATMA:
+	case T_ATMA:
 		dumpmsg = "not implemented";
 		cp += dlen;
 		break;
 
-	    case T_A6:
+	case T_A6:
 		dumpmsg = "not implemented";
 		cp += dlen;
 		break;
 
-	    case T_DNAME:
+	case T_DNAME:
 		dumpmsg = "not implemented";
 		cp += dlen;
 		break;
 
-	    case T_SINK:
+	case T_SINK:
 		dumpmsg = "not implemented";
 		cp += dlen;
 		break;
 
-	    case T_OPT:
+	case T_OPT:
 		dumpmsg = "not implemented";
 		cp += dlen;
 		break;
 
-	    case T_ADDRS:
+	case T_ADDRS:
 		dumpmsg = "not implemented";
 		cp += dlen;
 		break;
 
-	    case T_TKEY:
+	case T_TKEY:
 		dumpmsg = "not implemented";
 		cp += dlen;
 		break;
 
-	    case T_TSIG:
+	case T_TSIG:
 		dumpmsg = "not implemented";
 		cp += dlen;
 		break;
 
-	    default:
+	default:
 		dumpmsg = "unknown type";
 		cp += dlen;
 		break;
@@ -1456,184 +1388,178 @@ input bool regular;			/* set if this is a regular lookup */
 	if ((dumpmsg != NULL) || dumpdata)
 		dump_rrec(eor - dlen, dlen, dumpmsg);
 
-/*
- * End of specific data type processing.
- * Terminate resource record printout.
- */
-	doprintf(("\n"))
+	/*
+	 * End of specific data type processing.
+	 * Terminate resource record printout.
+	 */
+	doprintf(("\n"));
 
-/*
- * Check whether we have reached the exact end of this resource record.
- * If not, we cannot be sure that the record has been decoded correctly,
- * and therefore the subsequent tests will be skipped.
- * Maybe we should hex dump the entire record.
- */
-	if (cp != eor)
-	{
+	/*
+	 * Check whether we have reached the exact end of this resource record.
+	 * If not, we cannot be sure that the record has been decoded
+	 * correctly, and therefore the subsequent tests will be skipped.
+	 * Maybe we should hex dump the entire record.
+	 */
+	if (cp != eor) {
 		pr_error("size error in %s record for %s, off by %s",
-			pr_type(type), rname, dtoa(cp - eor));
+			 pr_type(type), rname, dtoa(cp - eor));
 
-		/* we believe value of dlen; should perhaps return(NULL) */
-		return(eor);
+		/* we believe value of dlen; should perhaps return (NULL) */
+		return (eor);
 	}
 
-/*
- * Save the CNAME alias for cname chain tracing.
- * Save the MR or MG alias for MB chain tracing.
- * These features can be enabled only in normal mode.
- */
-	if (regular && classmatch)
-	{
+	/*
+	 * Save the CNAME alias for cname chain tracing.
+	 * Save the MR or MG alias for MB chain tracing.
+	 * These features can be enabled only in normal mode.
+	 */
+	if (regular && classmatch) {
 		if (type == T_CNAME)
 			cname = strcpy(cnamebuf, dname);
-
 		else if (type == T_MR || type == T_MG)
 			mname = strcpy(mnamebuf, dname);
 	}
 
-/*
- * Suppress the subsequent checks in quiet mode.
- * This can safely be done as there are no side effects.
- * It may speedup things, and nothing would be printed anyway.
- * Also suppress the checks if explicitly requested in quick mode.
- */
+	/*
+	 * Suppress the subsequent checks in quiet mode.
+	 * This can safely be done as there are no side effects.
+	 * It may speedup things, and nothing would be printed anyway.
+	 * Also suppress the checks if explicitly requested in quick mode.
+	 */
 	if (quiet || quick)
-		return(cp);
+		return (cp);
 
-/*
- * Check for resource records with a zero ttl value. They are not cached.
- * This may lead to problems, e.g. when retrieving MX records and there
- * exists only a zero-ttl CNAME record pointing to a zero-ttl A record.
- * Certain resource records always have a zero ttl value.
- */
-	if ((ttl == 0) && (type != T_SIG))
-	{
+	/*
+	 * Check for resource records with a zero ttl value. They are not
+	 * cached.  This may lead to problems, e.g. when retrieving MX records
+	 * and there exists only a zero-ttl CNAME record pointing to a zero-ttl
+	 * A record.  Certain resource records always have a zero ttl value.
+	 */
+	if ((ttl == 0) && (type != T_SIG)) {
 		pr_warning("%s %s record has zero ttl",
-			rname, pr_type(type));
+			   rname, pr_type(type));
 	}
 
-/*
- * In zone listings, resource records with the same name/type/class
- * must have the same ttl value. Maintain and check list of record info.
- * This is done on a per-zone basis.
- */
-	if (listing && !check_ttl(rname, type, class, ttl))
-	{
+	/*
+	 * In zone listings, resource records with the same name/type/class
+	 * must have the same TTL value.  Maintain and check list of record
+	 * info.  This is done on a per-zone basis.
+	 */
+	if (listing && !check_ttl(rname, type, class, ttl)) {
 		pr_warning("%s %s records have different ttl within %s from %s",
-			rname, pr_type(type), name, host);
+			   rname, pr_type(type), name, host);
 	}
 
-/*
- * Check validity of 'host' related domain names in certain resource records.
- * These include LHS record names and RHS domain names of selected records.
- * By default underscores are not reported during deep recursive listings.
- */
-	if (test_valid(type) && !valid_name(rname, TRUE, FALSE, underskip))
-	{
+	/*
+	 * Check validity of 'host' related domain names in certain resource
+	 * records.  These include LHS record names and RHS domain names of
+	 * selected records.  By default underscores are not reported during
+	 * deep recursive listings.
+	 */
+	if (test_valid(type) && !valid_name(rname, TRUE, FALSE, underskip)) {
 		pr_error("%s %s record has invalid name",
 			 rname, pr_type(type));
 	}
-
-	if (test_canon(type) && !valid_name(dname, FALSE, FALSE, underskip))
-	{
+	if (test_canon(type) && !valid_name(dname, FALSE, FALSE, underskip)) {
+		pr_error("%s %s host %s has invalid name",
+			 rname, pr_type(type), dname);
+	}
+	if (test_ptr(type, rname) && !valid_name(dname, FALSE, FALSE, underskip)) {
 		pr_error("%s %s host %s has invalid name",
 			 rname, pr_type(type), dname);
 	}
 
-	if (test_ptr(type, rname) && !valid_name(dname, FALSE, FALSE, underskip))
-	{
-		pr_error("%s %s host %s has invalid name",
-			 rname, pr_type(type), dname);
-	}
-
-/*
- * The RHS of various resource records MUST refer to a canonical host name,
- * i.e. it must exist, and have an A record, and not be a CNAME.
- * By default this test is suppressed during deep recursive zone listings.
- * Results are cached globally, not on a per-zone basis.
- */
-	if (!canonskip && test_canon(type) && ((n = check_canon(dname)) != 0))
-	{
+	/*
+	 * The RHS of various resource records MUST refer to a canonical host name,
+	 * i.e. it must exist, and have an A record, and not be a CNAME.
+	 * By default this test is suppressed during deep recursive zone
+	 * listings.  Results are cached globally, not on a per-zone basis.
+	 */
+	if (!canonskip && test_canon(type) && ((n = check_canon(dname)) != 0)) {
 		/* only report definitive target host failures */
-		if (n == HOST_NOT_FOUND)
+		if (n == HOST_NOT_FOUND) {
 			pr_error("%s %s host %s does not exist",
-				rname, pr_type(type), dname);
-		else if (n == NO_DATA)
+				 rname, pr_type(type), dname);
+		} else if (n == NO_DATA) {
 			pr_error("%s %s host %s has no A record",
-				rname, pr_type(type), dname);
-		else if (n == HOST_NOT_CANON)
+				 rname, pr_type(type), dname);
+		} else if (n == HOST_NOT_CANON) {
 			pr_error("%s %s host %s is not canonical",
-				rname, pr_type(type), dname);
-
+				 rname, pr_type(type), dname);
+		}
 		/* authoritative failure to find nameserver target host */
-		if (type == T_NS && (n == NO_DATA || n == HOST_NOT_FOUND))
-		{
-			if (server == NULL)
+		if (type == T_NS && (n == NO_DATA || n == HOST_NOT_FOUND)) {
+			if (server == NULL) {
 				errmsg("%s has lame delegation to %s",
-					rname, dname);
+				       rname, dname);
+			}
 		}
 	}
 
-/*
- * On request, check the RHS of a PTR record when processing a reverse zone,
- * which should refer to a canonical host name, i.e. it should exist and
- * have an A record and not be a CNAME. Results are not cached in this case.
- * Currently this option has effect here only during zone listings.
- * Note that this does not check CIDR delegations as mentioned in RFC 2317,
- * where PTR records are replaced with CNAME records.
- * Also note that this may generate warnings for PTR records for host 0 or
- * host 255 entries, indicating network names as suggested by RFC 1101.
- */
-	if (addrmode && test_ptr(type, rname) && ((n = canonical(dname)) != 0))
-	{
+	/*
+	 * On request, check the RHS of a PTR record when processing a reverse
+	 * zone, which should refer to a canonical host name, i.e. it should
+	 * exist and have an A record and not be a CNAME.  Results are not
+	 * cached in this case.  Currently this option has effect here only
+	 * during zone listings.
+	 *
+	 * Note that this does not check CIDR delegations as mentioned in RFC
+	 * 2317, where PTR records are replaced with CNAME records.
+	 *
+	 * Also note that this may generate warnings for PTR records for host 0
+	 * or host 255 entries, indicating network names as suggested by RFC
+	 * 1101.
+	 */
+	if (addrmode && test_ptr(type, rname) && ((n = canonical(dname)) != 0)) {
 		/* only report definitive target host failures */
-		if (n == HOST_NOT_FOUND)
+		if (n == HOST_NOT_FOUND) {
 			pr_warning("%s %s host %s does not exist",
-				rname, pr_type(type), dname);
-		else if (n == NO_DATA)
+				   rname, pr_type(type), dname);
+		} else if (n == NO_DATA) {
 			pr_warning("%s %s host %s has no A record",
-				rname, pr_type(type), dname);
-		else if (n == HOST_NOT_CANON)
+				   rname, pr_type(type), dname);
+		} else if (n == HOST_NOT_CANON) {
 			pr_warning("%s %s host %s is not canonical",
-				rname, pr_type(type), dname);
+				   rname, pr_type(type), dname);
+		}
 	}
 
-/*
- * On request, reverse map the address of an A record, and verify that
- * it is registered and maps back to the name of the A record.
- * Currently this option has effect here only during zone listings.
- * Note that in reverse zones there are usually no A records, except
- * perhaps to specify a network mask as suggested in RFC 1101.
- */
-	if (addrmode && test_adr(type, address))
-	{
-		host = mapreverse(rname, inaddr);
-		if (host == NULL)
+	/*
+	 * On request, reverse map the address of an A record, and verify that
+	 * it is registered and maps back to the name of the A record.
+	 * Currently this option has effect here only during zone listings.
+	 *
+	 * Note that in reverse zones there are usually no A records, except
+	 * perhaps to specify a network mask as suggested in RFC 1101.
+	 */
+	if (addrmode && test_adr(type, address)) {
+		if ((host = mapreverse(rname, inaddr))) {
 			pr_warning("%s address %s is not registered",
-				rname, inet_ntoa(inaddr));
-		else if (host != rname)
+				   rname, inet_ntoa(inaddr));
+		} else if (host != rname) {
 			pr_warning("%s address %s maps to %s",
-				rname, inet_ntoa(inaddr), host);
+				   rname, inet_ntoa(inaddr), host);
+		}
 	}
 
-/*
- * On request, check the target in CNAME records for existence.
- */
-	if (cnamecheck && (type == T_CNAME) && ((n = anyrecord(dname)) != 0))
-	{
+	/*
+	 * On request, check the target in CNAME records for existence.
+	 */
+	if (cnamecheck && (type == T_CNAME) && ((n = anyrecord(dname)) != 0)) {
 		/* only report definitive target host failures */
-		if (n == HOST_NOT_FOUND)
+		if (n == HOST_NOT_FOUND) {
 			pr_warning("%s %s target %s does not exist",
-				rname, pr_type(type), dname);
-		else if (n == NO_DATA)
+				   rname, pr_type(type), dname);
+		} else if (n == NO_DATA) {
 			pr_warning("%s %s target %s has no ANY record",
-				rname, pr_type(type), dname);
+				   rname, pr_type(type), dname);
+		}
 	}
 
-/*
- * This record was processed successfully.
- */
-	return(cp);
+	/*
+	 * This record was processed successfully.
+	 */
+	return (cp);
 }
 
 /*
@@ -1649,43 +1575,41 @@ static char hexbuf[] = "XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX XX";
 
 void
 dump_rrec(cp, size, comment)
-input u_char *cp;			/* current position in answer buf */
-input int size;				/* number of bytes to extract */
-input char *comment;			/* additional comment text */
+	input u_char *cp;		/* current position in answer buf */
+	input int size;			/* number of bytes to extract */
+	input char *comment;		/* additional comment text */
 {
 	register int c;
 	register int n;
 	register int i;
 
 	if (comment != NULL)
-		doprintf(("\t# (\t; %s", comment))
+		doprintf(("\t# (\t; %s", comment));
 
-	while ((n = (size > 16) ? 16 : size) > 0)
-	{
-		for (i = 0; i < n; i++, cp++)
-		{
+	while ((n = (size > 16) ? 16 : size) > 0) {
+		for (i = 0; i < n; i++, cp++) {
 			ascbuf[i] = is_print(*cp) ? *cp : '.';
 			c = ((int)(*cp) >> 4) & 0x0f;
 			hexbuf[i*3+0] = hexdigit(c);
 			c = ((int)(*cp) >> 0) & 0x0f;
 			hexbuf[i*3+1] = hexdigit(c);
 		}
-
-		for (size -= n; i < 16; i++)
-		{
+		for (size -= n; i < 16; i++) {
 			ascbuf[i] = ' ';
 			hexbuf[i*3+0] = ' ';
 			hexbuf[i*3+1] = ' ';
 		}
 
 		if (comment != NULL)
-			doprintf(("\n\t%s ; %s", hexbuf, ascbuf))
+			doprintf(("\n\t%s ; %s", hexbuf, ascbuf));
 		else
-			doprintf(("\n%s\t%s ; %s", dbprefix, hexbuf, ascbuf))
+			doprintf(("\n%s\t%s ; %s", dbprefix, hexbuf, ascbuf));
 	}
 
 	if (comment != NULL)
-		doprintf(("\n\t)"))
+		doprintf(("\n\t)"));
+
+	return;
 }
 
 /*
@@ -1699,27 +1623,26 @@ input char *comment;			/* additional comment text */
 
 u_char *
 skip_qrec(name, qtype, qclass, cp, msg, eom)
-input char *name;			/* full name we are querying about */
-input int qtype;			/* record type we are querying about */
-input int qclass;			/* record class we are querying about */
-register u_char *cp;			/* current position in answer buf */
-input u_char *msg, *eom;		/* begin and end of answer buf */
+	input const char *name;		/* full name we are querying about */
+	input int qtype;		/* record type we are querying about */
+	input int qclass;		/* record class we are querying about */
+	register u_char *cp;		/* current position in answer buf */
+	input u_char *msg, *eom;	/* begin and end of answer buf */
 {
 	char rname[MAXDNAME+1];		/* record name in LHS */
 	int type, class;		/* fixed values in query record */
 	register int n;
 
-/*
- * Pickup the standard values present in the query section.
- */
-	n = expand_name(name, T_NONE, cp, msg, eom, rname);
-	if (n < 0)
-		return(NULL);
+	/*
+	 * Pickup the standard values present in the query section.
+	 */
+	if ((n = expand_name(name, T_NONE, cp, msg, eom, rname)) < 0)
+		return (NULL);
 	cp += n;
 
-	n = 2*INT16SZ;
+	n = 2 * INT16SZ;
 	if (check_size(rname, T_NONE, cp, msg, eom, n) < 0)
-		return(NULL);
+		return (NULL);
 
 	type = _getshort(cp);
 	cp += INT16SZ;
@@ -1727,30 +1650,33 @@ input u_char *msg, *eom;		/* begin and end of answer buf */
 	class = _getshort(cp);
 	cp += INT16SZ;
 
-#ifdef lint
+#ifdef DEBUG
 	if (verbose)
 		printf("%-20s\t%s\t%s\n",
-			rname, pr_class(class), pr_type(type));
+		       rname, pr_class(class), pr_type(type));
 #endif
 
-/*
- * The values in the answer should match those in the query.
- * If there is a mismatch, we just signal an error, but don't abort.
- * For regular queries there is exactly one record in the query section.
- */
-	if (!sameword(rname, name))
+	/*
+	 * The values in the answer should match those in the query.
+	 * If there is a mismatch, we just signal an error, but don't abort.
+	 * For regular queries there is exactly one record in the query section.
+	 */
+	if (!sameword(rname, name)) {
 		pr_error("invalid answer name %s after %s query for %s",
-			rname, pr_type(qtype), name);
+			 rname, pr_type(qtype), name);
+	}
 
-	if (type != qtype)
+	if (type != qtype) {
 		pr_error("invalid answer type %s after %s query for %s",
-			pr_type(type), pr_type(qtype), name);
+			 pr_type(type), pr_type(qtype), name);
+	}
 
-	if (class != qclass)
+	if (class != qclass) {
 		pr_error("invalid answer class %s after %s query for %s",
-			pr_class(class), pr_type(qtype), name);
+			 pr_class(class), pr_type(qtype), name);
+	}
 
-	return(cp);
+	return (cp);
 }
 
 /*
@@ -1762,21 +1688,20 @@ input u_char *msg, *eom;		/* begin and end of answer buf */
 **		FALSE otherwise.
 */
 
-bool
+bool_t
 get_recursive(name)
-input char **name;			/* name to query about */
+	input char **name;		/* name to query about */
 {
 	static int level = 0;		/* recursion level */
 	char newnamebuf[MAXDNAME+1];
 	char *newname;			/* new name to look up */
-	bool result;			/* result status of action taken */
+	bool_t result;			/* result status of action taken */
 	int save_errno;
 	int save_herrno;
 
-	if (level > MAXCHAIN)
-	{
+	if (level > MAXCHAIN) {
 		errmsg("Recursion too deep");
-		return(FALSE);
+		return (FALSE);
 	}
 
 	/* save local copy, and reset indicator */
@@ -1793,5 +1718,5 @@ input char **name;			/* name to query about */
 	seterrno(save_errno);
 	seth_errno(save_herrno);
 
-	return(result);
+	return (result);
 }

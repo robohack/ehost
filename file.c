@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: file.c,v 1.2 2002-01-11 22:15:31 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: file.c,v 1.3 2003-03-28 21:57:23 -0800 woods Exp $"
 
 #ifndef lint
 static char Version[] = "@(#)file.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -25,12 +25,12 @@ static char Version[] = "@(#)file.c	e07@nikhef.nl (Eric Wassenaar) 991529";
 
 #include "host.h"
 
-#define MAXCACHENAME	(4+2+MAXDNAME)	/* NNNN/Xdomainname */
+#define MAXCACHENAME	(4 + 2 + MAXDNAME)	/* NNNN/Xdomainname */
 
-static char cachefilebuf[MAXCACHENAME+1];
+static char cachefilebuf[MAXCACHENAME + 1];
 static char *cachefile = NULL;	/* full name of real cache file */
 
-static char tempcachebuf[MAXCACHENAME+1];
+static char tempcachebuf[MAXCACHENAME + 1];
 static char *tempcache = NULL;	/* full name of temporary cache file */
 
 static int cachefd = -1;	/* cache file descriptor */
@@ -52,31 +52,30 @@ time_t cachetime = 0;		/* time of last cache modification */
 
 char *
 cachename(name, buf, prefix)
-input char *name;			/* name of zone to process */
-output char *buf;			/* where to store the file name */
-input char prefix;			/* single char prefix for file name */
+	input char *name;		/* name of zone to process */
+	output char *buf;		/* where to store the file name */
+	input int prefix;		/* single char prefix for file name */
 {
 	register unsigned int hfunc;
 	register char *p, *q;
 	register char c;
 
-/*
- * Construct the name of the hash directory.
- */
-	for (hfunc = 0, p = name; (c = *p) != '\0'; p++)
-	{
+	/*
+	 * Construct the name of the hash directory.
+	 */
+	for (hfunc = 0, p = name; (c = *p) != '\0'; p++) {
 		hfunc = ((hfunc << 1) ^ (lowercase(c) & 0377)) % HASHSIZE;
 	}
 
 	(void) sprintf(buf, "%04u/%c", hfunc, prefix);
 
-/*
- * Construct the full name of the cache file.
- * Make sure there are only reasonable characters in the file name.
- * Obviously there should be no further slashes in the name.
- */
-	for (q = &buf[strlen(buf)], p = name; (c = *p) != '\0'; p++)
-	{
+	/*
+	 * Construct the full name of the cache file.
+	 *
+	 * Make sure there are only reasonable characters in the file name.
+	 * Obviously there should be no further slashes in the name.
+	 */
+	for (q = &buf[strlen(buf)], p = name; (c = *p) != '\0'; p++) {
 		if (!is_alnum(c) && !in_string("-._", c))
 			c = '?';
 
@@ -84,7 +83,7 @@ input char prefix;			/* single char prefix for file name */
 	}
 	*q = '\0';
 
-	return(buf);
+	return (buf);
 }
 
 /*
@@ -104,8 +103,8 @@ input char prefix;			/* single char prefix for file name */
 
 int
 cache_open(name, create)
-input char *name;			/* name of zone to process */
-input bool create;			/* set to create fresh file */
+	input char *name;		/* name of zone to process */
+	input bool_t create;		/* set to create fresh file */
 {
 	struct stat st;
 	register char *p;
@@ -116,77 +115,63 @@ input bool create;			/* set to create fresh file */
 	/* temporary cache file is not needed when read only */
 	tempcache = create ? cachename(name, tempcachebuf, 'T') : NULL;
 
-/*
- * If selected for read only, the cache file must just exist.
- */
-	if (!create)
-	{
-		cachefd = open(cachefile, O_RDONLY, 0);
-		if (cachefd < 0)
-		{
+	/*
+	 * If selected for read only, the cache file must just exist.
+	 */
+	if (!create) {
+		if ((cachefd = open(cachefile, O_RDONLY, 0)) < 0) {
 			if (errno != ENOENT)
 				cache_perror("Cannot open", cachefile);
-			return(-1);
+			return (-1);
 		}
 
 		/* save last modification time for later reference */
 		cachetime = (fstat(cachefd, &st) >= 0) ? st.st_mtime : 0;
 
-		return(cachefd);
+		return (cachefd);
 	}
 
-/*
- * If necessary, create the intermediate cache directories.
- */
+	/*
+	 * If necessary, create the intermediate cache directories.
+	 */
 	p = index(cachefile, '/');
-	while (p != NULL)
-	{
-		if (p > cachefile)
-		{
+	while (p) {
+		if (p > cachefile) {
 			*p = '\0';
-			if (stat(cachefile, &st) < 0)
-			{
-				if (errno != ENOENT)
-				{
+			if (stat(cachefile, &st) < 0) {
+				if (errno != ENOENT) {
 					cache_perror("Cannot stat", cachefile);
-					return(-1);
+					return (-1);
 				}
-
-				if (mkdir(cachefile, 0755) < 0)
-				{
+				if (mkdir(cachefile, 0755) < 0) {
 					if (errno == EEXIST)
 						continue;
 					cache_perror("Cannot mkdir", cachefile);
-					return(-1);
+					return (-1);
 				}
-			}
-			else if ((st.st_mode & S_IFMT) != S_IFDIR)
-			{
+			} else if ((st.st_mode & S_IFMT) != S_IFDIR) {
 				seterrno(ENOTDIR);
 				cache_perror("Cannot create", cachefile);
-				return(-1);
+				return (-1);
 			}
 			*p = '/';
 		}
-
 		p = index(p+1, '/');
 	}
 
-/*
- * Create a fresh temporary cache file. It will be renamed to the
- * real cache file after processing has been completed successfully.
- */
-	cachefd = open(tempcache, O_WRONLY|O_CREAT|O_TRUNC, 0644);
-	if (cachefd < 0)
-	{
+	/*
+	 * Create a fresh temporary cache file.  It will be renamed to the real
+	 * cache file after processing has been completed successfully.
+	 */
+	if ((cachefd = open(tempcache, O_WRONLY|O_CREAT|O_TRUNC, 0644)) < 0) {
 		cache_perror("Cannot open", tempcache);
-		return(-1);
+		return (-1);
 	}
 
 	/* last modification time unused during cache write */
 	cachetime = 0;
 
-	return(cachefd);
+	return (cachefd);
 }
 
 /*
@@ -200,18 +185,16 @@ input bool create;			/* set to create fresh file */
 
 int
 cache_close(create)
-input bool create;			/* set to create fresh file */
+	input bool_t create;		/* set to create fresh file */
 {
 	int save_errno = errno;		/* preserve state */
 	int status = 0;			/* result status */
 
 	/* we must have a valid file */
-	if (cachefd >= 0)
-	{
+	if (cachefd >= 0) {
 		/* close the cache; this must succeed when writing */
 		status = close(cachefd);
-		if (status < 0 && tempcache != NULL)
-		{
+		if (status < 0 && tempcache != NULL) {
 			cache_perror("Cannot close", tempcache);
 
 			/* preserve existing cache; prevent rename */
@@ -219,20 +202,13 @@ input bool create;			/* set to create fresh file */
 		}
 
 		/* move temp cache to real cache if so requested */
-		if ((tempcache != NULL) && create)
-		{
+		if ((tempcache != NULL) && create) {
 			status = rename(tempcache, cachefile);
 			if (status < 0)
-			{
 				cache_perror("Cannot rename", tempcache);
-			}
-		}
-		else if (tempcache != NULL)
-		{
+		} else if (tempcache != NULL) {
 			if (unlink(tempcache) < 0)
-			{
 				cache_perror("Cannot unlink", tempcache);
-			}
 		}
 	}
 
@@ -243,7 +219,7 @@ input bool create;			/* set to create fresh file */
 	/* restore state */
 	seterrno(save_errno);
 
-	return(status);
+	return (status);
 }
 
 /*
@@ -261,60 +237,58 @@ input bool create;			/* set to create fresh file */
 
 int
 cache_write(buf, bufsize)
-input char *buf;			/* location of raw answer buffer */
-input int bufsize;			/* length of answer buffer */
+	input char *buf;		/* location of raw answer buffer */
+	input size_t bufsize;		/* length of answer buffer */
 {
 	u_short len;
 	char *buffer;
-	int buflen;
+	size_t buflen;
 	register int n;
 
 	/* we must have a valid file */
 	if (cachefd < 0)
-		return(0);
+		return (0);
 
-/*
- * Write the length of the answer buffer.
- */
-	/* len = htons((u_short)bufsize); */
-	putshort((u_short)bufsize, (u_char *)&len);
+	/*
+	 * Write the length of the answer buffer.
+	 */
+#if 0
+	len = htons((u_short) bufsize);
+#endif
+	putshort((u_int16_t) bufsize, (u_char *) &len);	/* XXX from resolv.h, bogus broken API! */
 
-	buffer = (char *)&len;
+	buffer = (char *) &len;
 	buflen = INT16SZ;
 
-	while (buflen > 0 && (n = write(cachefd, buffer, buflen)) > 0)
-	{
+	while (buflen > 0 && (n = write(cachefd, buffer, buflen)) > 0) {
 		buffer += n;
 		buflen -= n;
 	}
-
-	if (buflen != 0)
-	{
-		if (errno == 0) seterrno(EIO);
+	if (buflen != 0) {
+		if (errno == 0)
+			seterrno(EIO);
 		cache_perror("Cannot write answer length", tempcache);
-		return(-1);
+		return (-1);
 	}
 
-/*
- * Write the answer buffer itself.
- */
+	/*
+	 * Write the answer buffer itself.
+	 */
 	buffer = buf;
 	buflen = bufsize;
 
-	while (buflen > 0 && (n = write(cachefd, buffer, buflen)) > 0)
-	{
+	while (buflen > 0 && (n = write(cachefd, buffer, buflen)) > 0) {
 		buffer += n;
 		buflen -= n;
 	}
-
-	if (buflen != 0)
-	{
-		if (errno == 0) seterrno(EIO);
+	if (buflen != 0) {
+		if (errno == 0)
+			seterrno(EIO);
 		cache_perror("Cannot write answer", tempcache);
-		return(-1);
+		return (-1);
 	}
 
-	return(bufsize);
+	return (bufsize);
 }
 
 /*
@@ -338,106 +312,98 @@ input int bufsize;			/* length of answer buffer */
 
 int
 cache_read(buf, bufsize)
-output char *buf;			/* location of buffer to store answer */
-input int bufsize;			/* maximum size of answer buffer */
+	output char *buf;			/* location of buffer to store answer */
+	input size_t bufsize;			/* maximum size of answer buffer */
 {
 	u_short len;
 	char *buffer;
-	int buflen;
+	size_t buflen;
 	int reslen;
 	register int n;
 
 	/* we must have a valid file */
 	if (cachefd < 0)
-		return(0);
+		return (0);
 
-/*
- * Read the length of answer buffer.
- */
-	buffer = (char *)&len;
+	/*
+	 * Read the length of answer buffer.
+	 */
+	buffer = (char *) &len;
 	buflen = INT16SZ;
 
-	while (buflen > 0 && (n = read(cachefd, buffer, buflen)) > 0)
-	{
+	while (buflen > 0 && (n = read(cachefd, buffer, buflen)) > 0) {
 		buffer += n;
 		buflen -= n;
 	}
-
-	if (buflen != 0)
-	{
-		if (errno == 0) seterrno(EIO);
+	if (buflen != 0) {
+		if (errno == 0)
+			seterrno(EIO);
 		cache_perror("Cannot read answer length", cachefile);
-		return(-1);
+		return (-1);
 	}
 
-/*
- * Terminate if length is zero.
- */
+	/*
+	 * Terminate if length is zero.
+	 */
 	/* len = ntohs(len); */
-	len = _getshort((u_char *)&len);
+	len = _getshort((u_char *) &len);
 	if (len == 0)
-		return(0);
+		return (0);
 
-/*
- * Check for truncation.
- * Do not chop the returned length in case of buffer overflow.
- */
+	/*
+	 * Check for truncation.
+	 * Do not chop the returned length in case of buffer overflow.
+	 */
 	reslen = 0;
-	if ((int)len > bufsize)
-	{
+	if ((int) len > bufsize) {
 		reslen = len - bufsize;
 		/* len = bufsize; */
 	}
 
-/*
- * Read the answer buffer itself.
- * Truncate the answer is the supplied buffer is not big enough.
- */
+	/*
+	 * Read the answer buffer itself.
+	 * Truncate the answer is the supplied buffer is not big enough.
+	 */
 	buffer = buf;
 	buflen = (reslen > 0) ? bufsize : len;
 
-	while (buflen > 0 && (n = read(cachefd, buffer, buflen)) > 0)
-	{
+	while (buflen > 0 && (n = read(cachefd, buffer, buflen)) > 0) {
 		buffer += n;
 		buflen -= n;
 	}
-
-	if (buflen != 0)
-	{
-		if (errno == 0) seterrno(EIO);
+	if (buflen != 0) {
+		if (errno == 0)
+			seterrno(EIO);
 		cache_perror("Cannot read answer", cachefile);
-		return(-1);
+		return (-1);
 	}
 
-/*
- * Discard the residu to keep subsequent reads in sync.
- */
-	if (reslen > 0)
-	{
-		HEADER *bp = (HEADER *)buf;
+	/*
+	 * Discard the residu to keep subsequent reads in sync.
+	 */
+	if (reslen > 0) {
+		HEADER *bp = (HEADER *) buf;
 		char resbuf[PACKETSZ];
 
 		buffer = resbuf;
 		buflen = (reslen < sizeof(resbuf)) ? reslen : sizeof(resbuf);
 
-		while (reslen > 0 && (n = read(cachefd, buffer, buflen)) > 0)
-		{
+		while (reslen > 0 && (n = read(cachefd, buffer, buflen)) > 0) {
 			reslen -= n;
 			buflen = (reslen < sizeof(resbuf)) ? reslen : sizeof(resbuf);
 		}
-
-		if (reslen != 0)
-		{
-			if (errno == 0) seterrno(EIO);
+		if (reslen != 0) {
+			if (errno == 0)
+				seterrno(EIO);
 			cache_perror("Cannot read residu", cachefile);
-			return(-1);
+			return (-1);
 		}
 
 		/* set truncation flag */
 		bp->tc = 1;
 	}
 
-	return(len);
+	return (len);
 }
 
 /*
@@ -450,13 +416,13 @@ input int bufsize;			/* maximum size of answer buffer */
 
 void
 cache_perror(message, filename)
-input char *message;			/* extra message string */
-input char *filename;			/* file name for perror */
+	input char *message;		/* extra message string */
+	input char *filename;		/* file name for perror */
 {
 	int save_errno = errno;		/* preserve state */
 
 	/* prepend extra message */
-	if (message != NULL)
+	if (message)
 		(void) fprintf(stderr, "%s ", message);
 
 	/* issue actual message */
@@ -465,4 +431,6 @@ input char *filename;			/* file name for perror */
 
 	/* restore state */
 	seterrno(save_errno);
+
+	return;
 }

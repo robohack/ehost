@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.2 2002-01-11 22:15:31 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.3 2003-03-28 21:57:23 -0800 woods Exp $"
 
 #ifndef lint
 static char Version[] = "@(#)addr.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -35,9 +35,9 @@ static char Version[] = "@(#)addr.c	e07@nikhef.nl (Eric Wassenaar) 990605";
 **		FALSE otherwise.
 */
 
-bool
+bool_t
 check_addr(name)
-input char *name;			/* host name to check addresses for */
+	input char *name;		/* host name to check addresses for */
 {
 	struct hostent *hp;
 	register int i;
@@ -46,14 +46,12 @@ input char *name;			/* host name to check addresses for */
 	char *hname, hnamebuf[MAXDNAME+1];
 	int matched = 0;
 
-/*
- * Look up the specified host to fetch its addresses.
- */
-	hp = gethostbyname(name);
-	if (hp == NULL)
-	{
+	/*
+	 * Look up the specified host to fetch its addresses.
+	 */
+	if (!(hp = gethostbyname(name))) {
 		ns_error(name, T_A, C_IN, server);
-		return(FALSE);
+		return (FALSE);
 	}
 
 	hname = strncpy(hnamebuf, hp->h_name, MAXDNAME);
@@ -61,20 +59,23 @@ input char *name;			/* host name to check addresses for */
 
 	for (i = 0; i < MAXADDRS && hp->h_addr_list[i]; i++)
 		inaddr[i] = incopy(hp->h_addr_list[i]);
+
 	naddress = i;
 
-	if (verbose)
+	if (verbose) {
 		printf("Found %d address%s for %s\n",
-			naddress, plurale(naddress), hname);
+		       naddress, plurale(naddress), hname);
+	}
 
-/*
- * Map back the addresses found, and check whether they revert to host.
- */
-	for (i = 0; i < naddress; i++)
+	/*
+	 * Map back the addresses found, and check whether they revert to host.
+	 */
+	for (i = 0; i < naddress; i++) {
 		if (check_addr_name(inaddr[i], hname))
 			matched++;
+	}
 
-	return((matched == naddress) ? TRUE : FALSE);
+	return ((matched == naddress) ? TRUE : FALSE);
 }
 
 /*
@@ -86,49 +87,47 @@ input char *name;			/* host name to check addresses for */
 **		FALSE otherwise.
 */
 
-bool
+bool_t
 check_addr_name(inaddr, name)
-input struct in_addr inaddr;		/* address of host to map back */
-input char *name;			/* name of host to check */
+	input struct in_addr inaddr;	/* address of host to map back */
+	input char *name;		/* name of host to check */
 {
 	struct hostent *hp;
 	register int i;
 	char *iname, inamebuf[MAXDNAME+1];
 	int matched = 0;
 
-/*
- * Fetch the reverse mapping of the given host address.
- */
+	/*
+	 * Fetch the reverse mapping of the given host address.
+	 */
 	iname = strcpy(inamebuf, inet_ntoa(inaddr));
 
 	if (verbose)
 		printf("Checking %s address %s\n", name, iname);
 
-	hp = gethostbyaddr((char *)&inaddr, INADDRSZ, AF_INET);
-	if (hp == NULL)
-	{
+	if (!(hp = gethostbyaddr((char *) &inaddr, INADDRSZ, AF_INET))) {
 		ns_error(iname, T_PTR, C_IN, server);
-		return(FALSE);
+		return (FALSE);
 	}
 
-/*
- * Check whether the ``official'' host name matches.
- * This is the name in the first (or only) PTR record encountered.
- */
-	if (!sameword(hp->h_name, name))
+	/*
+	 * Check whether the ``official'' host name matches.
+	 * This is the name in the first (or only) PTR record encountered.
+	 */
+	if (!sameword(hp->h_name, name)) {
 		pr_warning("%s address %s maps to %s",
 			name, iname, hp->h_name);
-	else
+	} else
 		matched++;
 
-/*
- * If not, a match may be found among the aliases.
- * They are available (as of BIND 4.9) in case multipe PTR records are used.
- */
-	if (!matched)
-	{
-		for (i = 0; hp->h_aliases[i]; i++)
-		{
+	/*
+	 * If not, a match may be found among the aliases.
+	 *
+	 * They are available (as of BIND 4.9) in case multipe PTR records are
+	 * used.
+	 */
+	if (!matched) {
+		for (i = 0; hp->h_aliases[i]; i++) {
 			pr_warning("%s address %s maps to alias %s",
 				name, iname, hp->h_aliases[i]);
 
@@ -137,7 +136,7 @@ input char *name;			/* name of host to check */
 		}
 	}
 
-	return(matched ? TRUE : FALSE);
+	return (matched ? TRUE : FALSE);
 }
 
 /*
@@ -149,9 +148,9 @@ input char *name;			/* name of host to check */
 **		FALSE otherwise.
 */
 
-bool
+bool_t
 check_name(addr)
-input ipaddr_t addr;			/* address of host to check */
+	input ipaddr_t addr;		/* address of host to check */
 {
 	struct hostent *hp;
 	register int i;
@@ -162,17 +161,15 @@ input ipaddr_t addr;			/* address of host to check */
 	int naliases;
 	int matched = 0;
 
-/*
- * Check whether the address is registered by fetching its host name.
- */
+	/*
+	 * Check whether the address is registered by fetching its host name.
+	 */
 	inaddr.s_addr = addr;
 	iname = strcpy(inamebuf, inet_ntoa(inaddr));
 
-	hp = gethostbyaddr((char *)&inaddr, INADDRSZ, AF_INET);
-	if (hp == NULL)
-	{
+	if (!(hp = gethostbyaddr((char *) &inaddr, INADDRSZ, AF_INET))) {
 		ns_error(iname, T_PTR, C_IN, server);
-		return(FALSE);
+		return (FALSE);
 	}
 
 	hname = strncpy(hnamebuf, hp->h_name, MAXDNAME);
@@ -181,11 +178,11 @@ input ipaddr_t addr;			/* address of host to check */
 	if (verbose)
 		printf("Address %s maps to %s\n", iname, hname);
 
-/*
- * In case of multiple PTR records, additional names are stored as aliases.
- */
-	for (i = 0; i < MAXALIAS && hp->h_aliases[i]; i++)
-	{
+	/*
+	 * In case of multiple PTR records, additional names are stored as
+	 * aliases.
+	 */
+	for (i = 0; i < MAXALIAS && hp->h_aliases[i]; i++) {
 		aname = strncpy(anamebuf[i], hp->h_aliases[i], MAXDNAME);
 		aname[MAXDNAME] = '\0';
 
@@ -194,20 +191,20 @@ input ipaddr_t addr;			/* address of host to check */
 	}
 	naliases = i;
 
-/*
- * Check whether the given address belongs to the host name and the aliases.
- */
+	/*
+	 * Check whether the given address belongs to the host name and the
+	 * aliases.
+	 */
 	if (check_name_addr(hname, addr))
 		matched++;
 
-	for (i = 0; i < naliases; i++)
-	{
+	for (i = 0; i < naliases; i++) {
 		aname = anamebuf[i];
 		if (check_name_addr(aname, addr))
 			matched++;
 	}
 
-	return((matched == (naliases + 1)) ? TRUE : FALSE);
+	return ((matched == (naliases + 1)) ? TRUE : FALSE);
 }
 
 /*
@@ -219,10 +216,10 @@ input ipaddr_t addr;			/* address of host to check */
 **		FALSE otherwise.
 */
 
-bool
+bool_t
 check_name_addr(name, addr)
-input char *name;			/* name of host to check */
-input ipaddr_t addr;			/* address should belong to host */
+	input char *name;		/* name of host to check */
+	input ipaddr_t addr;		/* address should belong to host */
 {
 	struct hostent *hp;
 	register int i;
@@ -233,41 +230,41 @@ input ipaddr_t addr;			/* address should belong to host */
 	inaddr.s_addr = addr;
 	iname = strcpy(inamebuf, inet_ntoa(inaddr));
 
-/*
- * Lookup the host name found to fetch its addresses.
- */
-	hp = gethostbyname(name);
-	if (hp == NULL)
-	{
+	/*
+	 * Lookup the host name found to fetch its addresses.
+	 */
+	if (!(hp = gethostbyname(name))) {
 		ns_error(name, T_A, C_IN, server);
-		return(FALSE);
+		return (FALSE);
 	}
 
-/*
- * Verify whether the mapped host name is canonical.
- */
-	if (!sameword(hp->h_name, name))
+	/*
+	 * Verify whether the mapped host name is canonical.
+	 */
+	if (!sameword(hp->h_name, name)) {
 		pr_warning("%s host %s is not canonical (%s)",
-			iname, name, hp->h_name);
+			   iname, name, hp->h_name);
+	}
 
-/*
- * Check whether the given address is listed among the known addresses.
- */
-	for (i = 0; hp->h_addr_list[i]; i++)
-	{
+	/*
+	 * Check whether the given address is listed among the known addresses.
+	 */
+	for (i = 0; hp->h_addr_list[i]; i++) {
 		inaddr = incopy(hp->h_addr_list[i]);
 
-		if (verbose)
+		if (verbose) {
 			printf("Checking %s address %s\n",
-				name, inet_ntoa(inaddr));
+			       name, inet_ntoa(inaddr));
+		}
 
 		if (inaddr.s_addr == addr)
 			matched++;
 	}
 
-	if (!matched)
+	if (!matched) {
 		pr_error("address %s does not belong to %s",
-			iname, name);
+			 iname, name);
+	}
 
-	return(matched ? TRUE : FALSE);
+	return (matched ? TRUE : FALSE);
 }

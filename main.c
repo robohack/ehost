@@ -20,22 +20,26 @@
 /*
  * Originally, this program came from Rutgers University, however it
  * is based on nslookup and other pieces of named tools, so it needs
- * that copyright notice.
+ * the copyright notice above.
  */
 
 /*
- * Rewritten by Eric Wassenaar, Nikhef-H, <e07@nikhef.nl>
+ * Originally rewritten by Eric Wassenaar, Nikhef-H, <e07@nikhef.nl>
+ * Originally availalbe for FTP from the machine 'ftp.nikhef.nl'
+ * in the directory '/pub/network'.
  *
- * The officially maintained source of this program is available
- * via anonymous ftp from machine 'ftp.nikhef.nl'
- * in the directory '/pub/network' as 'host.tar.Z'
+ * Currently maintained by Greg A. Woods, Planix, Inc.; <woods-host@planix.com>
  *
- * You are kindly requested to report bugs and make suggestions
- * for improvements to the author at the given email address,
- * and to not re-distribute your own modifications to others.
+ * The officially maintained source of this program is now available via
+ * anonymous FTP from machine 'ftp.weird.com' in the directory '/pub/local' as
+ * 'host.tar.Z'  <URL:ftp://ftp.weird.com/pub/local/host.tar.Z>
+ *
+ * You are kindly requested to report bugs and make suggestions for
+ * improvements to the author at the given email address, and to not
+ * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.3 2003-03-21 18:49:37 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.4 2003-03-28 21:57:23 -0800 woods Exp $"
 
 #ifndef lint
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -192,6 +196,8 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
  *		Usage: host [options] -x [name ...]
  *		Usage: host [options] -X server [name ...]
  *
+ * XXX this list needs to be updated to include the "long" options....
+ *
  * Regular command line options.
  * ----------------------------
  *
@@ -333,7 +339,7 @@ static char Help[] =
 ** -----------------------------
 **
 **	Exits:
-**		EX_SUCCESS	Operation successfully completed
+**		EX_OK		Operation successfully completed
 **		EX_UNAVAILABLE	Could not obtain requested information
 **		EX_CANTCREAT	Could not create specified log file
 **		EX_NOINPUT	No input arguments were found
@@ -354,13 +360,13 @@ static char *cachedirname = NULL;	/* name of local cache directory */
 
 int
 main(argc, argv)
-input int argc;
-input char *argv[];
+	input int argc;
+	input char *argv[];
 {
 	register char *option;
 	int result;			/* result status of action taken */
-	char *program;			/* name that host was called with */
-	bool extended = FALSE;		/* accept extended argument syntax */
+	char *argv0;			/* name that host was called with */
+	bool_t extended = FALSE;	/* accept extended argument syntax */
 
 	assert(sizeof(int) >= 4);	/* probably paranoid */
 #ifdef obsolete
@@ -368,20 +374,20 @@ input char *argv[];
 	assert(sizeof(ipaddr_t) == 4);	/* but this is critical */
 #endif
 
-/*
- * Synchronize stdout and stderr in case output is redirected.
- */
+	/*
+	 * Synchronize stdout and stderr in case output is redirected.
+	 */
 	linebufmode(stdout);
 
-/*
- * Avoid premature abort when remote peer closes the connection.
- */
+	/*
+	 * Avoid premature abort when remote peer closes the connection.
+	 */
 	setsignal(SIGPIPE, SIG_IGN);
 
-/*
- * Initialize resolver, set new defaults. See show_res() for details.
- * The old defaults are (RES_RECURSE | RES_DEFNAMES | RES_DNSRCH)
- */
+	/*
+	 * Initialize resolver, set new defaults. See show_res() for details.
+	 * The old defaults are (RES_RECURSE | RES_DEFNAMES | RES_DNSRCH)
+	 */
 	(void) res_init();
 
 	_res.options |=  RES_DEFNAMES;	/* qualify single names */
@@ -400,307 +406,301 @@ input char *argv[];
 	/* save new defaults */
 	new_res = _res;
 
-/*
- * Check whether host was called with a different name.
- * Interpolate default options and parameters.
- */
+	/*
+	 * Check whether host was called with a different name.
+	 * Interpolate default options and parameters.
+	 */
 	if (argc < 1 || argv[0] == NULL)
 		fatal(Usage);
 
-	option = getenv("HOST_DEFAULTS");
-	if (option != NULL)
-	{
+	if ((option = getenv("HOST_DEFAULTS"))) {
 		set_defaults(option, argc, argv);
 		argc = optargc; argv = optargv;
 	}
 
-	program = rindex(argv[0], '/');
-	if (program++ == NULL)
-		program = argv[0];
+	argv0 = (argv0 = strrchr(argv[0], '/')) ? argv0 + 1 : argv[0];
 
 	/* check for resource record names */
-	querytype = parse_type(program);
-	if (querytype < 0)
+	if ((querytype = parse_type(argv0)) < 0)
 		querytype = T_NONE;
 
 	/* set default class */
 	queryclass = C_IN;
 
 	/* check for zone listing abbreviation */
-	if (sameword(program, "zone"))
+	if (sameword(argv0, "zone"))
 		listmode = TRUE;
 
 /*
  * Scan command line options and flags.
  */
-	while (argc > 1 && argv[1] != NULL && argv[1][0] == '-')
-	{
-	    for (option = &argv[1][1]; *option != '\0'; option++)
-	    {
-		switch (*option)
-		{
-		    case '-' :
-			if (option == &argv[1][1])
-				option = cvtopt(option+1);
-			break;
+	while (argc > 1 && argv[1] != NULL && argv[1][0] == '-') {
+		for (option = &argv[1][1]; *option != '\0'; option++) {
+			switch (*option) {
+			case '-' :
+				if (option == &argv[1][1])
+					option = cvtopt(option+1);
+				break;
 
-		    case 'A' :
-			addrmode = TRUE;
-			break;
+			case 'A' :
+				addrmode = TRUE;
+				break;
 
-		    case 'a' :
-			querytype = T_ANY;	/* filter anything available */
-			break;
+			case 'a' :
+				querytype = T_ANY;	/* filter anything available */
+				break;
 
-		    case 'B' :
-			bindcompat = TRUE;
-			new_res.options |= RES_DNSRCH;
-			break;
+			case 'B' :
+				bindcompat = TRUE;
+				new_res.options |= RES_DNSRCH;
+				break;
 
-		    case 'C' :
-			checkmode = TRUE;
-			listmode = TRUE;
-			if (querytype == T_NONE)
-				querytype = -1;	/* suppress zone data output */
-			break;
+			case 'C' :
+				checkmode = TRUE;
+				listmode = TRUE;
+				if (querytype == T_NONE)
+					querytype = -1;	/* suppress zone data output */
+				break;
 
-		    case 'c' :
-			if (is_empty(argv[2]) || argv[2][0] == '-')
-				fatal("Missing query class");
-			queryclass = parse_class(argv[2]);
-			if (queryclass < 0)
-				fatal("Invalid query class %s", argv[2]);
-			argv++; argc--;
-			break;
+			case 'c' :
+				if (is_empty(argv[2]) || argv[2][0] == '-')
+					fatal("Missing query class");
+				queryclass = parse_class(argv[2]);
+				if (queryclass < 0)
+					fatal("Invalid query class %s", argv[2]);
+				argv++; argc--;
+				break;
 
-		    case 'd' :
-			debug++;		/* increment debugging level */
-			new_res.options |= RES_DEBUG;
-			break;
+			case 'd' :
+				debug++;		/* increment debugging level */
+				new_res.options |= RES_DEBUG;
+				break;
 
-		    case 'e' :
-			exclusive = TRUE;
-			break;
+			case 'e' :
+				exclusive = TRUE;
+				break;
 
-		    case 'F' :
-			logexchange = TRUE;
-			/*FALLTHROUGH*/
+			case 'F' :
+				logexchange = TRUE;
+				/*FALLTHROUGH*/
 
-		    case 'f' :
-			if (is_empty(argv[2]) || argv[2][0] == '-')
-				fatal("Missing log file name");
-			logfilename = argv[2];
-			argv++; argc--;
-			break;
+			case 'f' :
+				if (is_empty(argv[2]) || argv[2][0] == '-')
+					fatal("Missing log file name");
+				logfilename = argv[2];
+				argv++; argc--;
+				break;
+
 #ifdef justfun
-		    case 'g' :
-			namelen = getval(argv[2], "minimum length", 1, MAXDNAME);
-			argv++; argc--;
-			break;
+			case 'g' :
+				namelen = getval(argv[2], "minimum length", 1, MAXDNAME);
+				argv++; argc--;
+				break;
 #endif
-		    case 'D' :
-		    case 'E' :
-		    case 'G' :
-		    case 'H' :
-			if (*option == 'D')
-				duplmode = TRUE;
-			if (*option == 'E')
-				extrmode = TRUE;
-			if (*option == 'G')
-				gatemode = TRUE;
-			hostmode = TRUE;
-			listmode = TRUE;
-			if (querytype == T_NONE)
-				querytype = -1;	/* suppress zone data output */
-			break;
 
-		    case 'I' :
-			if (argv[2] == NULL || argv[2][0] == '-')
-				fatal("Missing allowed chars");
-			illegal = argv[2];
-			argv++; argc--;
-			break;
+			case 'D' :
+			case 'E' :
+			case 'G' :
+			case 'H' :
+				if (*option == 'D')
+					duplmode = TRUE;
+				if (*option == 'E')
+					extrmode = TRUE;
+				if (*option == 'G')
+					gatemode = TRUE;
+				hostmode = TRUE;
+				listmode = TRUE;
+				if (querytype == T_NONE)
+					querytype = -1;	/* suppress zone data output */
+				break;
 
-		    case 'i' :
-			reverse = TRUE;
-			break;
+			case 'I' :
+				if (argv[2] == NULL || argv[2][0] == '-')
+					fatal("Missing allowed chars");
+				illegal = argv[2];
+				argv++; argc--;
+				break;
 
-		    case 'J':
-			maxport = getval(argv[2], "last port number",
-				(minport > 0) ? minport : 1, MAXINT16);
-			if (minport == 0)
-				minport = maxport;
-			argc--, argv++;
-			break;
+			case 'i' :
+				reverse = TRUE;
+				break;
 
-		    case 'j':
-			minport = getval(argv[2], "first port number",
-				1, (maxport > 0) ? maxport : MAXINT16);
-			if (maxport == 0)
-				maxport = minport;
-			argc--, argv++;
-			break;
+			case 'J':
+				maxport = getval(argv[2], "last port number",
+						 (minport > 0) ? minport : 1, MAXINT16);
+				if (minport == 0)
+					minport = maxport;
+				argc--, argv++;
+				break;
 
-		    case 'K' :
-			timing = TRUE;
-			break;
+			case 'j':
+				minport = getval(argv[2], "first port number",
+						 1, (maxport > 0) ? maxport : MAXINT16);
+				if (maxport == 0)
+					maxport = minport;
+				argc--, argv++;
+				break;
 
-		    case 'L' :
-			recursive = getval(argv[2], "recursion level", 1, 0);
-			argv++; argc--;
-			/*FALLTHROUGH*/
+			case 'K' :
+				timing = TRUE;
+				break;
 
-		    case 'l' :
-			listmode = TRUE;
-			break;
+			case 'L' :
+				recursive = getval(argv[2], "recursion level", 1, 0);
+				argv++; argc--;
+				/*FALLTHROUGH*/
 
-		    case 'M' :
-			mxdomains = TRUE;
-			listmode = TRUE;
-			if (querytype == T_NONE)
-				querytype = -1;	/* suppress zone data output */
-			break;
+			case 'l' :
+				listmode = TRUE;
+				break;
 
-		    case 'm' :
-			mailmode = TRUE;
-			querytype = T_MAILB;	/* filter MINFO/MG/MR/MB data */
-			break;
+			case 'M' :
+				mxdomains = TRUE;
+				listmode = TRUE;
+				if (querytype == T_NONE)
+					querytype = -1;	/* suppress zone data output */
+				break;
 
-		    case 'N' :
-			if (is_empty(argv[2]) || argv[2][0] == '-')
-				fatal("Missing zone to be skipped");
-			skipzone = argv[2];
-			argv++; argc--;
-			break;
+			case 'm' :
+				mailmode = TRUE;
+				querytype = T_MAILB;	/* filter MINFO/MG/MR/MB data */
+				break;
 
-		    case 'n' :
-			revnsap = TRUE;
-			break;
+			case 'N' :
+				if (is_empty(argv[2]) || argv[2][0] == '-')
+					fatal("Missing zone to be skipped");
+				skipzone = argv[2];
+				argv++; argc--;
+				break;
 
-		    case 'O' :
-			if (is_empty(argv[2]) || argv[2][0] == '-')
-				fatal("Missing source address");
-			srcaddr = inet_addr(argv[2]);
-			if (srcaddr == NOT_DOTTED_QUAD)
-				fatal("Invalid source address %s", argv[2]);
-			argv++; argc--;
-			break;
+			case 'n' :
+				revnsap = TRUE;
+				break;
 
-		    case 'o' :
-			suppress = TRUE;
-			break;
+			case 'O' :
+				if (is_empty(argv[2]) || argv[2][0] == '-')
+					fatal("Missing source address");
+				srcaddr = inet_addr(argv[2]);
+				if (srcaddr == NOT_DOTTED_QUAD)
+					fatal("Invalid source address %s", argv[2]);
+				argv++; argc--;
+				break;
 
-		    case 'P' :
-			if (is_empty(argv[2]) || argv[2][0] == '-')
-				fatal("Missing preferred server");
-			prefserver = argv[2];
-			argv++; argc--;
-			break;
+			case 'o' :
+				suppress = TRUE;
+				break;
 
-		    case 'p' :
-			primary = TRUE;
-			break;
+			case 'P' :
+				if (is_empty(argv[2]) || argv[2][0] == '-')
+					fatal("Missing preferred server");
+				prefserver = argv[2];
+				argv++; argc--;
+				break;
 
-		    case 'Q' :
-			quick = TRUE;
-			break;
+			case 'p' :
+				primary = TRUE;
+				break;
 
-		    case 'q' :
-			quiet = TRUE;
-			break;
+			case 'Q' :
+				quick = TRUE;
+				break;
 
-		    case 'R' :
-			new_res.options |= RES_DNSRCH;
-			break;
+			case 'q' :
+				quiet = TRUE;
+				break;
 
-		    case 'r' :
-			new_res.options &= ~RES_RECURSE;
-			break;
+			case 'R' :
+				new_res.options |= RES_DNSRCH;
+				break;
 
-		    case 'S' :
-			statistics = TRUE;
-			break;
+			case 'r' :
+				new_res.options &= ~RES_RECURSE;
+				break;
 
-		    case 's' :
-			new_res.retrans = getval(argv[2], "timeout value", 1, 0);
-			argv++; argc--;
-			break;
+			case 'S' :
+				statistics = TRUE;
+				break;
 
-		    case 'T' :
-			ttlprint = TRUE;
-			break;
+			case 's' :
+				new_res.retrans = getval(argv[2], "timeout value", 1, 0);
+				argv++; argc--;
+				break;
 
-		    case 't' :
-			if (is_empty(argv[2]) || argv[2][0] == '-')
-				fatal("Missing query type");
-			querytype = parse_type(argv[2]);
-			if (querytype < 0)
-				fatal("Invalid query type %s", argv[2]);
-			argv++; argc--;
-			break;
+			case 'T' :
+				ttlprint = TRUE;
+				break;
 
-		    case 'u' :
-			new_res.options |= RES_USEVC;
-			break;
+			case 't' :
+				if (is_empty(argv[2]) || argv[2][0] == '-')
+					fatal("Missing query type");
+				querytype = parse_type(argv[2]);
+				if (querytype < 0)
+					fatal("Invalid query type %s", argv[2]);
+				argv++; argc--;
+				break;
 
-		    case 'v' :
-			verbose++;		/* increment verbosity level */
-			break;
+			case 'u' :
+				new_res.options |= RES_USEVC;
+				break;
 
-		    case 'W' :
-			wildcards = TRUE;
-			listmode = TRUE;
-			if (querytype == T_NONE)
-				querytype = T_MX;
-			break;
+			case 'v' :
+				verbose++;		/* increment verbosity level */
+				break;
 
-		    case 'w' :
-			waitmode = TRUE;
-			break;
+			case 'W' :
+				wildcards = TRUE;
+				listmode = TRUE;
+				if (querytype == T_NONE)
+					querytype = T_MX;
+				break;
 
-		    case 'X' :
-			if (is_empty(argv[2]) || argv[2][0] == '-')
-				fatal("Missing server name");
-			servername = argv[2];
-			argv++; argc--;
-			/*FALLTHROUGH*/
+			case 'w' :
+				waitmode = TRUE;
+				break;
 
-		    case 'x' :
-			extended = TRUE;
-			break;
+			case 'X' :
+				if (is_empty(argv[2]) || argv[2][0] == '-')
+					fatal("Missing server name");
+				servername = argv[2];
+				argv++; argc--;
+				/*FALLTHROUGH*/
 
-		    case 'Y' :
-			dumpdata = TRUE;
-			break;
+			case 'x' :
+				extended = TRUE;
+				break;
 
-		    case 'Z' :
-			dotprint = TRUE;
-			ttlprint = TRUE;
-			classprint = TRUE;
-			break;
+			case 'Y' :
+				dumpdata = TRUE;
+				break;
 
-		    case 'z' :
-			listzones = TRUE;
-			listmode = TRUE;
-			if (querytype == T_NONE)
-				querytype = -1;	/* suppress zone data output */
-			break;
+			case 'Z' :
+				dotprint = TRUE;
+				ttlprint = TRUE;
+				classprint = TRUE;
+				break;
 
-		    case 'V' :
-			printf("%s\n", version);
-			exit(EX_SUCCESS);
+			case 'z' :
+				listzones = TRUE;
+				listmode = TRUE;
+				if (querytype == T_NONE)
+					querytype = -1;	/* suppress zone data output */
+				break;
 
-		    default:
-			fatal(Usage);
+			case 'V' :
+				printf("%s\n", version);
+				exit(EX_OK);
+
+			default:
+				fatal(Usage);
+			}
 		}
-	    }
 
-	    argv++; argc--;
+		argv++; argc--;
 	}
 
-/*
- * Check the remaining arguments.
- */
+	/*
+	 * Check the remaining arguments.
+	 */
 	/* old syntax must have at least one argument */
 	if (!extended && (argc < 2 || argv[1] == NULL || argc > 3))
 		fatal(Usage);
@@ -709,9 +709,9 @@ input char *argv[];
 	if (!extended && (argc > 2 && argv[2] != NULL))
 		servername = argv[2];
 
-/*
- * Check for incompatible options.
- */
+	/*
+	 * Check for incompatible options.
+	 */
 	if ((querytype < 0) && !listmode)
 		fatal("No query type specified");
 
@@ -724,34 +724,34 @@ input char *argv[];
 	if (loadzone && dumpzone)
 		fatal("Conflicting options load and dump");
 
-/*
- * Open log file if requested.
- */
+	/*
+	 * Open log file if requested.
+	 */
 	if (logfilename != NULL)
 		set_logfile(logfilename);
 
-/*
- * Move to cache directory if specified.
- */
+	/*
+	 * Move to cache directory if specified.
+	 */
 	if (cachedirname != NULL)
 		set_cachedir(cachedirname);
 
-/*
- * Set default preferred server for zone listings, if not specified.
- */
+	/*
+	 * Set default preferred server for zone listings, if not specified.
+	 */
 	if (listmode && (prefserver == NULL))
 		prefserver = myhostname();
 
-/*
- * Check for possible alternative server. Use new resolver defaults.
- */
+	/*
+	 * Check for possible alternative server. Use new resolver defaults.
+	 */
 	if (servername != NULL)
 		set_server(servername);
 
-/*
- * Do final resolver initialization.
- * Show resolver parameters and special environment options.
- */
+	/*
+	 * Do final resolver initialization.
+	 * Show resolver parameters and special environment options.
+	 */
 	/* set new resolver values changed by command options */
 	_res.retry = new_res.retry;
 	_res.retrans = new_res.retrans;
@@ -766,26 +766,24 @@ input char *argv[];
 	if (option != NULL && verbose > 1)
 		printf("Explicit local domain %s\n\n", option);
 
-/*
- * Process command line argument(s) depending on syntax.
- */
+	/*
+	 * Process command line argument(s) depending on syntax.
+	 */
 	pr_timestamp("host starting");
 
-	if (!extended) /* only one argument */
+	if (!extended)			/* only one argument */
 		result = process_name(argv[1]);
-
-	else if (argc < 2) /* no arguments */
+	else if (argc < 2)		/* no arguments */
 		result = process_file(stdin);
-
-	else /* multiple command line arguments */
+	else				/* multiple command line arguments */
 		result = process_argv(argc, argv);
 
 	pr_timestamp("host finished");
 
-/*
- * Report result status of action taken.
- */
-	return(result);
+	/*
+	 * Report result status of action taken.
+	 */
+	exit(result);
 	/*NOTREACHED*/
 }
 
@@ -804,25 +802,24 @@ input char *argv[];
 
 void
 set_defaults(option, argc, argv)
-input char *option;			/* option string */
-input int argc;				/* original command line arg count */
-input char *argv[];			/* original command line arguments */
+	input char *option;		/* option string */
+	input int argc;			/* original command line arg count */
+	input char *argv[];		/* original command line arguments */
 {
 	register char *p, *q;
 	register int i;
 
-/*
- * Allocate new argument vector.
- */
+	/*
+	 * Allocate new argument vector.
+	 */
 	optargv = newlist(NULL, 2, char *);
 	optargv[0] = argv[0];
 	optargc = 1;
 
-/*
- * Construct argument list from option string.
- */
-	for (q = newstr(option), p = q; *p != '\0'; p = q)
-	{
+	/*
+	 * Construct argument list from option string.
+	 */
+	for (q = newstr(option), p = q; *p != '\0'; p = q) {
 		while (is_space(*p))
 			p++;
 
@@ -840,11 +837,10 @@ input char *argv[];			/* original command line arguments */
 		optargc++;
 	}
 
-/*
- * Append command line arguments.
- */
-	for (i = 1; i < argc && argv[i] != NULL; i++)
-	{
+	/*
+	 * Append command line arguments.
+	 */
+	for (i = 1; i < argc && argv[i] != NULL; i++) {
 		optargv = newlist(optargv, optargc+2, char *);
 		optargv[optargc] = argv[i];
 		optargc++;
@@ -852,6 +848,8 @@ input char *argv[];			/* original command line arguments */
 
 	/* and terminate */
 	optargv[optargc] = NULL;
+
+	return;
 }
 
 /*
@@ -865,10 +863,10 @@ input char *argv[];			/* original command line arguments */
 
 int
 getval(optstring, optname, minvalue, maxvalue)
-input char *optstring;			/* parameter from command line */
-input char *optname;			/* descriptive name of option */
-input int minvalue;			/* minimum value for option */
-input int maxvalue;			/* maximum value for option */
+	input char *optstring;		/* parameter from command line */
+	input char *optname;		/* descriptive name of option */
+	input int minvalue;		/* minimum value for option */
+	input int maxvalue;		/* maximum value for option */
 {
 	register int optvalue;
 
@@ -886,7 +884,7 @@ input int maxvalue;			/* maximum value for option */
 	if (maxvalue > 0 && optvalue > maxvalue)
 		fatal("Maximum %s %s", optname, dtoa(maxvalue));
 
-	return(optvalue);
+	return (optvalue);
 }
 
 /*
@@ -899,159 +897,146 @@ input int maxvalue;			/* maximum value for option */
 
 char *
 cvtopt(optstring)
-input char *optstring;			/* parameter from command line */
+	input char *optstring;		/* parameter from command line */
 {
 	register char *value;
 
 	/* separate keyword and value */
-	value = index(optstring, '=');
-	if (value != NULL)
+	if ((value = index(optstring, '=')))
 		*value++ = '\0';
 
-/*
- * These are just alternatives for short options.
- */
+	/*
+	 * These are just alternatives for short options.
+	 */
 	if (sameword(optstring, "addrcheck"))
-		return("-A");
+		return ("-A");
 
 	if (sameword(optstring, "anything"))
-		return("-a");
+		return ("-a");
 
 	if (sameword(optstring, "checksoa"))
-		return("-C");
+		return ("-C");
 
 	if (sameword(optstring, "debug"))
-		return("-d");
+		return ("-d");
 
 	if (sameword(optstring, "exclusive"))
-		return("-e");
+		return ("-e");
 
 	if (sameword(optstring, "extended"))
-		return("-x");
+		return ("-x");
 
 	if (sameword(optstring, "full"))
-		return("-Z");
+		return ("-Z");
 
 	if (sameword(optstring, "hostcount"))
-		return("-H");
+		return ("-H");
 
 	if (sameword(optstring, "inaddr"))
-		return("-i");
+		return ("-i");
 
 	if (sameword(optstring, "list"))
-		return("-l");
+		return ("-l");
 
 	if (sameword(optstring, "norecurs"))
-		return("-r");
+		return ("-r");
 
 	if (sameword(optstring, "primary"))
-		return("-p");
+		return ("-p");
 
 	if (sameword(optstring, "quick"))
-		return("-Q");
+		return ("-Q");
 
 	if (sameword(optstring, "quiet"))
-		return("-q");
+		return ("-q");
 
 	if (sameword(optstring, "statistics"))
-		return("-S");
+		return ("-S");
 
 	if (sameword(optstring, "suppress"))
-		return("-o");
+		return ("-o");
 
 	if (sameword(optstring, "tcp"))
-		return("-u");
+		return ("-u");
 
 	if (sameword(optstring, "verbose"))
-		return("-v");
+		return ("-v");
 
 	if (sameword(optstring, "version"))
-		return("-V");
+		return ("-V");
 
-/*
- * Combinations of several short options, or valued short options.
- */
-	if (sameword(optstring, "checkzone"))
-	{
+	/*
+	 * Combinations of several short options, or valued short options.
+	 */
+	if (sameword(optstring, "checkzone")) {
 		if (recursive == 0)
 			recursive = 1;
-		return("-CAl");
+		return ("-CAl");
 	}
 
-	if (sameword(optstring, "class"))
-	{
+	if (sameword(optstring, "class")) {
 		if (is_empty(value) || value[0] == '-')
 			fatal("Missing query class");
 		queryclass = parse_class(value);
 		if (queryclass < 0)
 			fatal("Invalid query class %s", value);
-		return("-");
+		return ("-");
 	}
 
-	if (sameword(optstring, "depth"))
-	{
+	if (sameword(optstring, "depth")) {
 		recursive = getval(value, "recursion level", 1, 0);
-		return("-l");
+		return ("-l");
 	}
 
-	if (sameword(optstring, "file"))
-	{
+	if (sameword(optstring, "file")) {
 		if (is_empty(value) || value[0] == '-')
 			fatal("Missing log file name");
 		logfilename = value;
-		return("-");
+		return ("-");
 	}
 
-	if (sameword(optstring, "server"))
-	{
+	if (sameword(optstring, "server")) {
 		if (is_empty(value) || value[0] == '-')
 			fatal("Missing server name");
 		servername = value;
-		return("-");
+		return ("-");
 	}
 
-	if (sameword(optstring, "timeout"))
-	{
+	if (sameword(optstring, "timeout")) {
 		new_res.retrans = getval(value, "timeout value", 1, 0);
-		return("-");
+		return ("-");
 	}
 
-	if (sameword(optstring, "type"))
-	{
+	if (sameword(optstring, "type")) {
 		if (is_empty(value) || value[0] == '-')
 			fatal("Missing query type");
 		querytype = parse_type(value);
 		if (querytype < 0)
 			fatal("Invalid query type %s", value);
-		return("-");
+		return ("-");
 	}
 
-/*
- * New long options without an equivalent short one.
- */
-	if (sameword(optstring, "canoncheck"))
-	{
+	/*
+	 * New long options without an equivalent short one.
+	 */
+	if (sameword(optstring, "canoncheck")) {
 		canoncheck = TRUE;
-		return("-");
+		return ("-");
 	}
 
-	if (sameword(optstring, "canonskip"))
-	{
+	if (sameword(optstring, "canonskip")) {
 		canonskip = TRUE;
-		return("-");
+		return ("-");
 	}
 
-	if (sameword(optstring, "cnamecheck"))
-	{
+	if (sameword(optstring, "cnamecheck")) {
 		cnamecheck = TRUE;
-		return("-");
+		return ("-");
 	}
 
-	if (sameword(optstring, "compare"))
-	{
-		if (value != NULL)
-		{
-			time_t now = time((time_t *)NULL);
+	if (sameword(optstring, "compare")) {
+		if (value != NULL) {
+			time_t now = time((time_t *) NULL);
 			int period = convtime(value, 'd');
 
 			if (period < 0 || period > now)
@@ -1062,80 +1047,70 @@ input char *optstring;			/* parameter from command line */
 		}
 
 		compare = TRUE;
-		return("-");
+		return ("-");
 	}
 
-	if (sameword(optstring, "dump"))
-	{
+	if (sameword(optstring, "dump")) {
 		cachedirname = value;	/* optional */
 		dumpzone = TRUE;
-		return("-l");
+		return ("-l");
 	}
 
-	if (sameword(optstring, "load"))
-	{
+	if (sameword(optstring, "load")) {
 		cachedirname = value;	/* optional */
 		loadzone = TRUE;
-		return("-l");
+		return ("-l");
 	}
 
-	if (sameword(optstring, "nothing"))
-	{
+	if (sameword(optstring, "nothing")) {
 		querytype = -1;
-		return("-");
+		return ("-");
 	}
 
-	if (sameword(optstring, "parent"))
-	{
+	if (sameword(optstring, "parent")) {
 		parent = TRUE;
-		return("-");
+		return ("-");
 	}
 
-	if (sameword(optstring, "recursive"))
-	{
+	if (sameword(optstring, "recursive")) {
 		if (recursive == 0)
 			recursive = MAXINT16;
-		return("-l");
+		return ("-l");
 	}
 
-	if (sameword(optstring, "retry"))
-	{
+	if (sameword(optstring, "retry")) {
 		new_res.retry = getval(value, "retry count", 1, 0);
-		return("-");
+		return ("-");
 	}
 
-	if (sameword(optstring, "test"))
-	{
+	if (sameword(optstring, "test")) {
 		testmode = TRUE;
-		return("-");
+		return ("-");
 	}
 
-	if (sameword(optstring, "undercheck"))
-	{
+	if (sameword(optstring, "undercheck")) {
 		undercheck = TRUE;
-		return("-");
+		return ("-");
 	}
 
-/*
- * Remainder.
- */
-	if (sameword(optstring, "help"))
-	{
+	/*
+	 * Remainder.
+	 */
+	if (sameword(optstring, "help")) {
 		printf("%s\n", Help);
-		exit(EX_SUCCESS);
+		exit(EX_OK);
 	}
 
-	if (sameword(optstring, "usage"))
-	{
+	if (sameword(optstring, "usage")) {
 		printf("%s\n", Usage);
-		exit(EX_SUCCESS);
+		exit(EX_OK);
 	}
 
 	if (*optstring != '\0')
 		fatal("Unrecognized option %s", optstring);
 
 	/* just ignore */
-	return("-");
+	return ("-");
 }
 
 /*
@@ -1143,31 +1118,30 @@ input char *optstring;			/* parameter from command line */
 ** ----------------------------------------------
 **
 **	Returns:
-**		EX_SUCCESS if information was obtained successfully.
+**		EX_OK if information was obtained successfully.
 **		Appropriate exit code otherwise.
 */
 
 int
 process_argv(argc, argv)
-input int argc;
-input char *argv[];
+	input int argc;
+	input char *argv[];
 {
 	register int i;
 	int result;			/* result status of action taken */
 	int excode = EX_NOINPUT;	/* overall result status */
 
-	for (i = 1; i < argc && argv[i] != NULL; i++)
-	{
+	for (i = 1; i < argc && argv[i] != NULL; i++) {
 		/* process a single argument */
 		result = process_name(argv[i]);
 
 		/* maintain overall result */
-		if (result != EX_SUCCESS || excode == EX_NOINPUT)
+		if (result != EX_OK || excode == EX_NOINPUT)
 			excode = result;
 	}
 
 	/* return overall result */
-	return(excode);
+	return (excode);
 }
 
 /*
@@ -1175,28 +1149,26 @@ input char *argv[];
 ** -------------------------------------------------
 **
 **	Returns:
-**		EX_SUCCESS if information was obtained successfully.
+**		EX_OK if information was obtained successfully.
 **		Appropriate exit code otherwise.
 */
 
 int
 process_file(fp)
-input FILE *fp;				/* input file with query names */
+	input FILE *fp;			/* input file with query names */
 {
 	register char *p, *q;
 	char buf[BUFSIZ];
 	int result;			/* result status of action taken */
 	int excode = EX_NOINPUT;	/* overall result status */
 
-	while (fgets(buf, sizeof(buf), fp) != NULL)
-	{
+	while (fgets(buf, sizeof(buf), fp) != NULL) {
 		p = index(buf, '\n');
 		if (p != NULL)
 			*p = '\0';
 
 		/* extract names separated by whitespace */
-		for (q = buf, p = q; *p != '\0'; p = q)
-		{
+		for (q = buf, p = q; *p != '\0'; p = q) {
 			while (is_space(*p))
 				p++;
 
@@ -1214,13 +1186,13 @@ input FILE *fp;				/* input file with query names */
 			result = process_name(p);
 
 			/* maintain overall result */
-			if (result != EX_SUCCESS || excode == EX_NOINPUT)
+			if (result != EX_OK || excode == EX_NOINPUT)
 				excode = result;
 		}
 	}
 
 	/* return overall result */
-	return(excode);
+	return (excode);
 }
 
 /*
@@ -1228,7 +1200,7 @@ input FILE *fp;				/* input file with query names */
 ** ------------------------------------------------------
 **
 **	Returns:
-**		EX_SUCCESS if information was obtained successfully.
+**		EX_OK if information was obtained successfully.
 **		Appropriate exit code otherwise.
 **
 **	Wrapper for execute_name() to hide administrative tasks.
@@ -1236,38 +1208,33 @@ input FILE *fp;				/* input file with query names */
 
 int
 process_name(name)
-input char *name;			/* command line argument */
+	input char *name;		/* command line argument */
 {
-	int result;			/* result status of action taken */
 	static int save_querytype;
-	static bool save_reverse;
-	static bool firstname = TRUE;
+	static bool_t save_reverse;
+	static bool_t firstname = TRUE;
 
 	/* separate subsequent pieces of output */
 	if (!firstname && (verbose || debug || checkmode))
 		printf("\n");
 
-/*
- * Some global variables are redefined further on. Save their initial
- * values in the first pass, and restore them during subsequent passes.
- */
-	if (firstname)
-	{
+	/*
+	 * Some global variables are redefined further on.  Save their initial
+	 * values in the first pass, and restore them during subsequent passes.
+	 */
+	if (firstname) {
 		save_querytype = querytype;
 		save_reverse = reverse;
 		firstname = FALSE;
-	}
-	else
-	{
+	} else {
 		querytype = save_querytype;
 		reverse = save_reverse;
 	}
 
-/*
- * Do the real work.
- */
-	result = execute_name(name);
-	return(result);
+	/*
+	 * Do the real work.
+	 */
+	return execute_name(name);
 }
 
 /*
@@ -1275,7 +1242,7 @@ input char *name;			/* command line argument */
 ** ------------------------------------------------------
 **
 **	Returns:
-**		EX_SUCCESS if information was obtained successfully.
+**		EX_OK if information was obtained successfully.
 **		Appropriate exit code otherwise.
 **
 **	Outputs:
@@ -1287,27 +1254,26 @@ input char *name;			/* command line argument */
 
 int
 execute_name(name)
-input char *name;			/* command line argument */
+	input char *name;		/* command line argument */
 {
-	bool result;			/* result status of action taken */
+	bool_t result;			/* result status of action taken */
 #ifdef HAVE_INET_ATON
 	struct in_addr inaddr;
 #endif
 
 	/* check for nonsense input name */
-	if (strlength(name) > MAXDNAME)
-	{
+	if (strlength(name) > MAXDNAME) {
 		errmsg("Query name %s too long", name);
-		return(EX_USAGE);
+		return (EX_USAGE);
 	}
 
-/*
- * Analyze the name and type to be queried about.
- * The name can be an ordinary domain name, or an internet address
- * in dotted quad notation. If the -n option is given, the name is
- * supposed to be a dotted nsap address.
- * Furthermore, an empty input name is treated as the root domain.
- */
+	/*
+	 * Analyze the name and type to be queried about.
+	 * The name can be an ordinary domain name, or an internet address
+	 * in dotted quad notation. If the -n option is given, the name is
+	 * supposed to be a dotted nsap address.
+	 * Furthermore, an empty input name is treated as the root domain.
+	 */
 	queryname = name;
 	if (queryname[0] == '\0')
 		queryname = ".";
@@ -1322,21 +1288,19 @@ input char *name;			/* command line argument */
 	else
 		queryaddr = inet_addr(queryname);
 
-/*
- * Generate reverse in-addr.arpa query if so requested.
- * The input name must be a dotted quad, and be convertible.
- */
-	if (reverse)
-	{
+	/*
+	 * Generate reverse in-addr.arpa query if so requested.
+	 * The input name must be a dotted quad, and be convertible.
+	 */
+	if (reverse) {
 		if (queryaddr == NOT_DOTTED_QUAD)
 			name = NULL;
 		else
 			name = in_addr_arpa(queryname);
 
-		if (name == NULL)
-		{
+		if (name == NULL) {
 			errmsg("Invalid dotted quad %s", queryname);
-			return(EX_USAGE);
+			return (EX_USAGE);
 		}
 
 		/* redefine appropriately */
@@ -1344,12 +1308,11 @@ input char *name;			/* command line argument */
 		queryaddr = NOT_DOTTED_QUAD;
 	}
 
-/*
- * Heuristic to check whether we are processing a reverse mapping domain.
- * Normalize to not have trailing dot, unless it is the root zone.
- */
-	if ((queryaddr == NOT_DOTTED_QUAD) && !reverse)
-	{
+	/*
+	 * Heuristic to check whether we are processing a reverse mapping domain.
+	 * Normalize to not have trailing dot, unless it is the root zone.
+	 */
+	if ((queryaddr == NOT_DOTTED_QUAD) && !reverse) {
 		char namebuf[MAXDNAME+1];
 		register int n;
 
@@ -1362,21 +1325,19 @@ input char *name;			/* command line argument */
 		reverse = indomain(name, ARPA_ROOT, FALSE);
 	}
 
-/*
- * Generate reverse nsap.int query if so requested.
- * The input name must be a dotted nsap, and be convertible.
- */
-	if (revnsap)
-	{
+	/*
+	 * Generate reverse nsap.int query if so requested.
+	 * The input name must be a dotted nsap, and be convertible.
+	 */
+	if (revnsap) {
 		if (reverse)
 			name = NULL;
 		else
 			name = nsap_int(queryname);
 
-		if (name == NULL)
-		{
+		if (name == NULL) {
 			errmsg("Invalid nsap address %s", queryname);
-			return(EX_USAGE);
+			return (EX_USAGE);
 		}
 
 		/* redefine appropriately */
@@ -1387,53 +1348,50 @@ input char *name;			/* command line argument */
 		reverse = TRUE;
 	}
 
-/*
- * In regular mode, the querytype is used to formulate the nameserver
- * query, and any response is filtered out when processing the answer.
- * In listmode, the querytype is used to filter out the proper records.
- */
+	/*
+	 * In regular mode, the querytype is used to formulate the nameserver
+	 * query, and any response is filtered out when processing the answer.
+	 * In listmode, the querytype is used to filter out the proper records.
+	 */
 	/* set querytype for regular mode if unspecified */
-	if ((querytype == T_NONE) && !listmode)
-	{
+	if ((querytype == T_NONE) && !listmode) {
 		if ((queryaddr != NOT_DOTTED_QUAD) || reverse)
 			querytype = T_PTR;
 		else
 			querytype = T_A;
 	}
 
-/*
- * Check for incompatible options.
- */
+	/*
+	 * Check for incompatible options.
+	 */
 	/* cannot have dotted quad in listmode */
-	if (listmode && (queryaddr != NOT_DOTTED_QUAD))
-	{
+	if (listmode && (queryaddr != NOT_DOTTED_QUAD)) {
 		errmsg("Invalid query name %s", queryname);
-		return(EX_USAGE);
+		return (EX_USAGE);
 	}
 
 	/* must have regular name or dotted quad in addrmode */
-	if (!listmode && addrmode && reverse)
-	{
+	if (!listmode && addrmode && reverse) {
 		errmsg("Invalid query name %s", queryname);
-		return(EX_USAGE);
+		return (EX_USAGE);
 	}
 
 	/* must have plain name with --parent */
-	if (parent && queryaddr != NOT_DOTTED_QUAD)
-	{
+	if (parent && queryaddr != NOT_DOTTED_QUAD) {
 		errmsg("Invalid query name %s", queryname);
-		return(EX_USAGE);
+		return (EX_USAGE);
 	}
 
 	/* show what we are going to query about */
 	if (verbose)
 		show_types(queryname, querytype, queryclass);
 
-/*
- * All set. Perform requested function.
- */
+	/*
+	 * All set. Perform requested function.
+	 */
 	result = execute(queryname, queryaddr);
-	return(result ? EX_SUCCESS : EX_UNAVAILABLE);
+
+	return (result ? EX_OK : EX_UNAVAILABLE);
 }
 
 /*
@@ -1447,84 +1405,76 @@ input char *name;			/* command line argument */
 **	The whole environment has been set up and checked.
 */
 
-bool
+bool_t
 execute(name, addr)
-input char *name;			/* name to query about */
-input ipaddr_t addr;			/* explicit address of query */
+	input char *name;		/* name to query about */
+	input ipaddr_t addr;		/* explicit address of query */
 {
-	bool result;			/* result status of action taken */
+	bool_t result;			/* result status of action taken */
 
-/*
- * Special mode to test code separately.
- */
-	if (testmode)
-	{
+	/*
+	 * Special mode to test code separately.
+	 */
+	if (testmode) {
 		result = test(name, addr);
-		return(result);
+		return (result);
 	}
 
-/*
- * Special mode to list contents of specified zone.
- */
-	if (listmode)
-	{
+	/*
+	 * Special mode to list contents of specified zone.
+	 */
+	if (listmode) {
 		result = list_zone(name);
-		return(result);
+		return (result);
 	}
 
-/*
- * If we're not doing test() or list_zone() then interpret '-p' as if the
- * primary server were given as the servername (i.e. as -X or second arg).
- */
-	if (primary && !parent)
-	{
+	/*
+	 * If we're not doing test() or list_zone() then interpret '-p' as if the
+	 * primary server were given as the servername (i.e. as -X or second arg).
+	 */
+	if (primary && !parent) {
 		char *primaryname;
 
-		primaryname = get_primary(name);
-		if (primaryname == NULL)
-		{
+		if (!(primaryname = get_primary(name))) {
 			ns_error(name, T_NS, queryclass, server);
-			return(FALSE);
+			return (FALSE);
 		}
 		set_server(primaryname);
 		canonskip = 1;	/* the primary server may be non-recursive */
-	}
-/*
- * If --parent was specified we try using the parent zone's nameservers instead
- * of whatever's configured for the local resolver.
- */
-	else if (parent)
-	{
+	} else if (parent) {
+		/*
+		 * If --parent was specified we try using the parent zone's
+		 * nameservers instead of whatever's configured for the local
+		 * resolver.
+		 */
 		char *parent_zone = strchr(name, '.');
 
 		if (!parent_zone || !*(parent_zone + 1)) {
 			errmsg("Unable to determine parent zone for %s", name);
-			return(FALSE);
+			return (FALSE);
 		}
 		if (use_servers(parent_zone + 1) == FALSE)
-			return(FALSE);
+			return (FALSE);
 		/* turn off nameserver recursion */
 		_res.options &= ~RES_RECURSE;
 		canonskip = 1;	/* the parent servers may be non-recursive */
 	}
 
-/*
- * Special mode to check reverse mappings of host addresses.
- */
-	if (addrmode)
-	{
+	/*
+	 * Special mode to check reverse mappings of host addresses.
+	 */
+	if (addrmode) {
 		if (addr == NOT_DOTTED_QUAD)
 			result = check_addr(name);
 		else
 			result = check_name(addr);
-		return(result);
+		return (result);
 	}
 
-/*
- * Regular mode to query about specified host.
- */
-	result = host_query(name, addr);
-	return(result);
+	/*
+	 * Regular mode to query about specified host.
+	 */
+	return host_query(name, addr);
 }
 
 /*
@@ -1536,17 +1486,17 @@ input ipaddr_t addr;			/* explicit address of query */
 **		FALSE otherwise.
 */
 
-bool
+bool_t
 host_query(name, addr)
-input char *name;			/* name to query about */
-input ipaddr_t addr;			/* explicit address of query */
+	input char *name;		/* name to query about */
+	input ipaddr_t addr;		/* explicit address of query */
 {
 	struct hostent *hp;
 	struct in_addr inaddr;
 	char newnamebuf[MAXDNAME+1];
 	char *newname = NULL;		/* name to which CNAME is aliased */
 	int ncnames = 0;		/* count of CNAMEs in chain */
-	bool result;			/* result status of action taken */
+	bool_t result;			/* result status of action taken */
 
 	inaddr.s_addr = addr;
 
@@ -1554,14 +1504,12 @@ input ipaddr_t addr;			/* explicit address of query */
 	seth_errno(TRY_AGAIN);
 
 	/* retry until positive result or permanent failure */
-	while (result == FALSE && h_errno == TRY_AGAIN)
-	{
+	while (result == FALSE && h_errno == TRY_AGAIN) {
 		/* reset before each query to avoid stale data */
 		seterrno(0);
 		realname = NULL;
 
-		if (addr == NOT_DOTTED_QUAD)
-		{
+		if (addr == NOT_DOTTED_QUAD) {
 			/* reset CNAME indicator */
 			cname = NULL;
 
@@ -1572,26 +1520,20 @@ input ipaddr_t addr;			/* explicit address of query */
 				result = get_hostinfo(newname, TRUE);
 
 			/* recurse on CNAMEs, but not too deep */
-			if (cname && (querytype != T_CNAME))
-			{
+			if (cname && (querytype != T_CNAME)) {
 				newname = strcpy(newnamebuf, cname);
 
-				if (ncnames++ > MAXCHAIN)
-				{
+				if (ncnames++ > MAXCHAIN) {
 					errmsg("Possible CNAME loop");
-					return(FALSE);
+					return (FALSE);
 				}
 
 				result = FALSE;
 				seth_errno(TRY_AGAIN);
 				continue;
 			}
-		}
-		else
-		{
-			hp = geth_byaddr((char *)&inaddr, INADDRSZ, AF_INET);
-			if (hp != NULL)
-			{
+		} else {
+			if ((hp = geth_byaddr((char *) &inaddr, INADDRSZ, AF_INET))) {
 				print_host("Name", hp);
 				result = TRUE;
 			}
@@ -1610,7 +1552,7 @@ input ipaddr_t addr;			/* explicit address of query */
 	if (result == FALSE)
 		ns_error(name, querytype, queryclass, server);
 
-	return(result);
+	return (result);
 }
 
 /*
@@ -1629,18 +1571,14 @@ myhostname()
 	static char mynamebuf[MAXDNAME+1];
 	static char *myname = NULL;
 
-	if (myname == NULL)
-	{
-		if (gethostname(mynamebuf, MAXDNAME) < 0)
-		{
+	if (myname == NULL) {
+		if (gethostname(mynamebuf, MAXDNAME) < 0) {
 			perror("gethostname");
 			exit(EX_OSERR);
 		}
 		mynamebuf[MAXDNAME] = '\0';
 
-		hp = gethostbyname(mynamebuf);
-		if (hp == NULL)
-		{
+		if (!(hp = gethostbyname(mynamebuf))) {
 			ns_error(mynamebuf, T_A, C_IN, server);
 			errmsg("Error in looking up own name");
 			exit(EX_NOHOST);
@@ -1651,7 +1589,7 @@ myhostname()
 		myname[MAXDNAME] = '\0';
 	}
 
-	return(myname);
+	return (myname);
 }
 
 /*
@@ -1678,7 +1616,7 @@ myhostname()
 
 void
 set_server(name)
-input char *name;			/* name of server to be queried */
+	input char *name;		/* name of server to be queried */
 {
 	register int i;
 	struct hostent *hp;
@@ -1686,41 +1624,33 @@ input char *name;			/* name of server to be queried */
 	ipaddr_t addr;			/* explicit address of server */
 
 	/* check for nonsense input name */
-	if (strlength(name) > MAXDNAME)
-	{
+	if (strlength(name) > MAXDNAME) {
 		errmsg("Server name %s too long", name);
 		exit(EX_USAGE);
 	}
 
-/*
- * Overrule the default nameserver addresses.
- */
+	/*
+	 * Overrule the default nameserver addresses.
+	 */
 	addr = inet_addr(name);
 	inaddr.s_addr = addr;
 
-	if (addr == NOT_DOTTED_QUAD)
-	{
+	if (addr == NOT_DOTTED_QUAD) {
 		/* lookup all of its addresses; this must not fail */
-		hp = gethostbyname(name);
-		if (hp == NULL)
-		{
+		if (!(hp = gethostbyname(name))) {
 			ns_error(name, T_A, C_IN, server);
 			errmsg("Error in looking up server name");
 			exit(EX_NOHOST);
 		}
-
-		for (i = 0; i < MAXNS && hp->h_addr_list[i]; i++)
-		{
+		for (i = 0; i < MAXNS && hp->h_addr_list[i]; i++) {
 			nslist(i).sin_family = AF_INET;
 			nslist(i).sin_port = htons(NAMESERVER_PORT);
 			nslist(i).sin_addr = incopy(hp->h_addr_list[i]);
 		}
 		_res.nscount = i;
-	}
-	else
-	{
+	} else {
 		/* lookup the name, but use only the given address */
-		hp = gethostbyaddr((char *)&inaddr, INADDRSZ, AF_INET);
+		hp = gethostbyaddr((char *) &inaddr, INADDRSZ, AF_INET);
 
 		nslist(0).sin_family = AF_INET;
 		nslist(0).sin_port = htons(NAMESERVER_PORT);
@@ -1728,24 +1658,23 @@ input char *name;			/* name of server to be queried */
 		_res.nscount = 1;
 	}
 
-/*
- * Indicate the use of an explicit server.
- */
-	if (hp != NULL)
-	{
+	/*
+	 * Indicate the use of an explicit server.
+	 */
+	if (hp)	{
 		server = strncpy(serverbuf, hp->h_name, MAXDNAME);
 		server[MAXDNAME] = '\0';
 
 		if (verbose)
 			print_host("Server", hp);
-	}
-	else
-	{
+	} else {
 		server = strcpy(serverbuf, inet_ntoa(inaddr));
 
 		if (verbose)
 			printf("Server: %s\n\n", server);
 	}
+
+	return;
 }
 
 /*
@@ -1765,32 +1694,25 @@ input char *name;			/* name of server to be queried */
 
 void
 set_logfile(filename)
-input char *filename;			/* name of log file */
+	input char *filename;		/* name of log file */
 {
-	if (logexchange)
-	{
-		logfile = fdopen(dup(STDOUT), "w");
-		if (logfile == NULL)
-		{
+	if (logexchange) {
+		if (!(logfile = fdopen(dup(STDOUT_FILENO), "w"))) {
 			perror("fdopen");
 			exit(EX_OSERR);
 		}
+		if (freopen(filename, "w", stdout) == NULL) {
+			perror(filename);
+			exit(EX_CANTCREAT);
+		}
+	} else {
+		if (!(logfile = fopen(filename, "w"))) {
+			perror(filename);
+			exit(EX_CANTCREAT);
+		}
+	}
 
-		if (freopen(filename, "w", stdout) == NULL)
-		{
-			perror(filename);
-			exit(EX_CANTCREAT);
-		}
-	}
-	else
-	{
-		logfile = fopen(filename, "w");
-		if (logfile == NULL)
-		{
-			perror(filename);
-			exit(EX_CANTCREAT);
-		}
-	}
+	return;
 }
 
 /*
@@ -1808,13 +1730,14 @@ input char *filename;			/* name of log file */
 
 void
 set_cachedir(filename)
-input char *filename;			/* name of cache directory */
+	input char *filename;		/* name of cache directory */
 {
-	if (chdir(filename) < 0)
-	{
+	if (chdir(filename) < 0) {
 		cache_perror("Cannot chdir", filename);
 		exit(EX_CANTCREAT);
 	}
+
+	return;
 }
 
 /*
@@ -1825,13 +1748,24 @@ input char *filename;			/* name of cache directory */
 **		Aborts after issuing error message.
 */
 
-void /*VARARGS1*/
-fatal(fmt, a, b, c, d)
-input char *fmt;			/* format of message */
-input char *a, *b, *c, *d;		/* optional arguments */
+/*VARARGS1*/
+#ifdef __STDC__
+void
+fatal(char *fmt, ...)
+#else
+void
+fatal(fmt, va_alist)
+	input char *fmt;		/* format of message */
+	va_dcl				/* arguments for printf */
+#endif
 {
-	(void) fprintf(stderr, fmt, a, b, c, d);
+	va_list ap;
+
+	VA_START(ap, fmt);
+	(void) vfprintf(stderr, fmt, ap);
+	va_end(ap);
 	(void) fprintf(stderr, "\n");
+
 	exit(EX_USAGE);
 }
 
@@ -1847,12 +1781,22 @@ input char *a, *b, *c, *d;		/* optional arguments */
 **		Increments the global error count.
 */
 
-void /*VARARGS1*/
-errmsg(fmt, a, b, c, d)
-input char *fmt;			/* format of message */
-input char *a, *b, *c, *d;		/* optional arguments */
+/*VARARGS1*/
+#ifdef __STDC__
+void
+errmsg(char *fmt, ...)
+#else
+void
+errmsg(fmt, va_alist)
+	input char *fmt;		/* format of message */
+	va_dcl				/* arguments for printf */
+#endif
 {
-	(void) fprintf(stderr, fmt, a, b, c, d);
+	va_list ap;
+
+	VA_START(ap, fmt);
+	(void) vfprintf(stderr, fmt, ap);
+	va_end(ap);
 	(void) fprintf(stderr, "\n");
 
 	/* flag an error */

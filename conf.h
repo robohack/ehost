@@ -4,7 +4,7 @@
 **	@(#)conf.h              e07@nikhef.nl (Eric Wassenaar) 961013
 */
 
-#ident "@(#)host:$Name:  $:$Id: conf.h,v 1.2 2002-01-11 22:15:31 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: conf.h,v 1.3 2003-03-28 21:57:23 -0800 woods Exp $"
 
 /*
  * A special version of res_send() is included, which returns additional
@@ -14,9 +14,9 @@
 #if !defined(HOST_RES_SEND) && !defined(BIND_RES_SEND)
 
 #if defined(BIND_49)
-#define BIND_RES_SEND		/* use the default BIND res_send() */
+# define BIND_RES_SEND		/* use the default BIND res_send() */
 #else
-#define HOST_RES_SEND		/* use the special host res_send() */
+# define HOST_RES_SEND		/* use the special host res_send() */
 #endif
 
 #endif
@@ -32,7 +32,7 @@
  */
 
 #ifndef IPNG_ROOT
-#define IPNG_ROOT	"ip6.int"
+# define IPNG_ROOT	"ip6.int"
 #endif
 
 /*
@@ -40,7 +40,7 @@
  */
 
 #ifndef NSAP_ROOT
-#define NSAP_ROOT	"nsap.int"
+# define NSAP_ROOT	"nsap.int"
 #endif
 
 /*
@@ -60,15 +60,15 @@
  */
 
 #define	MAXMD5BITS	2552
-#define	MAXMD5SIZE	(2*((MAXMD5BITS+7)/8)+3)
-#define	MAXB64SIZE	(4*((MAXMD5SIZE+2)/3))
+#define	MAXMD5SIZE	(2 * ((MAXMD5BITS + 7) / 8) + 3)
+#define	MAXB64SIZE	(4 * ((MAXMD5SIZE + 2) / 3))
 
 /*
  * The standard nameserver port.
  */
 
 #ifndef NAMESERVER_PORT
-#define NAMESERVER_PORT	53
+# define NAMESERVER_PORT	53
 #endif
 
 /*
@@ -95,7 +95,7 @@
  */
 
 #if defined(BIND_49)
-#define DBPREFIX	";; "
+# define DBPREFIX	";; "
 #else
-#define DBPREFIX	""
+# define DBPREFIX	""
 #endif

@@ -1,10 +1,13 @@
 /*
  * malloc/free/realloc memory management routines.
  *
- * This is a very simple, but fast storage allocator. It allocates blocks
+ * This is a very simple, but fast storage allocator.  It allocates blocks
  * of a small number of different sizes, and keeps free lists of each size.
+ *
  * Blocks that don't exactly fit are passed up to the next larger size.
+ *
  * In this implementation, the available sizes are (2^(i+4))-8 bytes long.
+ *
  * This is designed for use in a single-threaded virtual memory environment.
  *
  * This version is derived from: malloc.c (Caltech) 2/21/82, Chris Kingsley,
@@ -14,7 +17,7 @@
  *
  * Not only varies the vendor-supplied implementation of this package greatly
  * for different platforms, there are also many subtle semantic differences,
- * especially for anomalous conditions. This makes it risky to use a separate
+ * especially for anomalous conditions.  This makes it risky to use a separate
  * package, in case other library routines depend on those special features.
  * Nevertheless, we assume that external routines under normal circumstances
  * just need the basic malloc/free/realloc functionality.
@@ -35,14 +38,14 @@
  * - The strictest alignment for memalign is the page size.
  */
 
-#ident "@(#)host:$Name:  $:$Id: malloc.c,v 1.3 2002-01-11 22:27:43 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: malloc.c,v 1.4 2003-03-28 21:57:23 -0800 woods Exp $"
 
 #ifndef lint
 static char Version[] = "@(#)malloc.c	e07@nikhef.nl (Eric Wassenaar) 970519";
 #endif
 
 #if defined(apollo) && defined(lint)
-#define __attribute(x)
+# define __attribute(x)
 #endif
 
 #include <stdio.h>
@@ -53,9 +56,9 @@ static char Version[] = "@(#)malloc.c	e07@nikhef.nl (Eric Wassenaar) 970519";
 #include "port.h"
 
 #ifdef lint
-#define EXTERN
+# define EXTERN
 #else
-#define EXTERN extern
+# define EXTERN		extern
 #endif
 
 EXTERN int errno;
@@ -66,20 +69,14 @@ EXTERN int errno;
  */
 
 #ifdef SYSV_MALLOC
-typedef void	ptr_t;
-typedef u_int	siz_t;
-typedef void	free_t;
-#define free_return(x)	return
+# define free_return(x)	return
 #else
-typedef char	ptr_t;
-typedef u_int	siz_t;
-typedef int	free_t;
-#define free_return(x)	return(x)
+# define free_return(x)	return (x)
 #endif
 
 #ifdef SYSV_MEMSET
-#define bzero(a,n)	(void) memset(a,'\0',n)
-#define bcopy(a,b,n)	(void) memcpy(b,a,n)
+# define bzero(a, n)	(void) memset(a,'\0',n)
+# define bcopy(a, b, n)	(void) memcpy(b,a,n)
 #endif
 
 /*
@@ -87,30 +84,30 @@ typedef int	free_t;
  */
 
 #if defined(sgi) && !defined(_PAGESZ)
-#define _PAGESZ 16384		/* kludge for sgi && IRIX64 */
+# define _PAGESZ	16384		/* kludge for sgi && IRIX64 */
 #endif
 
 #ifndef PAGESIZE
-#ifdef NBPG
+# ifdef NBPG
 
-#ifdef CLSIZE
-#define PAGESIZE (NBPG*CLSIZE)	/* sun && SunOS, ultrix */
-#else
-#define PAGESIZE NBPG		/* hpux */
+#  ifdef CLSIZE
+#   define PAGESIZE	(NBPG * CLSIZE)	/* sun && SunOS, ultrix */
+#  else
+#   define PAGESIZE	NBPG		/* hpux */
+#  endif
+
+# else /*not NBPG*/
+
+#  ifdef NBPC
+#   define PAGESIZE	NBPC		/* sgi */
+#  else
+#   define PAGESIZE	4096		/* some reasonable default */
+#  endif
+
+# endif /*NBPG*/
 #endif
 
-#else /*not NBPG*/
-
-#ifdef NBPC
-#define PAGESIZE NBPC		/* sgi */
-#else
-#define PAGESIZE 4096		/* some reasonable default */
-#endif
-
-#endif /*NBPG*/
-#endif
-
-static int pagesize = 0;	/* page size after initialization */
+static int pagesize = 0;		/* page size after initialization */
 
 /*
  * The overhead on a block is 8 bytes on traditional 32-bit platforms.
@@ -143,7 +140,7 @@ typedef union overhead {
 	/* align on double word boundary */
 	double	ov_align;
 
-} OVHDR;
+} OVHDR_t;
 
 #define	ov_next		ov_free.ovfree_next	/* next on free list */
 #define	ov_magic	ov_used.ovused_magic	/* magic number */
@@ -153,7 +150,7 @@ typedef union overhead {
 
 #define	OVMAGIC		0xef			/* overhead magic number */
 #define	FRMAGIC		0x5555			/* fragment magic number */
-#define OVHDRSZ		sizeof(OVHDR)		/* size of overhead data */
+#define OVHDRSZ		sizeof(OVHDR_t)		/* size of overhead data */
 
 /*
  * freelist[i] is the pointer to the next free chunk of size 2^(i+4).
@@ -165,7 +162,7 @@ typedef union overhead {
 #define MAXCHUNK	30	/* maximum chunk size 2^(26+4) */
 #define	NBUCKETS	27	/* MAXCHUNK - MINCHUNK + 1 */
 
-static OVHDR *freelist[NBUCKETS];	/* hash list of free chunks */
+static OVHDR_t *freelist[NBUCKETS];	/* hash list of free chunks */
 static int malloced[NBUCKETS];		/* number of allocated chunks */
 
 #define chunk_size(i)	(1 << ((i) + MINCHUNK))
@@ -188,18 +185,16 @@ static int malloced[NBUCKETS];		/* number of allocated chunks */
  * Definition of modules.
  */
 
-#define PROTO(TYPES)	()
+ptr_t *malloc		__P((size_t));
+ptr_t *memalign		__P((size_t, size_t));
+free_t free		__P((ptr_t *));
+ptr_t *realloc		__P((ptr_t *, size_t));
+ptr_t *calloc		__P((size_t, size_t));
+free_t cfree		__P((ptr_t *));
+ptr_t *valloc		__P((size_t));
+free_t vfree		__P((ptr_t *));
 
-ptr_t *malloc		PROTO((siz_t));
-ptr_t *memalign		PROTO((siz_t, siz_t));
-free_t free		PROTO((ptr_t *));
-ptr_t *realloc		PROTO((ptr_t *, siz_t));
-ptr_t *calloc		PROTO((siz_t, siz_t));
-free_t cfree		PROTO((ptr_t *));
-ptr_t *valloc		PROTO((siz_t));
-free_t vfree		PROTO((ptr_t *));
-
-extern ptr_t *sbrk	PROTO((int));
+extern ptr_t *sbrk	__P((int));
 
 /*
 ** MALLOC -- Allocate more memory
@@ -208,42 +203,37 @@ extern ptr_t *sbrk	PROTO((int));
 
 ptr_t *
 malloc(size)
-siz_t size;				/* amount of memory to allocate */
+	size_t size;			/* amount of memory to allocate */
 {
-	register OVHDR *op;		/* chunk pointer */
+	register OVHDR_t *op;		/* chunk pointer */
 	register int bucket;		/* hash bucket index */
 	register int bucketsize;	/* size of hash bucket chunk */
 	register int memsize;		/* amount of memory to expand */
 
-/*
- * First time malloc is called, do some sanity checks, setup page size,
- * and align the break pointer so all chunk data will be page aligned.
- * Note. Cannot issue debugging print statements during initialization.
- */
-	if (pagesize == 0)
-	{
-		if (page_offset(PAGESIZE) || word_offset(OVHDRSZ))
-		{
+	/*
+	 * First time malloc is called, do some sanity checks, setup page size,
+	 * and align the break pointer so all chunk data will be page aligned.
+	 * Note. Cannot issue debugging print statements during initialization.
+	 */
+	if (pagesize == 0) {
+		if (page_offset(PAGESIZE) || word_offset(OVHDRSZ)) {
 			errno = EINVAL;
-			return(NULL);
+			return (NULL);
 		}
 
-		op = (OVHDR *)sbrk(0);
-		if (op == NULL || (char *)op == (char *)-1)
-		{
+		op = (OVHDR_t *) sbrk(0);
+		if (op == NULL || (char *) op == (char *) -1) {
 			errno = ENOMEM;
-			return(NULL);
+			return (NULL);
 		}
 
 		memsize = page_offset(op);
-		if (memsize > 0)
-		{
+		if (memsize > 0) {
 			memsize = PAGESIZE - memsize;
-			op = (OVHDR *)sbrk(memsize);
-			if (op == NULL || (char *)op == (char *)-1)
-			{
+			op = (OVHDR_t *)sbrk(memsize);
+			if (op == NULL || (char *) op == (char *) -1) {
 				errno = ENOMEM;
-				return(NULL);
+				return (NULL);
 			}
 		}
 
@@ -251,50 +241,45 @@ siz_t size;				/* amount of memory to allocate */
 		pagesize = PAGESIZE;
 	}
 
-/*
- * Convert amount of memory requested into closest chunk size
- * stored in hash buckets which satisfies request.
- */
+	/*
+	 * Convert amount of memory requested into closest chunk size
+	 * stored in hash buckets which satisfies request.
+	 */
 	bucket = 0; bucketsize = chunk_size(bucket);
-	while (bucketsize < OVHDRSZ || size > (bucketsize - OVHDRSZ))
-	{
+	while (bucketsize < OVHDRSZ || size > (bucketsize - OVHDRSZ)) {
 		bucket++; bucketsize <<= 1;
-		if (bucket >= NBUCKETS)
-		{
+		if (bucket >= NBUCKETS) {
 			errno = EINVAL;
-			return(NULL);
+			return (NULL);
 		}
 	}
 
-/*
- * If nothing in hash bucket right now, request more memory from the system.
- * Add new memory allocated to that on free list for this hash bucket.
- * System memory is expanded by increments of whole pages. For small chunk
- * sizes, the page is subdivided into a list of free chunks.
- */
-	if (freelist[bucket] == NULL)
-	{
+	/*
+	 * If nothing in hash bucket right now, request more memory from the system.
+	 * Add new memory allocated to that on free list for this hash bucket.
+	 * System memory is expanded by increments of whole pages. For small chunk
+	 * sizes, the page is subdivided into a list of free chunks.
+	 */
+	if (freelist[bucket] == NULL) {
 		memsize = (bucketsize < PAGESIZE) ? PAGESIZE : bucketsize;
-		op = (OVHDR *)sbrk(memsize);
-		if (op == NULL || (char *)op == (char *)-1)
-		{
+		op = (OVHDR_t *) sbrk(memsize);
+		if (op == NULL || (char *) op == (char *) -1) {
 			errno = ENOMEM;
-			return(NULL);
+			return (NULL);
 		}
 
 		freelist[bucket] = op;
-		while (memsize > bucketsize)
-		{
+		while (memsize > bucketsize) {
 			memsize -= bucketsize;
-			op->ov_next = (OVHDR *)((char *)op + bucketsize);
+			op->ov_next = (OVHDR_t *) ((char *) op + bucketsize);
 			op = op->ov_next;
 		}
 		op->ov_next = NULL;
 	}
 
-/*
- * Memory is available.
- */
+	/*
+	 * Memory is available.
+	 */
 	/* remove from linked list */
 	op = freelist[bucket];
 	freelist[bucket] = op->ov_next;
@@ -305,7 +290,7 @@ siz_t size;				/* amount of memory to allocate */
 	op->ov_index = bucket;
 
 	/* return pointer to user data block */
-	return((ptr_t *)((char *)op + OVHDRSZ));
+	return ((ptr_t *) ((char *) op + OVHDRSZ));
 }
 
 /*
@@ -315,47 +300,45 @@ siz_t size;				/* amount of memory to allocate */
 
 ptr_t *
 memalign(align, size)
-siz_t align;				/* required memory alignment */
-siz_t size;				/* amount of memory to allocate */
+	size_t align;			/* required memory alignment */
+	size_t size;			/* amount of memory to allocate */
 {   
-	register OVHDR *op;		/* chunk pointer */
+	register OVHDR_t *op;		/* chunk pointer */
 	register ptr_t *newbuf;		/* new block of user data */
 	register int offset = 0;	/* fragment offset for alignment */
 
-/*
- * The alignment must be a power of two, and no bigger than the page size.
- */
-	if ((align == 0) || !auto_aligned(align) || (align > PAGESIZE))
-	{
+	/*
+	 * The alignment must be a power of two, and no bigger than the page size.
+	 */
+	if ((align == 0) || !auto_aligned(align) || (align > PAGESIZE)) {
 		errno = EINVAL;
-		return(NULL);
+		return (NULL);
 	}
 
-/*
- * For ordinary small alignment sizes, we can use the plain malloc.
- */
+	/*
+	 * For ordinary small alignment sizes, we can use the plain malloc.
+	 */
 	if (align > OVHDRSZ)
 		offset = align - OVHDRSZ;
 
 	newbuf = malloc(size + offset);
 	if (newbuf == NULL)
-		return(NULL);
+		return (NULL);
 
-/*
- * Otherwise we have to create a more strictly aligned fragment.
- */
-	if (offset > 0)
-	{
+	/*
+	 * Otherwise we have to create a more strictly aligned fragment.
+	 */
+	if (offset > 0) {
 		/* locate the proper alignment boundary within the block */
 		newbuf = (ptr_t *)((char *)newbuf + offset);
 
 		/* mark this block as a special fragment */
-		op = (OVHDR *)((char *)newbuf - OVHDRSZ);
+		op = (OVHDR_t *)((char *)newbuf - OVHDRSZ);
 		op->ov_fmagic = FRMAGIC;
 		op->ov_offset = OVHDRSZ + offset;
 	}
 
-	return(newbuf);
+	return (newbuf);
 }
 
 /*
@@ -365,41 +348,37 @@ siz_t size;				/* amount of memory to allocate */
 
 static int
 dealloc(oldbuf)
-ptr_t *oldbuf;				/* old block of user data */
+	ptr_t *oldbuf;			/* old block of user data */
 {   
-	register OVHDR *op;		/* chunk pointer */
+	register OVHDR_t *op;		/* chunk pointer */
 	register int bucket;		/* hash bucket index */
 	register int offset;		/* fragment offset for alignment */
 
 	/* if no old block, or if not yet initialized */
-	if (oldbuf == NULL || pagesize == 0)
-	{
+	if (oldbuf == NULL || pagesize == 0) {
 		errno = EINVAL;
-		return(0);
+		return (0);
 	}
 
 	/* avoid bogus block addresses */
-	if (!word_aligned(oldbuf))
-	{
+	if (!word_aligned(oldbuf)) {
 		errno = EINVAL;
-		return(0);
+		return (0);
 	}
 
 	/* move to the header for this chunk */
-	op = (OVHDR *)((char *)oldbuf - OVHDRSZ);
+	op = (OVHDR_t *) ((char *) oldbuf - OVHDRSZ);
 
 	/* adjust in case this is an aligned fragment */
-	if ((op->ov_fmagic == FRMAGIC) && valid_offset(op->ov_offset))
-	{
+	if ((op->ov_fmagic == FRMAGIC) && valid_offset(op->ov_offset)) {
 		offset = op->ov_offset - OVHDRSZ;
-		op = (OVHDR *)((char *)op - offset);
+		op = (OVHDR_t *) ((char *) op - offset);
 	}
 
 	/* check whether this chunk was really allocated */
-	if ((op->ov_magic != OVMAGIC) || !valid_index(op->ov_index))
-	{
+	if ((op->ov_magic != OVMAGIC) || !valid_index(op->ov_index)) {
 		errno = EINVAL;
-		return(0);
+		return (0);
 	}
 
 	/* put back on the free list for this bucket */
@@ -408,7 +387,7 @@ ptr_t *oldbuf;				/* old block of user data */
 	freelist[bucket] = op;
 	malloced[bucket]--;
 
-	return(1);
+	return (1);
 }
 
 /*
@@ -431,9 +410,10 @@ int free_status = 0;			/* return code of last free */
 
 free_t
 free(oldbuf)
-ptr_t *oldbuf;				/* old block of user data */
+	ptr_t *oldbuf;			/* old block of user data */
 {   
 	free_status = dealloc(oldbuf);
+
 	free_return(free_status);
 }
 
@@ -452,28 +432,24 @@ ptr_t *oldbuf;				/* old block of user data */
 
 static int
 findbucket(oldop)
-OVHDR *oldop;				/* old chunk to search for */
+	OVHDR_t *oldop;			/* old chunk to search for */
 {
-	register OVHDR *op;		/* chunk pointer */
+	register OVHDR_t *op;		/* chunk pointer */
 	register int bucket;		/* hash bucket index */
 
-	for (bucket = 0; bucket < NBUCKETS; bucket++)
-	{
+	for (bucket = 0; bucket < NBUCKETS; bucket++) {
 		if (freelist[bucket] == oldop)
-			return(bucket);
+			return (bucket);
 	}
-
-	for (bucket = 0; bucket < NBUCKETS; bucket++)
-	{
-		for (op = freelist[bucket]; op != NULL; op = op->ov_next)
-		{
+	for (bucket = 0; bucket < NBUCKETS; bucket++) {
+		for (op = freelist[bucket]; op != NULL; op = op->ov_next) {
 			if (op == oldop)
-				return(bucket);
+				return (bucket);
 		}
 	}
 
 	/* not found */
-	return(-1);
+	return (-1);
 }
 
 /*
@@ -483,79 +459,70 @@ OVHDR *oldop;				/* old chunk to search for */
 
 ptr_t *
 realloc(oldbuf, size)
-ptr_t *oldbuf;				/* old block of user data */
-siz_t size;				/* amount of memory to allocate */
+	ptr_t *oldbuf;			/* old block of user data */
+	size_t size;			/* amount of memory to allocate */
 {   
-	register OVHDR *op;		/* chunk pointer */
+	register OVHDR_t *op;		/* chunk pointer */
 	register ptr_t *newbuf;		/* new block of user data */
 	register int bucket;		/* hash bucket index */
 	register int offset = 0;	/* fragment offset for alignment */
-	siz_t minsize, maxsize;		/* size limits for this bucket */
+	size_t minsize, maxsize;	/* size limits for this bucket */
 	int allocated = 0;		/* set if old chunk was allocated */
 
-/*
- * Do plain malloc if no old block, or if not yet initialized.
- * Otherwise, get the header, and check for special conditions.
- */
-	if (oldbuf == NULL || pagesize == 0)
-	{
+	/*
+	 * Do plain malloc if no old block, or if not yet initialized.
+	 * Otherwise, get the header, and check for special conditions.
+	 */
+	if (oldbuf == NULL || pagesize == 0) {
 		newbuf = malloc(size);
-		return(newbuf);
+		return (newbuf);
 	}
 
 	/* avoid bogus block addresses */
-	if (!word_aligned(oldbuf))
-	{
+	if (!word_aligned(oldbuf)) {
 		errno = EINVAL;
-		return(NULL);
+		return (NULL);
 	}
 
 	/* move to the header for this chunk */
-	op = (OVHDR *)((char *)oldbuf - OVHDRSZ);
+	op = (OVHDR_t *) ((char *) oldbuf - OVHDRSZ);
 
 	/* adjust in case this is an aligned fragment */
-	if ((op->ov_fmagic == FRMAGIC) && valid_offset(op->ov_offset))
-	{
+	if ((op->ov_fmagic == FRMAGIC) && valid_offset(op->ov_offset)) {
 		offset = op->ov_offset - OVHDRSZ;
-		op = (OVHDR *)((char *)op - offset);
+		op = (OVHDR_t *) ((char *) op - offset);
 	}
 
-/*
- * Check whether this chunk is allocated at this moment.
- * If not, try to locate it on the free list hash buckets.
- */
-	if ((op->ov_magic == OVMAGIC) && valid_index(op->ov_index))
-	{
+	/*
+	 * Check whether this chunk is allocated at this moment.
+	 * If not, try to locate it on the free list hash buckets.
+	 */
+	if ((op->ov_magic == OVMAGIC) && valid_index(op->ov_index)) {
 		allocated = 1;
 		bucket = op->ov_index;
-	}
-	else
-	{
+	} else {
 		bucket = findbucket(op);
-		if (bucket < 0)
-		{
+		if (bucket < 0) {
 			errno = EINVAL;
-			return(NULL);
+			return (NULL);
 		}
 	}
 
-/*
- * If the new size block fits into the same already allocated chunk,
- * we can just use it again, avoiding a malloc and a bcopy. Otherwise,
- * we can safely put it on the free list (the contents are preserved).
- */
+	/*
+	 * If the new size block fits into the same already allocated chunk,
+	 * we can just use it again, avoiding a malloc and a bcopy. Otherwise,
+	 * we can safely put it on the free list (the contents are preserved).
+	 */
 	/* make sure the alignment offset is consistent with the bucket */
-	if ((offset > 0) && (bucket == 0 || offset > data_size(bucket-1)))
-	{
+	if ((offset > 0) && (bucket == 0 || offset > data_size(bucket-1))) {
 		errno = EINVAL;
-		return(NULL);
+		return (NULL);
 	}
 
 	/* maximum data block size of this chunk */
 	maxsize = data_size(bucket) - offset;
 
-	if (allocated)
-	{
+	if (allocated) {
 		/* maximum data block size in the preceding hash bucket */
 		minsize = (bucket > 0) ? data_size(bucket-1) - offset : 0;
 
@@ -567,34 +534,33 @@ siz_t size;				/* amount of memory to allocate */
 		(void) dealloc(oldbuf);
 	}
 
-/*
- * A new chunk must be allocated, possibly with alignment restrictions.
- */
+	/*
+	 * A new chunk must be allocated, possibly with alignment restrictions.
+	 */
 	newbuf = malloc(size + offset);
 	if (newbuf == NULL)
 		return(NULL);
 
-	if (offset > 0)
-	{
+	if (offset > 0){
 		/* locate the proper alignment boundary within the block */
-		newbuf = (ptr_t *)((char *)newbuf + offset);
+		newbuf = (ptr_t *) ((char *) newbuf + offset);
 
 		/* mark this block as a special fragment */
-		op = (OVHDR *)((char *)newbuf - OVHDRSZ);
+		op = (OVHDR_t *) ((char *) newbuf - OVHDRSZ);
 		op->ov_fmagic = FRMAGIC;
 		op->ov_offset = OVHDRSZ + offset;
 	}
 
-/*
- * Copy the contents of the old user data block into the new block.
- * In case we shrink, only copy the requested amount of user data.
- * If we expand, copy the maximum possible amount from the old block.
- * Note that the exact amount of valid old user data is not known.
- */
+	/*
+	 * Copy the contents of the old user data block into the new block.
+	 * In case we shrink, only copy the requested amount of user data.
+	 * If we expand, copy the maximum possible amount from the old block.
+	 * Note that the exact amount of valid old user data is not known.
+	 */
 	if (oldbuf != newbuf)
 		bcopy(oldbuf, newbuf, (size < maxsize) ? size : maxsize);
 
-	return(newbuf);
+	return (newbuf);
 }
 
 /*
@@ -608,19 +574,20 @@ siz_t size;				/* amount of memory to allocate */
 
 ptr_t *
 calloc(count, length)
-siz_t count;				/* number of elements */
-siz_t length;				/* size per element */
+	size_t count;			/* number of elements */
+	size_t length;			/* size per element */
 {
 	register ptr_t *newbuf;		/* new block of user data */
-	register siz_t size;		/* amount of memory to allocate */
+	register size_t size;		/* amount of memory to allocate */
 
 	size = count * length;
 	newbuf = malloc(size);
 	if (newbuf == NULL)
-		return(NULL);
+		return (NULL);
 
 	bzero(newbuf, size);
-	return(newbuf);
+
+	return (newbuf);
 }
 
 
@@ -631,9 +598,10 @@ siz_t length;				/* size per element */
 
 free_t
 cfree(oldbuf)
-ptr_t *oldbuf;				/* old block of user data */
+	ptr_t *oldbuf;			/* old block of user data */
 {   
 	free_status = dealloc(oldbuf);
+
 	free_return(free_status);
 }
 
@@ -648,13 +616,14 @@ ptr_t *oldbuf;				/* old block of user data */
 
 ptr_t *
 valloc(size)
-siz_t size;				/* amount of memory to allocate */
+	size_t size;			/* amount of memory to allocate */
 {   
 	register ptr_t *newbuf;		/* new block of user data */
-	siz_t align = PAGESIZE;		/* alignment on page boundary */
+	size_t align = PAGESIZE;	/* alignment on page boundary */
 
 	newbuf = memalign(align, size);
-	return(newbuf);
+
+	return (newbuf);
 }
 
 
@@ -665,8 +634,9 @@ siz_t size;				/* amount of memory to allocate */
 
 free_t
 vfree(oldbuf)
-ptr_t *oldbuf;				/* old block of user data */
+	ptr_t *oldbuf;			/* old block of user data */
 {   
 	free_status = dealloc(oldbuf);
+
 	free_return(free_status);
 }

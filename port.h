@@ -4,49 +4,57 @@
 **	@(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.2 2002-01-11 22:30:08 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.3 2003-03-28 21:57:23 -0800 woods Exp $"
 
 #if defined(__SVR4) || defined(__svr4__)
-#define SVR4
+# define SVR4
 #endif
 
 #if defined(SYSV) || defined(SVR4)
-#define SYSV_MALLOC
-#define SYSV_MEMSET
-#define SYSV_STRCHR
-#define SYSV_SETVBUF
+# define SYSV_MALLOC
+# define SYSV_MEMSET
+# define SYSV_STRCHR
+# define SYSV_SETVBUF
 #endif
 
 #if defined(WINNT)
-#define SYSV_MALLOC
-#define SYSV_STRCHR
-#define SYSV_SETVBUF
+# define SYSV_MALLOC
+# define SYSV_STRCHR
+# define SYSV_SETVBUF
 #endif
 
 #if defined(__hpux) || defined(hpux)
-#define SYSV_MALLOC
-#define SYSV_SETVBUF
+# define SYSV_MALLOC
+# define SYSV_SETVBUF
 #endif
 
 #if defined(sgi)
-#define SYSV_MALLOC
+# define SYSV_MALLOC
 #endif
 
 #if defined(linux)
-#define SYSV_MALLOC
+# define SYSV_MALLOC
 #endif
 
 #if defined(bsdi) || defined(__bsdi__)
-#define SYSV_MALLOC
+# define SYSV_MALLOC
 #endif
 
 #if defined(__NetBSD__)
-#define SYSV_MALLOC
-#define SYSV_MEMSET
+# define SYSV_MALLOC
+# define SYSV_MEMSET
 #endif
 
 #if defined(NeXT)
-#define SYSV_MALLOC
+# define SYSV_MALLOC
+#endif
+
+#if !defined(sgi) && !defined(__STDC__)
+/* damned SGI compiler complains if you undef an ANSI thing!!! */
+# ifdef	NULL			/* make sure NULL is 0 */
+#  undef NULL
+# endif
+# define NULL		0	/* the one true C `nil' pointer value */
 #endif
 
 /*
@@ -54,13 +62,13 @@
 */
 
 #if defined(RES_PRF_STATS)
-#define BIND_49
+# define BIND_49
 #else
-#define BIND_48
+# define BIND_48
 #endif
 
 #if defined(BIND_49) && defined(__BIND)
-#define BIND_493
+# define BIND_493
 #endif
 
 /*
@@ -68,26 +76,27 @@
 */
 
 #ifndef INT16SZ
-#define	INT16SZ		2	/* for systems without 16-bit ints */
+# define INT16SZ	2	/* for systems without 16-bit ints */
 #endif
 #ifndef INT32SZ
-#define	INT32SZ		4	/* for systems without 32-bit ints */
+# define INT32SZ	4	/* for systems without 32-bit ints */
 #endif
 #ifndef INADDRSZ
-#define	INADDRSZ	4	/* for sizeof(struct inaddr) != 4 */
+# define INADDRSZ	4	/* for sizeof(struct inaddr) != 4 */
 #endif
 
 #ifndef	IPNGSIZE
-#define	IPNGSIZE	16	/* 128 bit ip v6 address size */
+# define IPNGSIZE	16	/* 128 bit ip v6 address size */
 #endif
 
 /*
 ** The following should depend on existing definitions.
 */
 
-typedef int	bool;		/* boolean type */
-#define TRUE	1
-#define FALSE	0
+typedef int		bool_t;		/* boolean type */
+
+#define TRUE		1
+#define FALSE		0
 
 #if defined(BIND_48) || defined(OLD_RES_STATE)
 typedef struct state		res_state_t;
@@ -118,11 +127,11 @@ typedef u_char	nbuf_t;
 #endif
 
 #ifndef _IPADDR_T
-#if defined(__alpha) || defined(BIND_49)
+# if defined(__alpha) || defined(BIND_49)
 typedef u_int	ipaddr_t;
-#else
+# else
 typedef u_long	ipaddr_t;
-#endif
+# endif
 #endif
 
 #if defined(apollo) || defined(_BSD_SIGNALS)
@@ -133,51 +142,49 @@ typedef void	sigtype_t;
 
 #ifdef SYSV_MALLOC
 typedef void	ptr_t;		/* generic pointer type */
-typedef u_int	siz_t;		/* general size type */
 typedef void	free_t;
 #else
 typedef char	ptr_t;		/* generic pointer type */
-typedef u_int	siz_t;		/* general size type */
 typedef int	free_t;
 #endif
 
 #ifdef SYSV_MEMSET
-#define bzero(a,n)	(void) memset(a,'\0',n)
-#define bcopy(a,b,n)	(void) memcpy(b,a,n)
+# define bzero(a,n)	(void) memset(a,'\0',n)
+# define bcopy(a,b,n)	(void) memcpy(b,a,n)
 #endif
 
 #ifdef SYSV_STRCHR
-#define index		strchr
-#define rindex		strrchr
+# define index		strchr
+# define rindex		strrchr
 #endif
 
 #ifdef SYSV_SETVBUF
-#define linebufmode(a)	(void) setvbuf(a, (char *)NULL, _IOLBF, BUFSIZ)
+# define linebufmode(a)	(void) setvbuf(a, (char *) NULL, _IOLBF, BUFSIZ)
 #else
-#define linebufmode(a)	(void) setlinebuf(a)
+# define linebufmode(a)	(void) setlinebuf(a)
 #endif
 
 #ifdef ULTRIX_RESOLV
-#define nslist(i)	_res.ns_list[i].addr
+# define nslist(i)	_res.ns_list[i].addr
 #else
-#define nslist(i)	_res.nsaddr_list[i]
+# define nslist(i)	_res.nsaddr_list[i]
 #endif
 
 #ifdef fp_nquery
-#define pr_query(a,n,f)	fp_nquery(a,n,f)
+# define pr_query(a,n,f)	fp_nquery(a, n, f)
 #else
-#define pr_query(a,n,f)	fp_query(a,f)
+# define pr_query(a,n,f)	fp_query(a, f)
 #endif
 
 #if defined(sun) && defined(NO_YP_LOOKUP)
-#define gethostbyname	(struct hostent *)res_gethostbyname
-#define gethostbyaddr	(struct hostent *)res_gethostbyaddr
+#define gethostbyname	(struct hostent *) res_gethostbyname
+#define gethostbyaddr	(struct hostent *) res_gethostbyaddr
 #endif
 
 #if defined(SVR4)
 #define jmp_buf		sigjmp_buf
-#define setjmp(e)	sigsetjmp(e,1)
-#define longjmp(e,n)	siglongjmp(e,n)
+#define setjmp(e)	sigsetjmp(e, 1)
+#define longjmp(e,n)	siglongjmp(e, n)
 #endif
 
 /*
@@ -190,7 +197,7 @@ typedef int	free_t;
 
 #if defined(WINNT)
 #undef  linebufmode
-#define linebufmode(a)	(void) setvbuf(a, (char *)NULL, _IONBF, 0)
+#define linebufmode(a)	(void) setvbuf(a, (char *) NULL, _IONBF, 0)
 #endif
 
 #if defined(WINNT)
@@ -206,8 +213,8 @@ typedef int	free_t;
 #define setalarm(n)
 #define setsignal(s,f)
 #else
-#define setalarm(n)	(void) alarm((unsigned int)(n))
-#define setsignal(s,f)	(void) signal(s,f)
+#define setalarm(n)	(void) alarm((unsigned int) (n))
+#define setsignal(s,f)	(void) signal(s, f)
 #endif
 
 #if defined(WINNT)
@@ -258,24 +265,28 @@ HANDLE hReadWriteEvent;
 #define __STDC__
 #endif
 
-/*
-** No prototypes yet.
-*/
-
-#define PROTO(TYPES)	()
-
-#if !defined(__STDC__) || defined(apollo)
-#define Proto(TYPES)	()
-#else
-#define Proto(TYPES)	TYPES
+#ifndef __P				/* in *BSD's <sys/cdefs.h>, included by everything!  */
+# if defined(__STDC__) || defined(__cplusplus)
+#  define __P(protos)	protos		/* full-blown ANSI C */
+# else	/* !(__STDC__ || __cplusplus) */
+#  define __P(protos)	()		/* traditional C */
+# endif
 #endif
 
-#if !defined(__STDC__) || defined(apollo)
-#define const
+#ifndef volatile			/* in *BSD's <sys/cdefs.h>, included by everything!  */
+# if defined(__STDC__) || defined(__cplusplus)
+#  define volatile	volatile
+# else	/* !(__STDC__ || __cplusplus) */
+#  define volatile	/* most compilers won't optimize global variables */
+# endif
 #endif
 
-#if defined(__STDC__) && defined(BIND_49)
-#define CONST	const
+#ifdef __STDC__
+# define VA_START(args, lastarg)       va_start(args, lastarg)
 #else
-#define CONST
+# define VA_START(args, lastarg)       va_start(args)
+#endif
+
+#if ((__STDC__ - 0) <= 0) || defined(apollo)
+# define const				/* NOTHING */
 #endif

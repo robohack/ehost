@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.3 2003-03-21 18:51:12 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.4 2003-03-28 21:57:23 -0800 woods Exp $"
 
 #ifndef lint
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -34,14 +34,8 @@ int maxport = 0;		/* last  source port in explicit range */
 
 unsigned int timeout;		/* connection read timeout */
 
-#if !defined(NO_CONNECTED_DGRAM)
-static bool connected = TRUE;	/* we can use connected datagram sockets */
-#else
-static bool connected = FALSE;	/* connected datagram sockets unavailable */
-#endif
-
 static struct sockaddr_in from;	/* address of inbound packet */
-static struct sockaddr *from_sa = (struct sockaddr *)&from;
+static struct sockaddr *from_sa = (struct sockaddr *) &from;
 
 #ifdef HOST_RES_SEND
 
@@ -67,12 +61,12 @@ static struct sockaddr *from_sa = (struct sockaddr *)&from;
 
 int
 res_send(query, querylen, answer, anslen)
-input CONST qbuf_t *query;		/* location of formatted query buffer */
-input int querylen;			/* length of query buffer */
-output qbuf_t *answer;			/* location of buffer to store answer */
-input int anslen;			/* maximum size of answer buffer */
+	input const qbuf_t *query;	/* location of formatted query buffer */
+	input int querylen;		/* length of query buffer */
+	output qbuf_t *answer;		/* location of buffer to store answer */
+	input int anslen;		/* maximum size of answer buffer */
 {
-	HEADER *bp = (HEADER *)answer;
+	HEADER *bp = (HEADER *) answer;
 	struct sockaddr_in *addr;	/* the server address to connect to */
 	int v_circuit;			/* virtual circuit or datagram switch */
 	int servfail[MAXNS];		/* saved failure codes per nameserver */
@@ -81,10 +75,9 @@ input int anslen;			/* maximum size of answer buffer */
 
 	/* make sure resolver has been initialized */
 	if (!bitset(RES_INIT, _res.options) && res_init() == -1)
-		return(-1);
+		return (-1);
 
-	if (bitset(RES_DEBUG, _res.options))
-	{
+	if (bitset(RES_DEBUG, _res.options)) {
 		printf("%sres_send()\n", dbprefix);
 		pr_query(query, querylen, stdout);
 	}
@@ -96,101 +89,84 @@ input int anslen;			/* maximum size of answer buffer */
 	for (ns = 0; ns < MAXNS; ns++)
 		servfail[ns] = 0;
 
-/*
- * Do _res.retry attempts for each of the _res.nscount addresses.
- * Upon failure, the current server will be marked bad if we got
- * an error condition which makes it unlikely that we will succeed
- * the next time we try this server.
- * Internal operating system failures, such as temporary lack of
- * resources, do not fall in that category.
- */
-	for (try = 0; try < _res.retry; try++)
-	{
-	    for (ns = 0; ns < _res.nscount; ns++)
-	    {
-		/* skip retry if server failed permanently */
-		if (servfail[ns])
-			continue;
+	/*
+	 * Do _res.retry attempts for each of the _res.nscount addresses.
+	 * Upon failure, the current server will be marked bad if we got
+	 * an error condition which makes it unlikely that we will succeed
+	 * the next time we try this server.
+	 * Internal operating system failures, such as temporary lack of
+	 * resources, do not fall in that category.
+	 */
+	for (try = 0; try < _res.retry; try++) {
+		for (ns = 0; ns < _res.nscount; ns++) {
+			/* skip retry if server failed permanently */
+			if (servfail[ns])
+				continue;
 
-		/* fetch server address */
-		addr = &nslist(ns);
+			/* fetch server address */
+			addr = &nslist(ns);
 retry:
-		if (bitset(RES_DEBUG, _res.options))
-		{
-			printf("%sQuerying server (# %d) %s address = %s, accepting up to %d answer bytes\n",
-			       dbprefix, ns+1, v_circuit ? "tcp" : "udp",
-			       inet_ntoa(addr->sin_addr),
-			       anslen);
-		}
+			if (bitset(RES_DEBUG, _res.options)) {
+				printf("%sQuerying server (# %d) %s address = %s, accepting up to %d answer bytes\n",
+				       dbprefix, ns+1, v_circuit ? "tcp" : "udp",
+				       inet_ntoa(addr->sin_addr),
+				       anslen);
+			}
+			if (v_circuit) {
+				/* at most one attempt per server */
+				try = _res.retry;
 
-		if (v_circuit)
-		{
-			/* at most one attempt per server */
-			try = _res.retry;
+				/* connect via virtual circuit */
+				n = send_stream(addr, query, querylen, answer, anslen);
+			} else {
+				/* set datagram read timeout for recv_sock() */
+				timeout = (_res.retrans << try);
+				if (try > 0)
+					timeout /= _res.nscount;
+				if (timeout <= 0)
+					timeout = 1;
 
-			/* connect via virtual circuit */
-			n = send_stream(addr, query, querylen, answer, anslen);
-		}
-		else
-		{
-			/* set datagram read timeout for recv_sock() */
-			timeout = (_res.retrans << try);
-			if (try > 0)
-				timeout /= _res.nscount;
-			if (timeout <= 0)
-				timeout = 1;
+				/* connect via datagram */
+				n = send_dgram(addr, query, querylen, answer, anslen);
 
-			/* connect via datagram */
-			n = send_dgram(addr, query, querylen, answer, anslen);
-
-			/* check truncation; use v_circuit with same server */
-			if ((n > 0) && bp->tc)
-			{
-				if (bitset(RES_DEBUG, _res.options))
-				{
-					printf("%struncated answer, %d bytes\n",
-						dbprefix, n);
-				}
-
-				if (!bitset(RES_IGNTC, _res.options))
-				{
-					v_circuit = 1;
-					goto retry;
+				/* check truncation; use v_circuit with same server */
+				if ((n > 0) && bp->tc) {
+					if (bitset(RES_DEBUG, _res.options)) {
+						printf("%struncated answer, %d bytes\n",
+						       dbprefix, n);
+					}
+					if (!bitset(RES_IGNTC, _res.options)) {
+						v_circuit = 1;
+						goto retry;
+					}
 				}
 			}
-		}
-
-		if (n <= 0)
-		{
-			switch (errno)
-			{
-			    case ECONNREFUSED:
-			    case ENETDOWN:
-			    case ENETUNREACH:
-			    case EHOSTDOWN:
-			    case EHOSTUNREACH:
-				servfail[ns] = errno;
-				break;
+			if (n <= 0) {
+				switch (errno) {
+				case ECONNREFUSED:
+				case ENETDOWN:
+				case ENETUNREACH:
+				case EHOSTDOWN:
+				case EHOSTUNREACH:
+					servfail[ns] = errno;
+					break;
+				}
+				/* try next server */
+				continue;
+			}
+			if (bitset(RES_DEBUG, _res.options)) {
+				printf("%sgot answer, %d bytes:\n", dbprefix, n);
+				pr_query(answer, (n > anslen) ? anslen : n, stdout);
 			}
 
-			/* try next server */
-			continue;
+			/* we have an answer; clear possible error condition */
+			seterrno(0);
+			return (n);
 		}
-
-		if (bitset(RES_DEBUG, _res.options))
-		{
-			printf("%sgot answer, %d bytes:\n", dbprefix, n);
-			pr_query(answer, (n > anslen) ? anslen : n, stdout);
-		}
-
-		/* we have an answer; clear possible error condition */
-		seterrno(0);
-		return(n);
-	    }
 	}
 
 	/* no answer obtained; return error condition */
-	return(-1);
+	return (-1);
 }
 
 /*
@@ -209,14 +185,15 @@ _res_close()
 	int save_errno = errno;		/* preserve state */
 
 	/* close the connection if open */
-	if (srvsock >= 0)
-	{
+	if (srvsock >= 0) {
 		(void) close(srvsock);
 		srvsock = -1;
 	}
 
 	/* restore state */
 	seterrno(save_errno);
+
+	return;
 }
 
 /*
@@ -228,14 +205,13 @@ _res_close()
 **		Zero otherwise.
 */
 
-static bool
+static bool_t
 check_from()
 {
 	struct sockaddr_in *addr;
 	register int ns;
 
-	for (ns = 0; ns < _res.nscount; ns++)
-	{
+	for (ns = 0; ns < _res.nscount; ns++) {
 		/* fetch server address */
 		addr = &nslist(ns);
 
@@ -247,14 +223,14 @@ check_from()
 
 		/* this allows a reply from any responding server */
 		if (addr->sin_addr.s_addr == INADDR_ANY)
-			return(TRUE);
+			return (TRUE);
 
 		if (from.sin_addr.s_addr == addr->sin_addr.s_addr)
-			return(TRUE);
+			return (TRUE);
 	}
 
 	/* matches none of the known addresses */
-	return(FALSE);
+	return (FALSE);
 }
 
 /*
@@ -276,79 +252,69 @@ check_from()
 
 static int
 send_stream(addr, query, querylen, answer, anslen)
-input struct sockaddr_in *addr;		/* the server address to connect to */
-input qbuf_t *query;			/* location of formatted query buffer */
-input int querylen;			/* length of query buffer */
-output qbuf_t *answer;			/* location of buffer to store answer */
-input int anslen;			/* maximum size of answer buffer */
+	input struct sockaddr_in *addr;	/* the server address to connect to */
+	input qbuf_t *query;		/* location of formatted query buffer */
+	input int querylen;		/* length of query buffer */
+	output qbuf_t *answer;		/* location of buffer to store answer */
+	input int anslen;		/* maximum size of answer buffer */
 {
 	char *host = NULL;		/* name of server is unknown */
-	HEADER *qp = (HEADER *)query;
-	HEADER *bp = (HEADER *)answer;
+	HEADER *qp = (HEADER *) query;
+	HEADER *bp = (HEADER *) answer;
 	register int n;
 
-/*
- * Setup a virtual circuit connection.
- */
+	/*
+	 * Setup a virtual circuit connection.
+	 */
 	srvsock = _res_socket(AF_INET, SOCK_STREAM, 0);
-	if (srvsock < 0)
-	{
+	if (srvsock < 0) {
 		_res_perror(addr, host, "socket");
-		return(-1);
+		return (-1);
 	}
-
-	if (_res_connect(srvsock, addr, sizeof(*addr)) < 0)
-	{
+	if (_res_connect(srvsock, addr, sizeof(*addr)) < 0) {
 		if (bitset(RES_DEBUG, _res.options))
 			_res_perror(addr, host, "connect");
 		_res_close();
-		return(-1);
+		return (-1);
 	}
-
-	if (bitset(RES_DEBUG, _res.options))
-	{
+	if (bitset(RES_DEBUG, _res.options)) {
 		printf("%sconnected to %s\n",
 			dbprefix, inet_ntoa(addr->sin_addr));
 	}
-
-/*
- * Send the query buffer.
- */
-	if (_res_write(srvsock, addr, host, (char *)query, querylen) < 0)
-	{
+	/*
+	 * Send the query buffer.
+	 */
+	if (_res_write(srvsock, addr, host, (char *) query, querylen) < 0) {
 		_res_close();
-		return(-1);
+		return (-1);
 	}
 
-/*
- * Read the answer buffer.
- */
+	/*
+	 * Read the answer buffer.
+	 */
 wait:
-	n = _res_read(srvsock, addr, host, (char *)answer, anslen, 0);
-	if (n <= 0)
-	{
+	if ((n = _res_read(srvsock, addr, host, (char *) answer, anslen, 0)) < 0) {
 		_res_close();
-		return(-1);
+		return (-1);
 	}
 
-/*
- * Make sure it is the proper response by checking the packet id.
- */
-	if (qp->id != bp->id)
-	{
-		if (bitset(RES_DEBUG, _res.options))
-		{
+	/*
+	 * Make sure it is the proper response by checking the packet id.
+	 */
+	if (qp->id != bp->id) {
+		if (bitset(RES_DEBUG, _res.options)) {
 			printf("%sunexpected answer:\n", dbprefix);
 			pr_query(answer, (n > anslen) ? anslen : n, stdout);
 		}
 		goto wait;
 	}
 
-/*
- * Never leave the socket open.
- */
+	/*
+	 * Never leave the socket open.
+	 */
 	_res_close();
-	return(n);
+
+	return (n);
 }
 
 /*
@@ -377,87 +343,75 @@ wait:
 
 static int
 send_dgram(addr, query, querylen, answer, anslen)
-input struct sockaddr_in *addr;		/* the server address to connect to */
-input qbuf_t *query;			/* location of formatted query buffer */
-input int querylen;			/* length of query buffer */
-output qbuf_t *answer;			/* location of buffer to store answer */
-input int anslen;			/* maximum size of answer buffer */
+	input struct sockaddr_in *addr;	/* the server address to connect to */
+	input qbuf_t *query;		/* location of formatted query buffer */
+	input int querylen;		/* length of query buffer */
+	output qbuf_t *answer;		/* location of buffer to store answer */
+	input int anslen;		/* maximum size of answer buffer */
 {
 	char *host = NULL;		/* name of server is unknown */
-	HEADER *qp = (HEADER *)query;
-	HEADER *bp = (HEADER *)answer;
+	HEADER *qp = (HEADER *) query;
+	HEADER *bp = (HEADER *) answer;
 	register int n;
 
-/*
- * Setup a connected (if possible) datagram socket.
- */
-	srvsock = _res_socket(AF_INET, SOCK_DGRAM, 0);
-	if (srvsock < 0)
-	{
+	/*
+	 * Setup a connected (if possible) datagram socket.
+	 */
+	if ((srvsock = _res_socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		_res_perror(addr, host, "socket");
-		return(-1);
+		return (-1);
 	}
-
-	if (connected)
-	{
-		if (connect(srvsock, (struct sockaddr *)addr, sizeof(*addr)) < 0)
-		{
+	if (connected) {
+		if (connect(srvsock, (struct sockaddr *) addr, sizeof(*addr)) < 0) {
 			_res_perror(addr, host, "connect");
 			_res_close();
-			return(-1);
+			return (-1);
 		}
 	}
 
-/*
- * Send the query buffer.
- */
+	/*
+	 * Send the query buffer.
+	 */
 	if (connected)
-		n = send(srvsock, (char *)query, querylen, 0);
+		n = send(srvsock, (char *) query, querylen, 0);
 	else
-		n = sendto(srvsock, (char *)query, querylen, 0,
-			(struct sockaddr *)addr, sizeof(*addr));
+		n = sendto(srvsock, (char *) query, querylen, 0,
+			   (struct sockaddr *) addr, sizeof(*addr));
 
-	if (n != querylen)
-	{
+	if (n != querylen) {
 		if (bitset(RES_DEBUG, _res.options))
 			_res_perror(addr, host, "send");
 		_res_close();
-		return(-1);
+		return (-1);
 	}
 
-/*
- * Wait for the arrival of a reply, timeout, or error message.
- */
+	/*
+	 * Wait for the arrival of a reply, timeout, or error message.
+	 */
 wait:
-	n = recv_sock(srvsock, (char *)answer, anslen);
-	if (n <= 0)
-	{
+	if ((n = recv_sock(srvsock, (char *) answer, anslen)) < 0) {
 		if (bitset(RES_DEBUG, _res.options))
 			_res_perror(addr, host, "recvfrom");
 		_res_close();
-		return(-1);
+		return (-1);
 	}
 
-/*
- * Make sure it is the proper response by checking the packet id.
- */
-	if (qp->id != bp->id)
-	{
-		if (bitset(RES_DEBUG, _res.options))
-		{
+	/*
+	 * Make sure it is the proper response by checking the packet id.
+	 */
+	if (qp->id != bp->id) {
+		if (bitset(RES_DEBUG, _res.options))  {
 			printf("%sold answer:\n", dbprefix);
 			pr_query(answer, (n > anslen) ? anslen : n, stdout);
 		}
 		goto wait;
 	}
 
-/*
- * Make sure it comes from a known server.
- */
-	if (!check_from())
-	{
-		if (bitset(RES_DEBUG, _res.options))
-		{
+	/*
+	 * Make sure it comes from a known server.
+	 */
+	if (!check_from()) {
+		if (bitset(RES_DEBUG, _res.options)) {
 			printf("%sunknown server %s:\n",
 				dbprefix, inet_ntoa(from.sin_addr));
 			pr_query(answer, (n > anslen) ? anslen : n, stdout);
@@ -465,11 +419,12 @@ wait:
 		goto wait;
 	}
 
-/*
- * Never leave the socket open.
- */
+	/*
+	 * Never leave the socket open.
+	 */
 	_res_close();
-	return(n);
+
+	return (n);
 }
 
 #endif /*HOST_RES_SEND*/
@@ -498,34 +453,32 @@ wait:
 
 int
 _res_socket(family, type, protocol)
-input int family;
-input int type;
-input int protocol;
+	input int family;
+	input int type;
+	input int protocol;
 {
-	struct sockaddr_in sin;
+	struct sockaddr_in res_sin;
 	register int port;
 	int sock;
 
 	/* try to obtain the desired socket */
 	sock = socket(family, type, protocol);
 	if (sock < 0)
-		return(-1);
+		return (-1);
 
 	/* set an explicit source address/port if so requested */
-	for (port = minport; port > 0 || srcaddr != INADDR_ANY; port++)
-	{
+	for (port = minport; port > 0 || srcaddr != INADDR_ANY; port++) {
 		/* setup source address */
-		bzero((char *)&sin, sizeof(sin));
+		bzero((char *) &res_sin, sizeof(res_sin));
 
-		sin.sin_family = family;
-		sin.sin_addr.s_addr = srcaddr;
-		sin.sin_port = htons((u_short)port);
+		res_sin.sin_family = family;
+		res_sin.sin_addr.s_addr = srcaddr;
+		res_sin.sin_port = htons((u_short)port);
 
-		if (bind(sock, (struct sockaddr *)&sin, sizeof(sin)) < 0)
-		{
+		if (bind(sock, (struct sockaddr *) &res_sin, sizeof(res_sin)) < 0) {
 			int save_errno = errno;
-			if (port > 0 && errno == EADDRINUSE)
-			{
+
+			if (port > 0 && errno == EADDRINUSE) {
 				/* save_errno = EAGAIN; */
 				if (port < maxport)
 					continue;
@@ -534,28 +487,27 @@ input int protocol;
 			/* bad source address, or no free port numbers */
 			(void) close(sock);
 			seterrno(save_errno);
-			return(-1);
+			return (-1);
 		}
-
-		if (bitset(RES_DEBUG, _res.options))
-		{
-			if (srcaddr == INADDR_ANY)
+		if (bitset(RES_DEBUG, _res.options)) {
+			if (srcaddr == INADDR_ANY) {
 				printf("%susing source port %d\n",
-					dbprefix, port);
-			else if (port == 0)
+				       dbprefix, port);
+			} else if (port == 0) {
 				printf("%susing source address %s\n",
-					dbprefix, inet_ntoa(sin.sin_addr));
-			else
+				       dbprefix, inet_ntoa(res_sin.sin_addr));
+			} else {
 				printf("%susing source address %s port %d\n",
-					dbprefix, inet_ntoa(sin.sin_addr), port);
+				       dbprefix, inet_ntoa(res_sin.sin_addr), port);
+			}
 		}
 
 		/* socket with well-defined source address/port */
-		return(sock);
+		return (sock);
 	}
 
 	/* socket with random source address/port */
-	return(sock);
+	return (sock);
 }
 
 /*
@@ -575,8 +527,8 @@ input int protocol;
 
 int
 _res_blocking(sock, blocking)
-input int sock;
-input bool blocking;			/* indicate blocking or not */
+	input int sock;
+	input bool_t blocking;		/* indicate blocking or not */
 {
 	int flags;
 	register int n;
@@ -595,11 +547,11 @@ input bool blocking;			/* indicate blocking or not */
 
 	/* just set the desired mode */
 	flags = blocking ? 0 : 1;
-	n = ioctlsocket(sock, FIONBIO, (u_long *)&flags);
+	n = ioctlsocket(sock, FIONBIO, (u_long *) &flags);
 
 #endif /*WINNT*/
 
-	return(n);
+	return (n);
 }
 
 /*
@@ -616,10 +568,10 @@ input bool blocking;			/* indicate blocking or not */
 
 static jmp_buf timer_buf;
 
-static sigtype_t
 /*ARGSUSED*/
+sigtype_t
 timer(sig)
-int sig;
+	int sig;
 {
 	longjmp(timer_buf, 1);
 	/*NOTREACHED*/
@@ -627,30 +579,29 @@ int sig;
 
 int
 _res_connect(sock, addr, addrlen)
-input int sock;
-input struct sockaddr_in *addr;		/* the server address to connect to */
-input int addrlen;
+	input int sock;
+	input struct sockaddr_in *addr;		/* the server address to connect to */
+	input size_t addrlen;
 {
-	if (setjmp(timer_buf) != 0)
-	{
+	if (setjmp(timer_buf) != 0) {
 		seterrno(ETIMEDOUT);
 		setalarm(0);
-		return(-1);
+		return (-1);
 	}
 
 	setsignal(SIGALRM, timer);
 	setalarm(_res.retrans);
 
-	if (connect(sock, (struct sockaddr *)addr, addrlen) < 0)
-	{
+	if (connect(sock, (struct sockaddr *) addr, addrlen) < 0) {
 		if (errno == EINTR)
 			seterrno(ETIMEDOUT);
 		setalarm(0);
-		return(-1);
+		return (-1);
 	}
 
 	setalarm(0);
-	return(0);
+
+	return (0);
 }
 
 /*
@@ -667,50 +618,50 @@ input int addrlen;
 
 int
 _res_write(sock, addr, host, buf, bufsize)
-input int sock;
-input struct sockaddr_in *addr;		/* the server address to connect to */
-input char *host;			/* name of server to connect to */
-input char *buf;			/* location of formatted query buffer */
-input int bufsize;			/* length of query buffer */
+	input int sock;			/* socket FD to write to */
+	input struct sockaddr_in *addr;	/* the server address to connect to */
+	input char *host;		/* name of server to connect to */
+	input char *buf;		/* location of formatted query buffer */
+	input size_t bufsize;		/* length of query buffer */
 {
 	u_short len;
 
-/*
- * Protect against remote peer prematurely closing the connection.
- */
+	/*
+	 * Protect against remote peer prematurely closing the connection.
+	 */
 	/* setsignal(SIGPIPE, SIG_IGN); done in main() */
 
-/*
- * Write the length of the query buffer.
- */
-	/* len = htons((u_short)bufsize); */
-	putshort((u_short)bufsize, (u_char *)&len);
+	/*
+	 * Write the length of the query buffer.
+	 */
+#if 0
+	len = htons((u_short)bufsize);
+#endif
+	putshort((u_int16_t) bufsize, (u_char *) &len);	/* XXX from resolv.h, bogus broken API! */
 
-	if (send(sock, (char *)&len, INT16SZ, 0) != INT16SZ)
-	{
+	if (send(sock, (char *) &len, INT16SZ, 0) != INT16SZ) {
 		_res_perror(addr, host, "write query length");
-		return(-1);
+		return (-1);
 	}
 
-/*
- * Write the query buffer itself.
- */
-	if (send(sock, buf, bufsize, 0) != bufsize)
-	{
+	/*
+	 * Write the query buffer itself.
+	 */
+	if (send(sock, buf, bufsize, 0) != bufsize) {
 		_res_perror(addr, host, "write query");
-		return(-1);
+		return (-1);
 	}
 
-/*
- * Use non-blocking I/O to read the answer.
- */
+	/*
+	 * Use non-blocking I/O to read the answer.
+	 */
 	(void) _res_blocking(sock, FALSE);
 
-	return(bufsize);
+	return (bufsize);
 }
 
 /*
-** _RES_READ -- Read the answer buffer via a stream socket
+** _RES_READ -- Read the answer buffer via a datagram socket
 ** -------------------------------------------------------
 **
 **	Returns:
@@ -730,60 +681,54 @@ input int bufsize;			/* length of query buffer */
 
 int
 _res_read(sock, addr, host, buf, bufsize)
-input int sock;
-input struct sockaddr_in *addr;		/* the server address to connect to */
-input char *host;			/* name of server to connect to */
-output char *buf;			/* location of buffer to store answer */
-input int bufsize;			/* maximum size of answer buffer */
+	input int sock;			/* socket FD to read from */
+	input struct sockaddr_in *addr;	/* the server address to connect to */
+	input char *host;		/* name of server to connect to */
+	output char *buf;		/* location of buffer to store answer */
+	input size_t bufsize;		/* maximum size of answer buffer */
 {
 	u_short len;
 	char *buffer;
-	int buflen;
+	size_t buflen;
 	int reslen;			/* residue length.... */
 	register int n;
 
 	/* set stream timeout for recv_sock() */
 	timeout = READTIMEOUT;
 
-/*
- * Read the length of answer buffer.
- */
-	buffer = (char *)&len;
+	/*
+	 * Read the length of answer buffer.
+	 */
+	buffer = (char *) &len;
 	buflen = INT16SZ;
 
-	while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0)
-	{
+	while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0) {
 		buffer += n;
 		buflen -= n;
 	}
-
-	if (buflen != 0)
-	{
+	if (buflen != 0) {
 		_res_perror(addr, host, "recv_sock(): error reading answer length");
-		return(-1);
+		return (-1);
 	}
 
-/*
- * Terminate if length is zero.
- */
+	/*
+	 * Terminate if length is zero.
+	 */
 	/* len = ntohs(len); */
-	len = _getshort((u_char *)&len);
-	if (len == 0)
-	{
+	len = _getshort((u_char *) &len);
+	if (len == 0) {
 		errno = EINVAL;		
 		_res_perror(addr, host, "answer has length of zero");
-		return(0);
+		return (0);
 	}
 
-/*
- * Check for truncation.
- * Do not chop the returned length in case of buffer overflow.
- */
+	/*
+	 * Check for truncation.
+	 * Do not chop the returned length in case of buffer overflow.
+	 */
 	reslen = 0;
-	if ((int)len > bufsize)
-	{
-		if (bitset(RES_DEBUG, _res.options))
-		{
+	if ((int)len > bufsize) {
+		if (bitset(RES_DEBUG, _res.options)) {
 			printf("%sanswer length %d bytes, bufsize only %d bytes\n",
 				dbprefix, (int)len, bufsize);
 		}
@@ -791,98 +736,92 @@ input int bufsize;			/* maximum size of answer buffer */
 		/* len = bufsize; */
 	}
 
-/*
- * Read the answer itself.
- * Don't read more than we can fit in the supplied buffer.
- */
+	/*
+	 * Read the answer itself.
+	 * Don't read more than we can fit in the supplied buffer.
+	 */
 	buffer = buf;
 	buflen = (reslen > 0) ? bufsize : len;
 
-	while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0)
-	{
+	while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0) {
 		buffer += n;
 		buflen -= n;
 	}
-
-	if (buflen != 0)
-	{
+	if (buflen != 0) {
 		_res_perror(addr, host, "recv_sock(): error reading answer");
-		return(-1);
+		return (-1);
 	}
 
-/*
- * If we're truncating then discard the residue to keep connection in sync.
- */
-	if (reslen > 0)
-	{
-		HEADER *bp = (HEADER *)buf;
+	/*
+	 * If we're truncating then discard the residue to keep connection in sync.
+	 */
+	if (reslen > 0) {
+		HEADER *bp = (HEADER *) buf;
 		char resbuf[PACKETSZ];
 
 		buffer = resbuf;
 		buflen = (reslen < sizeof(resbuf)) ? reslen : sizeof(resbuf);
 
-		while (reslen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0)
-		{
+		while (reslen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0) {
 			reslen -= n;
 			buflen = (reslen < sizeof(resbuf)) ? reslen : sizeof(resbuf);
 		}
-
-		if (reslen != 0)
-		{
+		if (reslen != 0) {
 			_res_perror(addr, host, "read residu");
-			return(-1);
+			return (-1);
 		}
-
-		if (bitset(RES_DEBUG, _res.options))
-		{
+		if (bitset(RES_DEBUG, _res.options)) {
 			printf("%sresponse truncated to %d bytes\n",
 				dbprefix, bufsize);
 		}
-
 		/* set truncation flag */
 		bp->tc = 1;
 	}
 
-	return(len);
+	return (len);
 }
 
 /*
-** 
+** _RES_READ_STREAM -- Read the answer buffer via a stream socket
+** --------------------------------------------------------------
+**
+**	Returns:
+**		Length of (untruncated) answer if successfully received.
+**		-1 in case of failure (error message is issued).
+**
 */
 int
 _res_read_stream(sock, addr, host, buf, bufsize)
-input int sock;
-input struct sockaddr_in *addr;		/* the server address to connect to */
-input char *host;			/* name of server to connect to */
-output char *buf;			/* location of buffer to store answer */
-input int bufsize;			/* maximum size of answer buffer */
+	input int sock;			/* socket FD to read from */
+	input struct sockaddr_in *addr;	/* the server address to connect to */
+	input char *host;		/* name of server to connect to */
+	output char *buf;		/* location of buffer to store answer */
+	input size_t bufsize;		/* maximum size of answer buffer */
 {
 	char *buffer;
-	int buflen;
+	size_t buflen;
 	register int n;
 
 	/* set stream timeout for recv_sock() */
 	timeout = READTIMEOUT;
-/*
- * Read more of the answer itself.
- * Don't read more than we can fit in the supplied buffer.
- */
+
+	/*
+	 * Read more of the answer itself.
+	 * Don't read more than we can fit in the supplied buffer.
+	 */
 	buffer = buf;
 	buflen = bufsize;
 
-	while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0)
-	{
+	while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0) {
 		buffer += n;
 		buflen -= n;
 	}
-
-	if (buflen != 0)
-	{
+	if (buflen != 0) {
 		_res_perror(addr, host, "recv_sock(): error reading answer");
-		return(-1);
+		return (-1);
 	}
 
-	return(bufsize);
+	return (bufsize);
 }
 
 /*
@@ -901,9 +840,9 @@ input int bufsize;			/* maximum size of answer buffer */
 
 int
 recv_sock(sock, buffer, buflen)
-input int sock;
-output char *buffer;			/* current buffer address */
-input int buflen;			/* remaining buffer size */
+	input int sock;			/* socket FD to read from */
+	output char *buffer;		/* current buffer address */
+	input size_t buflen;		/* remaining buffer size */
 {
 	fd_set fds;
 	struct timeval wait;
@@ -914,17 +853,17 @@ input int buflen;			/* remaining buffer size */
 	wait.tv_usec = 0;
 rewait:
 	/* FD_ZERO(&fds); */
-	bzero((char *)&fds, sizeof(fds));
+	bzero((char *) &fds, sizeof(fds));
 	FD_SET(sock, &fds);
 
 	/* wait for the arrival of data, or timeout */
-	n = select(FD_SETSIZE, &fds, (fd_set *)NULL, (fd_set *)NULL, &wait);
+	n = select(FD_SETSIZE, &fds, (fd_set *) NULL, (fd_set *) NULL, &wait);
 	if (n < 0 && errno == EINTR)
 		goto rewait;
 	if (n == 0)
 		seterrno(ETIMEDOUT);
 	if (n <= 0)
-		return(-1);
+		return (-1);
 reread:
 	/* fake an error if nothing was actually read */
 	fromlen = sizeof(from);
@@ -935,7 +874,8 @@ reread:
 		goto rewait;
 	if (n == 0)
 		seterrno(ECONNRESET);
-	return(n);
+
+	return (n);
 }
 
 /*
@@ -954,18 +894,17 @@ reread:
 
 static int
 recv_sock(sock, buffer, buflen)
-input int sock;
-output char *buffer;			/* current buffer address */
-input int buflen;			/* remaining buffer size */
+	input int sock;			/* socket FD to read from */
+	output char *buffer;		/* current buffer address */
+	input int buflen;		/* remaining buffer size */
 {
 	int fromlen;
 	register int n;
 
-	if (setjmp(timer_buf) != 0)
-	{
+	if (setjmp(timer_buf) != 0) {
 		seterrno(ETIMEDOUT);
 		setalarm(0);
-		return(-1);
+		return (-1);
 	}
 
 	setsignal(SIGALRM, timer);
@@ -978,8 +917,10 @@ reread:
 		goto reread;
 	if (n == 0)
 		seterrno(ECONNRESET);
+
 	setalarm(0);
-	return(n);
+
+	return (n);
 }
 
 #endif /*BROKEN_SELECT*/
@@ -994,9 +935,9 @@ reread:
 
 void
 _res_perror(addr, host, message)
-input struct sockaddr_in *addr;		/* the server address to connect to */
-input char *host;			/* name of server to connect to */
-input char *message;			/* perror message string */
+	input struct sockaddr_in *addr;	/* the server address to connect to */
+	input char *host;		/* name of server to connect to */
+	input char *message;		/* perror message string */
 {
 	int save_errno = errno;		/* preserve state */
 
@@ -1012,4 +953,6 @@ input char *message;			/* perror message string */
 
 	/* restore state */
 	seterrno(save_errno);
+
+	return;
 }
