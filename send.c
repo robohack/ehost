@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.2 2002-01-11 22:15:31 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.3 2003-03-21 18:51:12 -0800 woods Exp $"
 
 #ifndef lint
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -32,7 +32,7 @@ ipaddr_t srcaddr = INADDR_ANY;	/* explicit source ip address */
 int minport = 0;		/* first source port in explicit range */
 int maxport = 0;		/* last  source port in explicit range */
 
-static int timeout;		/* connection read timeout */
+unsigned int timeout;		/* connection read timeout */
 
 #if !defined(NO_CONNECTED_DGRAM)
 static bool connected = TRUE;	/* we can use connected datagram sockets */
@@ -117,9 +117,10 @@ input int anslen;			/* maximum size of answer buffer */
 retry:
 		if (bitset(RES_DEBUG, _res.options))
 		{
-			printf("%sQuerying server (# %d) %s address = %s\n",
-				dbprefix, ns+1, v_circuit ? "tcp" : "udp",
-				inet_ntoa(addr->sin_addr));
+			printf("%sQuerying server (# %d) %s address = %s, accepting up to %d answer bytes\n",
+			       dbprefix, ns+1, v_circuit ? "tcp" : "udp",
+			       inet_ntoa(addr->sin_addr),
+			       anslen);
 		}
 
 		if (v_circuit)
@@ -323,7 +324,7 @@ input int anslen;			/* maximum size of answer buffer */
  * Read the answer buffer.
  */
 wait:
-	n = _res_read(srvsock, addr, host, (char *)answer, anslen);
+	n = _res_read(srvsock, addr, host, (char *)answer, anslen, 0);
 	if (n <= 0)
 	{
 		_res_close();
@@ -738,7 +739,7 @@ input int bufsize;			/* maximum size of answer buffer */
 	u_short len;
 	char *buffer;
 	int buflen;
-	int reslen;
+	int reslen;			/* residue length.... */
 	register int n;
 
 	/* set stream timeout for recv_sock() */
@@ -758,7 +759,7 @@ input int bufsize;			/* maximum size of answer buffer */
 
 	if (buflen != 0)
 	{
-		_res_perror(addr, host, "read answer length");
+		_res_perror(addr, host, "recv_sock(): error reading answer length");
 		return(-1);
 	}
 
@@ -768,7 +769,11 @@ input int bufsize;			/* maximum size of answer buffer */
 	/* len = ntohs(len); */
 	len = _getshort((u_char *)&len);
 	if (len == 0)
+	{
+		errno = EINVAL;		
+		_res_perror(addr, host, "answer has length of zero");
 		return(0);
+	}
 
 /*
  * Check for truncation.
@@ -777,13 +782,18 @@ input int bufsize;			/* maximum size of answer buffer */
 	reslen = 0;
 	if ((int)len > bufsize)
 	{
+		if (bitset(RES_DEBUG, _res.options))
+		{
+			printf("%sanswer length %d bytes, bufsize only %d bytes\n",
+				dbprefix, (int)len, bufsize);
+		}
 		reslen = len - bufsize;
 		/* len = bufsize; */
 	}
 
 /*
- * Read the answer buffer itself.
- * Truncate the answer is the supplied buffer is not big enough.
+ * Read the answer itself.
+ * Don't read more than we can fit in the supplied buffer.
  */
 	buffer = buf;
 	buflen = (reslen > 0) ? bufsize : len;
@@ -796,12 +806,12 @@ input int bufsize;			/* maximum size of answer buffer */
 
 	if (buflen != 0)
 	{
-		_res_perror(addr, host, "read answer");
+		_res_perror(addr, host, "recv_sock(): error reading answer");
 		return(-1);
 	}
 
 /*
- * Discard the residu to keep connection in sync.
+ * If we're truncating then discard the residue to keep connection in sync.
  */
 	if (reslen > 0)
 	{
@@ -837,6 +847,45 @@ input int bufsize;			/* maximum size of answer buffer */
 }
 
 /*
+** 
+*/
+int
+_res_read_stream(sock, addr, host, buf, bufsize)
+input int sock;
+input struct sockaddr_in *addr;		/* the server address to connect to */
+input char *host;			/* name of server to connect to */
+output char *buf;			/* location of buffer to store answer */
+input int bufsize;			/* maximum size of answer buffer */
+{
+	char *buffer;
+	int buflen;
+	register int n;
+
+	/* set stream timeout for recv_sock() */
+	timeout = READTIMEOUT;
+/*
+ * Read more of the answer itself.
+ * Don't read more than we can fit in the supplied buffer.
+ */
+	buffer = buf;
+	buflen = bufsize;
+
+	while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0)
+	{
+		buffer += n;
+		buflen -= n;
+	}
+
+	if (buflen != 0)
+	{
+		_res_perror(addr, host, "recv_sock(): error reading answer");
+		return(-1);
+	}
+
+	return(bufsize);
+}
+
+/*
 ** RECV_SOCK -- Read from stream or datagram socket with timeout
 ** -------------------------------------------------------------
 **
@@ -850,7 +899,7 @@ input int bufsize;			/* maximum size of answer buffer */
 **		Sets ``from'' to the address of the packet sender.
 */
 
-static int
+int
 recv_sock(sock, buffer, buflen)
 input int sock;
 output char *buffer;			/* current buffer address */
