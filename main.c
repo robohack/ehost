@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.15 2003-04-05 03:30:35 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.16 2003-04-06 03:18:57 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -277,7 +277,7 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
  * -y
  */
 
-static char Usage[] =
+static char usage_msg[] =
 "\
 Usage:      host [-v] [-a] [-t querytype] [options]  name  [server]\n\
 Long Help:  host --help\n\
@@ -318,6 +318,7 @@ static char Help[] =
 	  --nothing		no resource record output during zone listing\n\
 	  --parent		use only the nameservers from the parent zone\n\
 -p	  --primary		get answers from soa primary nameserver only\n\
+-P list  --prefserver=list	set the preferred nameservers (comma sep list)\n\
 -Q	  --quick		skip time consuming special checks\n\
 -q	  --quiet		suppress all non-fatal warning messages\n\
 	  --recursive		zone listing with infinite recursion level\n\
@@ -359,6 +360,8 @@ static char *logfilename = NULL;	/* name of log file to store output */
 static char *cachedirname = NULL;	/* name of local cache directory */
 
 char *argv0 = "HOST";		/* name that host was called with */
+
+static void usage_error __P((const char *, ...));
 
 int
 main(argc, argv)
@@ -412,7 +415,7 @@ main(argc, argv)
 	 * Interpolate default options and parameters.
 	 */
 	if (argc < 1 || argv[0] == NULL)
-		fatal(Usage);
+		usage_error(usage_msg);
 
 	if ((option = getenv("HOST_DEFAULTS"))) {
 		set_defaults(option, argc, argv);
@@ -465,10 +468,10 @@ main(argc, argv)
 
 			case 'c' :
 				if (is_empty(argv[2]) || argv[2][0] == '-')
-					fatal("Missing query class");
+					usage_error("Missing query class");
 				queryclass = parse_class(argv[2]);
 				if (queryclass < 0)
-					fatal("Invalid query class %s", argv[2]);
+					usage_error("Invalid query class %s", argv[2]);
 				argv++; argc--;
 				break;
 
@@ -487,7 +490,7 @@ main(argc, argv)
 
 			case 'f' :
 				if (is_empty(argv[2]) || argv[2][0] == '-')
-					fatal("Missing log file name");
+					usage_error("Missing log file name");
 				logfilename = argv[2];
 				argv++; argc--;
 				break;
@@ -517,7 +520,7 @@ main(argc, argv)
 
 			case 'I' :
 				if (argv[2] == NULL || argv[2][0] == '-')
-					fatal("Missing allowed chars");
+					usage_error("Missing allowed chars");
 				illegal = argv[2];
 				argv++; argc--;
 				break;
@@ -569,7 +572,7 @@ main(argc, argv)
 
 			case 'N' :
 				if (is_empty(argv[2]) || argv[2][0] == '-')
-					fatal("Missing zone to be skipped");
+					usage_error("Missing zone to be skipped");
 				skipzone = argv[2];
 				argv++; argc--;
 				break;
@@ -580,10 +583,10 @@ main(argc, argv)
 
 			case 'O' :
 				if (is_empty(argv[2]) || argv[2][0] == '-')
-					fatal("Missing source address");
+					usage_error("Missing source address");
 				srcaddr = inet_addr(argv[2]);
 				if (srcaddr == NOT_DOTTED_QUAD)
-					fatal("Invalid source address %s", argv[2]);
+					usage_error("Invalid source address %s", argv[2]);
 				argv++; argc--;
 				break;
 
@@ -593,7 +596,7 @@ main(argc, argv)
 
 			case 'P' :
 				if (is_empty(argv[2]) || argv[2][0] == '-')
-					fatal("Missing preferred server");
+					usage_error("Missing preferred server");
 				prefserver = argv[2];
 				argv++; argc--;
 				break;
@@ -633,10 +636,10 @@ main(argc, argv)
 
 			case 't' :
 				if (is_empty(argv[2]) || argv[2][0] == '-')
-					fatal("Missing query type");
+					usage_error("Missing query type");
 				querytype = parse_type(argv[2]);
 				if (querytype < 0)
-					fatal("Invalid query type %s", argv[2]);
+					usage_error("Invalid query type %s", argv[2]);
 				argv++; argc--;
 				break;
 
@@ -661,7 +664,7 @@ main(argc, argv)
 
 			case 'X' :
 				if (is_empty(argv[2]) || argv[2][0] == '-')
-					fatal("Missing server name");
+					usage_error("Missing server name");
 				servername = argv[2];
 				argv++; argc--;
 				/*FALLTHROUGH*/
@@ -694,12 +697,12 @@ main(argc, argv)
 				printf("Host version %s, BIND-4 resolver API version: %d\n", version, __BIND);
 #elif defined(BIND_4_8) && defined(BIND_RES_SEND)
 				printf("Host version %s, BIND 4.8.x resolver\n", version);
-#elif defined(BIND_4_9) && defined(BIND_RES_SEND)
-				printf("Host version %s, BIND 4.9.x resolver\n", version);
 #elif defined(__NAMESER) && defined(HOST_RES_SEND)
 				printf("Host version %s, using private res_send() with BIND-8 resolver API version %d\n", version, __NAMESER);
 #elif defined(__BIND) && defined(HOST_RES_SEND)
 				printf("Host version %s, using private res_send() with BIND-4 resolver API version %d\n", version, __BIND);
+#elif defined(BIND_4_8) && defined(HOST_RES_SEND)
+				printf("Host version %s, using private res_send() with BIND 4.8.x resolver\n", version);
 #elif defined(HOST_RES_SEND)
 				printf("Host version %s, using private res_send() with very old or non-BIND headers\n", version);
 #else
@@ -709,7 +712,7 @@ main(argc, argv)
 				/* NOTREACHED */
 
 			default:
-				fatal(Usage);
+				usage_error(usage_msg);
 			}
 		}
 
@@ -721,7 +724,7 @@ main(argc, argv)
 	 */
 	/* old syntax must have at least one argument */
 	if (!extended && (argc < 2 || argv[1] == NULL || argc > 3))
-		fatal(Usage);
+		usage_error(usage_msg);
 
 	/* old syntax has explicit server as second argument */
 	if (!extended && (argc > 2 && argv[2] != NULL))
@@ -731,16 +734,16 @@ main(argc, argv)
 	 * Check for incompatible options.
 	 */
 	if ((querytype < 0) && !listmode)
-		fatal("No query type specified");
+		usage_error("No query type specified");
 
 	if (loadzone && (servername != NULL))
-		fatal("Conflicting options load and server");
+		usage_error("Conflicting options load and server");
 
 	if (parent && (servername != NULL))
-		fatal("Conflicting options --parent and server");
+		usage_error("Conflicting options --parent and server");
 
 	if (loadzone && dumpzone)
-		fatal("Conflicting options load and dump");
+		usage_error("Conflicting options load and dump");
 
 	/*
 	 * Open log file if requested.
@@ -757,8 +760,10 @@ main(argc, argv)
 	/*
 	 * Set default preferred server for zone listings, if not specified.
 	 */
-	if (listmode && !checkmode && (prefserver == NULL))
-		prefserver = myhostname();
+	if (listmode && !checkmode && !prefserver) {
+		if (!(prefserver = myhostname()))
+			fprintf(stderr, "Nameserver selection will be random, use -P for more control\n");
+	}
 
 	/*
 	 * Check for possible alternative server. Use new resolver defaults.
@@ -889,18 +894,18 @@ getval(optstring, optname, minvalue, maxvalue)
 	register int optvalue;
 
 	if (is_empty(optstring) || optstring[0] == '-')
-		fatal("Missing %s", optname);
+		usage_error("Missing %s", optname);
 
 	optvalue = atoi(optstring);
 
 	if (optvalue == 0 && optstring[0] != '0')
-		fatal("Invalid %s %s", optname, optstring);
+		usage_error("Invalid %s %s", optname, optstring);
 
 	if (optvalue < minvalue)
-		fatal("Minimum %s %s", optname, dtoa(minvalue));
+		usage_error("Minimum %s %s", optname, dtoa(minvalue));
 
 	if (maxvalue > 0 && optvalue > maxvalue)
-		fatal("Maximum %s %s", optname, dtoa(maxvalue));
+		usage_error("Maximum %s %s", optname, dtoa(maxvalue));
 
 	return (optvalue);
 }
@@ -994,10 +999,10 @@ cvtopt(optstring)
 
 	if (sameword(optstring, "class")) {
 		if (is_empty(value) || value[0] == '-')
-			fatal("Missing query class");
+			usage_error("Missing query class");
 		queryclass = parse_class(value);
 		if (queryclass < 0)
-			fatal("Invalid query class %s", value);
+			usage_error("Invalid query class %s", value);
 		return ("-");
 	}
 
@@ -1008,14 +1013,14 @@ cvtopt(optstring)
 
 	if (sameword(optstring, "file")) {
 		if (is_empty(value) || value[0] == '-')
-			fatal("Missing log file name");
+			usage_error("Missing log file name");
 		logfilename = value;
 		return ("-");
 	}
 
 	if (sameword(optstring, "server")) {
 		if (is_empty(value) || value[0] == '-')
-			fatal("Missing server name");
+			usage_error("Missing server name");
 		servername = value;
 		return ("-");
 	}
@@ -1027,10 +1032,10 @@ cvtopt(optstring)
 
 	if (sameword(optstring, "type")) {
 		if (is_empty(value) || value[0] == '-')
-			fatal("Missing query type");
+			usage_error("Missing query type");
 		querytype = parse_type(value);
 		if (querytype < 0)
-			fatal("Invalid query type %s", value);
+			usage_error("Invalid query type %s", value);
 		return ("-");
 	}
 
@@ -1058,7 +1063,7 @@ cvtopt(optstring)
 			int period = convtime(value, 'd');
 
 			if (period < 0 || period > now)
-				fatal("Invalid time period %s", value);
+				usage_error("Invalid time period %s", value);
 
 			/* set absolute time in the past */
 			loadtime = now - period;
@@ -1087,6 +1092,13 @@ cvtopt(optstring)
 
 	if (sameword(optstring, "parent")) {
 		parent = TRUE;
+		return ("-");
+	}
+
+	if (sameword(optstring, "prefserver")) {
+		if (is_empty(value) || value[0] == '-')
+			usage_error("Missing prefserver name");
+		prefserver = value;
 		return ("-");
 	}
 
@@ -1120,12 +1132,12 @@ cvtopt(optstring)
 	}
 
 	if (sameword(optstring, "usage")) {
-		printf("%s\n", Usage);
+		printf("%s\n", usage_msg);
 		exit(EX_OK);
 	}
 
 	if (*optstring != '\0')
-		fatal("Unrecognized option %s", optstring);
+		usage_error("Unrecognized option %s", optstring);
 
 	/* just ignore */
 	return ("-");
@@ -1599,7 +1611,7 @@ myhostname()
 		if (!(hp = gethostbyname(mynamebuf))) {
 			ns_error(mynamebuf, T_A, C_IN, server);
 			errmsg("Error in looking up own name");
-			exit(EX_NOHOST);
+			return (NULL);
 		}
 
 		/* cache the result */
@@ -1767,12 +1779,11 @@ set_cachedir(filename)
 */
 
 /*VARARGS1*/
+static void
 #ifdef __STDC__
-void
-fatal(const char *fmt, ...)
+usage_error(const char *fmt, ...)
 #else
-void
-fatal(fmt, va_alist)
+usage_error(fmt, va_alist)
 	input const char *fmt;		/* format of message */
 	va_dcl				/* arguments for printf */
 #endif
@@ -1785,38 +1796,4 @@ fatal(fmt, va_alist)
 	(void) fprintf(stderr, "\n");
 
 	exit(EX_USAGE);
-}
-
-
-/*
-** ERRMSG -- Issue error message to error output
-** ---------------------------------------------
-**
-**	Returns:
-**		None.
-**
-**	Side effects:
-**		Increments the global error count.
-*/
-
-/*VARARGS1*/
-#ifdef __STDC__
-void
-errmsg(const char *fmt, ...)
-#else
-void
-errmsg(fmt, va_alist)
-	input const char *fmt;		/* format of message */
-	va_dcl				/* arguments for printf */
-#endif
-{
-	va_list ap;
-
-	VA_START(ap, fmt);
-	(void) vfprintf(stderr, fmt, ap);
-	va_end(ap);
-	(void) fprintf(stderr, "\n");
-
-	/* flag an error */
-	errorcount++;
 }
