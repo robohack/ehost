@@ -4,7 +4,7 @@
 ** from: @(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: host.h,v 1.14 2003-06-05 01:01:03 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.15 2004-08-12 20:25:56 -0800 woods Exp $"
 
 #if defined(apollo) && defined(lint)
 # define __attribute(x)		/* XXX ??? */
@@ -109,8 +109,8 @@
 #endif
 
 #define NOT_DOTTED_QUAD	((ipaddr_t) -1)
-#define BROADCAST_ADDR	((ipaddr_t) 0xffffffff)
-#define LOCALHOST_ADDR	((ipaddr_t) 0x7f000001)
+#define BROADCAST_ADDR	((ipaddr_t) 0xffffffffU)
+#define LOCALHOST_ADDR	((ipaddr_t) 0x7f000001U)
 
 #if !defined(PACKETSZ) && defined(IP_MAXPACKET)
 # define PACKETSZ	IP_MAXPACKET
@@ -180,7 +180,7 @@ extern res_state_t _res;		/* defined in res_init.c */
 
 #define zeroname(a)	(samehead(a, "0.") || samehead(a, "255."))
 #define fakename(a)	(samehead(a, "localhost.") || samehead(a, "loopback."))
-#define nulladdr(a)	(((a) == 0) || ((a) == BROADCAST_ADDR))
+#define nulladdr(a)	(((a) == 0) || ((a) == htonl(BROADCAST_ADDR))) /* note htonl() not really needed */
 #define fakeaddr(a)	(nulladdr(a) || ((a) == htonl(LOCALHOST_ADDR)))
 #define incopy(a)	*((const struct in_addr *) (a))
 #define querysize(n)	(((size_t ) (n) > sizeof(querybuf_t)) ? ((int) sizeof(querybuf_t)) : (n))
