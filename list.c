@@ -17,6 +17,8 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.2 2002-01-12 01:00:54 -0800 woods Exp $"
+
 #ifndef lint
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
 #endif
@@ -634,7 +636,50 @@ input char *name;			/* name of zone to process */
 	return((errorcount == 0) ? TRUE : FALSE);
 }
 
-/*
+
+/*
+** USE_SERVERS -- prepare to use the first MAXNS addresses of the auth servers
+** ---------------------------------------------------------------------------
+**
+**	Returns:
+**		TRUE if servers could be determined successfully.
+**		FALSE otherwise.
+**
+**	Outputs:
+**		The resolver is initialised to use the discovered servers.
+*/
+
+bool
+use_servers(name)
+input char *name;
+{
+	register int n, i;
+
+	if (find_servers(name) == FALSE || nservers < 1)
+	{
+		errmsg("No nameservers for %s found", name);
+		return(FALSE);
+	}
+	/* reset list of nameservers to none */
+	_res.nscount = 0;
+	/* load the nameserver addresses into nslist */
+	for (n = 0; n < nservers; n++)
+	{
+		if (naddrs[n] < 1)
+			continue;	/* shortcut */
+		server = nsname[n];
+		for (i = _res.nscount; i < MAXNS && i < naddrs[n]; i++)
+		{
+			nslist(i).sin_family = AF_INET;
+			nslist(i).sin_port = htons(NAMESERVER_PORT);
+			nslist(i).sin_addr = ipaddr[n][i];
+		}
+		_res.nscount += i;
+	}
+	return(TRUE);
+}
+
+/*
 ** FIND_SERVERS -- Fetch names and addresses of authoritative servers
 ** ------------------------------------------------------------------
 **
@@ -1655,7 +1700,7 @@ start:
 		if (bp->rcode != NOERROR || ancount == 0)
 		{
 			if (verbose || debug)
-				print_answer(&answer, n);
+				print_answer(&answer, n, T_AXFR);
 
 			switch (bp->rcode)
 			{
