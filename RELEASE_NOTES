@@ -1,5 +1,6 @@
+# -*-indented-text-*-
 #
-#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.6 2003-04-03 16:31:42 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.7 2003-04-06 03:46:56 -0800 woods Exp $"
 #
 
 	URL:		ftp://ftp.weird.com/pub/local/host.tar.gz
@@ -9,7 +10,7 @@
 
 Contents:
 
-<release date>	Description of changes per release
+<release date>	Description of important user-visible changes per release
 TODO		Things that still need to be done
 WISHLIST	Wishes expressed by various people
 NOTES		Important issues to keep in mind
@@ -19,6 +20,21 @@ HOSTCOUNT	The RIPE NCC monthly European hostcount
 # ----------------------------------------------------------------------
 # Description of important user-visible changes per release
 # ----------------------------------------------------------------------
+
+2003/04/05
+
+	- the -A "address-check" mode has been fixed so that it only
+	  reports true problems, not mis-matched "official" hostnames
+	  (since there is no such thing in the DNS).  (note that the
+	  issue mentioned in the 991527 notes still exists)
+
+	- host no longer needs to know the system hostname, though it
+          will warn if it can't be found and verified and if '-P'
+          doesn't give an alternate preferred nameserver domain.
+
+	- the undocumented --dump and --load disk cache options work (again?).
+
+	- fixed various other minor bugs, some old, some new.
 
 2003/03/31-Patch.1
 
