@@ -1,20 +1,26 @@
-- util.c:canonical() should not use geth_byname() but should use
-  get_info(T_A) so as to avoid accidentally seeing YP or /etc/hosts
-  entries that would not actually be valid.  Note that fixing this
-  involves makeing sure callers and users of the return status that
-  get_info() stores in h_errno don't accidentally assume it's a valid
-  input to h_strerror().  This will fix the problem with /etc/hosts
-  entries causing fake "not canonical" errors when the wrong hostname
-  appears in h_hname.
+HOST ToDo -- Things that could be fixed/improved/added.
+
+Patches to close any of these items will be gratefully accepted!  Other
+suggestions and comments are also encouraged.
 
 - implement host_h_strerror() to return descriptions for extended error
   codes from get_info() -- or maybe don't over-load h_errno in
   get_hinfo() but instead also implement global host_errno?
 
+- util.c:canonical() should not use geth_byname() but should only use
+  the results from the get_info(T_A) so as to avoid accidentally seeing
+  YP or /etc/hosts entries that would not actually be valid.  Note that
+  fixing this involves makeing sure callers and users of the return
+  status that get_info() stores in h_errno don't accidentally assume
+  it's a valid input to h_strerror().  This will fix the problem with
+  /etc/hosts entries causing fake "not canonical" errors when the wrong
+  hostname appears in h_hname.
+
 - do not use gethostbyname()/gethostbyaddr() or their newer replacements
-  to do basic A and PTR lookups and checks, but instead use the
-  low-level interfaces.  Provide separate options for using those
-  functions just so that the native implementations can be tested.
+  to do basic A and PTR lookups and checks [i.e. addr.c:check_addr() and
+  addr.c:check_name()], but instead use the low-level interfaces.
+  Provide separate options for using those functions just so that the
+  native implementations can be tested.
 
 - check that the names in the answer records match the names we asked
   for (taking CNAMEs into account where they're allowed).
