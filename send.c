@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.9 2003-03-31 21:06:33 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.10 2003-04-03 18:27:38 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -38,6 +38,8 @@ static struct sockaddr_in from;	/* address of inbound packet */
 static struct sockaddr *from_sa = (struct sockaddr *) &from;
 
 #ifdef HOST_RES_SEND
+
+static int srvsock = -1;	/* socket descriptor */
 
 /*
 ** RES_SEND -- Send nameserver query and retrieve answer
@@ -170,33 +172,6 @@ retry:
 }
 
 /*
-** _RES_CLOSE -- Close an open stream or dgram connection
-** ------------------------------------------------------
-**
-**	Returns:
-**		None.
-*/
-
-static int srvsock = -1;	/* socket descriptor */
-
-void
-_res_close()
-{
-	int save_errno = errno;		/* preserve state */
-
-	/* close the connection if open */
-	if (srvsock >= 0) {
-		(void) close(srvsock);
-		srvsock = -1;
-	}
-
-	/* restore state */
-	seterrno(save_errno);
-
-	return;
-}
-
-/*
 ** CHECK_FROM -- Make sure the response comes from a known server
 ** --------------------------------------------------------------
 **
@@ -274,7 +249,7 @@ send_stream(addr, query, querylen, answer, anslen)
 	if (_res_connect(srvsock, addr, sizeof(*addr)) < 0) {
 		if (bitset(RES_DEBUG, _res.options))
 			_res_perror(addr, host, "connect");
-		_res_close();
+		(void) _res_close(srvsock);
 		return (-1);
 	}
 	if (bitset(RES_DEBUG, _res.options)) {
@@ -285,7 +260,7 @@ send_stream(addr, query, querylen, answer, anslen)
 	 * Send the query buffer.
 	 */
 	if (_res_write(srvsock, addr, host, (char *) query, querylen) < 0) {
-		_res_close();
+		(void) _res_close(srvsock);
 		return (-1);
 	}
 
@@ -294,7 +269,7 @@ send_stream(addr, query, querylen, answer, anslen)
 	 */
 wait:
 	if ((n = _res_read(srvsock, addr, host, (char *) answer, anslen, 0)) < 0) {
-		_res_close();
+		(void) _res_close(srvsock);
 		return (-1);
 	}
 
@@ -312,7 +287,7 @@ wait:
 	/*
 	 * Never leave the socket open.
 	 */
-	_res_close();
+	(void) _res_close(srvsock);
 
 	return (n);
 }
@@ -364,7 +339,7 @@ send_dgram(addr, query, querylen, answer, anslen)
 	if (connected) {
 		if (connect(srvsock, (struct sockaddr *) addr, sizeof(*addr)) < 0) {
 			_res_perror(addr, host, "connect");
-			_res_close();
+			(void) _res_close(srvsock);
 			return (-1);
 		}
 	}
@@ -381,7 +356,7 @@ send_dgram(addr, query, querylen, answer, anslen)
 	if (n != querylen) {
 		if (bitset(RES_DEBUG, _res.options))
 			_res_perror(addr, host, "send");
-		_res_close();
+		(void) _res_close(srvsock);
 		return (-1);
 	}
 
@@ -392,7 +367,7 @@ wait:
 	if ((n = recv_sock(srvsock, (char *) answer, anslen)) < 0) {
 		if (bitset(RES_DEBUG, _res.options))
 			_res_perror(addr, host, "recvfrom");
-		_res_close();
+		(void) _res_close(srvsock);
 		return (-1);
 	}
 
@@ -422,7 +397,7 @@ wait:
 	/*
 	 * Never leave the socket open.
 	 */
-	_res_close();
+	(void) _res_close(srvsock);
 
 	return (n);
 }
@@ -508,6 +483,22 @@ _res_socket(family, type, protocol)
 
 	/* socket with random source address/port */
 	return (sock);
+}
+
+/*
+** _RES_CLOSE -- close the socket
+** --------------------------------------------------------
+**
+**	Returns:
+**		0 if close() was successful.
+**		-1 in case of failure.
+*/
+
+int
+_res_close(sock)
+	input int sock;
+{
+	return close(sock);
 }
 
 /*
@@ -675,9 +666,12 @@ _res_write(sock, addr, host, buf, bufsize)
 **	only the portion that fits will be stored, the residu will be
 **	flushed, and the truncation flag will be set.
 **
-**	Note. The returned length is that of the *un*truncated answer,
+**	Note:  The returned length is that of the *un*truncated answer,
 **	however, and not the amount of data that is actually available.
 **	This may give the caller a hint about new buffer reallocation.
+**
+**	Note:  This function is currently not used if HOST_RES_SEND is not
+**	defined, though all of it's companions are used in list.c.
 */
 
 int
@@ -704,9 +698,7 @@ _res_read(sock, addr, host, buf, bufsize)
 	buflen = INT16SZ;
 
 	while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0) {
-#if 0
 		buffer += n;
-#endif
 		buflen -= n;
 	}
 	if (buflen != 0) {
@@ -730,7 +722,7 @@ _res_read(sock, addr, host, buf, bufsize)
 
 	/*
 	 * Check for truncation.
-	 * Do not chop the returned length in case of buffer overflow.
+	 * Do not chop the returned length (len) in case of buffer overflow.
 	 */
 	reslen = 0;
 	if (len > bufsize) {
@@ -739,9 +731,6 @@ _res_read(sock, addr, host, buf, bufsize)
 			       dbprefix, (unsigned int) len, (unsigned long) bufsize);
 		}
 		reslen = len - bufsize;
-#if 0
-		len = bufsize;
-#endif
 	}
 
 	/*
@@ -752,9 +741,7 @@ _res_read(sock, addr, host, buf, bufsize)
 	buflen = (reslen > 0) ? bufsize : len;
 
 	while (buflen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0) {
-#if 0
 		buffer += n;
-#endif
 		buflen -= n;
 	}
 	if (buflen != 0) {
@@ -767,14 +754,14 @@ _res_read(sock, addr, host, buf, bufsize)
 	 */
 	if (reslen > 0) {
 		HEADER *bp = (HEADER *) buf;
-		char resbuf[PACKETSZ];
+		char junkresbuf[PACKETSZ];
 
-		buffer = resbuf;
-		buflen = (reslen < sizeof(resbuf)) ? reslen : sizeof(resbuf);
+		buffer = junkresbuf;
+		buflen = (reslen < sizeof(junkresbuf)) ? reslen : sizeof(junkresbuf);
 
 		while (reslen > 0 && (n = recv_sock(sock, buffer, buflen)) > 0) {
 			reslen -= n;
-			buflen = (reslen < sizeof(resbuf)) ? reslen : sizeof(resbuf);
+			buflen = (reslen < sizeof(junkresbuf)) ? reslen : sizeof(junkresbuf);
 		}
 		if (reslen != 0) {
 			_res_perror(addr, host, "read residu");
