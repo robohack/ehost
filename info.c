@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.19 2003-11-17 05:29:26 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.20 2003-12-04 03:29:00 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -472,12 +472,6 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 			if (type == T_AXFR)
 				update_zone(name);
 
-#if 0
-			/* we trace down CNAME chains ourselves */
-			if (regular && !verbose && cname)
-				return (TRUE);
-#endif
-
 			/* recursively expand MR/MG records into MB records */
 			if (regular && mailmode && mname)
 				(void) get_recursive(&mname);
@@ -683,12 +677,20 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 
 	/*
 	 * Decide whether or not to print this resource record.
+	 *
+	 * Note this is not the same as "listmode" which is global and set from
+	 * the command line since this function may be called recursively to
+	 * print results of canonical checks and such.
 	 */
 	listing = (qtype == T_AXFR || qtype == T_IXFR) ? TRUE : FALSE;
 
 	if (listing) {
 		classmatch = want_class(class, queryclass);
-		doprint = classmatch && want_type(type, qtype);
+		/*
+		 * In listmode, the querytype from the command-line is used to
+		 * filter out the proper records
+		 */
+		doprint = classmatch && want_type(type, querytype);
 	} else {
 		classmatch = want_class(class, C_ANY);
 		doprint = classmatch && want_type(type, T_ANY);
@@ -1462,6 +1464,9 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	if (quiet || quick)
 		return (cp);
 
+	if (regular && doprint && cname && cnamecheck && sameword(cname, rname))
+		pr_warning("will query explicitly for %s again.  Check against previous.", rname);
+
 	/*
 	 * Check for resource records with a zero TTL value. They are not
 	 * cached.  This may lead to problems, e.g. when retrieving MX records
@@ -1469,7 +1474,7 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	 * A record.  Certain resource records always have a zero TTL value,
 	 * e.g. the class-CH "version.bind" record.
 	 */
-	if ((ttl == 0) && (class == C_IN) && (type != T_SIG)) {
+	if ((ttl == 0) && (class == C_IN) && (type != T_SIG) && (type != T_SOA)) {
 		pr_warning("%s %s record has zero TTL",
 			   rname, pr_type(type));
 	}
@@ -1509,26 +1514,44 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	 * By default this test is suppressed during deep recursive zone
 	 * listings.  Results are cached globally, not on a per-zone basis.
 	 */
-	if (!canonskip && should_test_canon(type) && ((n = check_canon(dname)) != 0)) {
+	if (canonskip) {
+		static bool_t notwarned = FALSE;
+
+		if (verbose && !notwarned) {
+			pr_warning("skipping canonical checks -- %s may not be recursive",
+				   server ? server : "specified nameserver");
+			notwarned = TRUE;
+		}
+	} else if (should_test_canon(type) && ((n = check_canon(dname)) != 0)) {
 		/* only report definitive target host failures */
+		/*
+		 * XXX server is not likely, and probably should never be, set
+		 * when canonskip is set.
+		 */
 		if (n == HOST_NOT_FOUND) {
-			pr_error("%s %s host %s does not exist",
-				 rname, pr_type(type), dname);
+			pr_error("%s %s host %s does not exist%s%s",
+				 rname, pr_type(type), dname,
+				 server ? " at " : "",
+				 server ? server : "");
 		} else if (n == NO_DATA) {
-			pr_error("%s %s host %s has no A record",
-				 rname, pr_type(type), dname);
+			pr_error("%s %s host %s has no A record%s%s",
+				 rname, pr_type(type), dname,
+				 server ? " at " : "",
+				 server ? server : "");
 		} else if (n == HOST_NOT_CANON) {
 			pr_error("%s %s host %s is not canonical",
 				 rname, pr_type(type), dname);
 		} else if (n) {
-			pr_error("%s %s host %s: %s",
-				 rname, pr_type(type), dname, hstrerror(n)); /* XXX host_hstrerror() */
+			pr_error("%s %s host %s: %s%s%s",
+				 rname, pr_type(type), dname, hstrerror(n), /* XXX host_hstrerror() */
+				 server ? " at " : "",
+				 server ? server : "");
 		}
 		/* authoritative failure to find nameserver target host */
 		if (type == T_NS && (n == NO_DATA || n == HOST_NOT_FOUND)) {
 			if (server == NULL) {
-				errmsg("%s has lame delegation to %s",
-				       rname, dname);
+				pr_error("Bad NS!  %s has lame delegation to %s",
+					 rname, dname);
 			}
 		}
 	}
@@ -1547,20 +1570,26 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	 * or host 255 entries, indicating network names as suggested by RFC
 	 * 1101.
 	 */
-	if (addrmode && should_test_ptr(type, rname) && ((n = canonical(dname)) != 0)) {
+	if (addrmode && should_test_ptr(type, rname) && ((n = check_canon(dname)) != 0)) {
 		/* only report definitive target host failures */
 		if (n == HOST_NOT_FOUND) {
-			pr_warning("%s %s host %s does not exist",
-				   rname, pr_type(type), dname);
+			pr_warning("%s %s host %s does not exist%s%s",
+				   rname, pr_type(type), dname,
+				   server ? " at " : "",
+				   server ? server : "");
 		} else if (n == NO_DATA) {
-			pr_warning("%s %s host %s has no A record",
-				   rname, pr_type(type), dname);
+			pr_warning("%s %s host %s has no A record%s%s",
+				   rname, pr_type(type), dname,
+				   server ? " at " : "",
+				   server ? server : "");
 		} else if (n == HOST_NOT_CANON) {
 			pr_warning("%s %s host %s is not canonical",
 				   rname, pr_type(type), dname);
 		} else if (n) {
-			pr_error("%s %s host %s: %s",
-				 rname, pr_type(type), dname, hstrerror(n)); /* XXX host_hstrerror() */
+			pr_error("%s %s host %s: %s%s%s",
+				 rname, pr_type(type), dname, hstrerror(n), /* XXX host_hstrerror() */
+				 server ? ", using " : "",
+				 server ? server : "");
 		}
 	}
 
@@ -1693,8 +1722,8 @@ skip_qrec(name, qtype, qclass, cp, msg, eom)
 	class = ns_get16(cp);
 	cp += INT16SZ;
 
-	if (debug)
-		printf("%-20s\t%s\t%s\n", rname, pr_class(class), pr_type(type));
+	if (debug > 1)
+		printf("SKIPPING RR: %-20s\t%s\t%s\n", rname, pr_class(class), pr_type(type));
 
 	/*
 	 * The values in the answer should match those in the query.
@@ -1743,6 +1772,9 @@ get_recursive(name)
 		errmsg("Recursion too deep");
 		return (FALSE);
 	}
+
+	if (verbose >= print_level+1)
+		printf("Recursing into get_hostinfo(%s, TRUE) at level %d\n", *name, level+1);
 
 	/* save local copy, and reset indicator */
 	newname = strcpy(newnamebuf, *name);
