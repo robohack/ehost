@@ -5,7 +5,7 @@
 #
 #	make -f Makefile.BSD __NetBSD__=1 __GNUC__=2 __GNULD__=2
 #
-#ident	"@(#)host:$Name:  $:$Id: Makefile.BSD,v 1.10 2003-11-17 05:28:42 -0800 woods Exp $"
+#ident	"@(#)host:$Name:  $:$Id: Makefile.BSD,v 1.11 2004-08-12 19:31:41 -0800 woods Exp $"
 #
 
 # are we running in the full NetBSD build environment?
@@ -81,10 +81,11 @@ SCRIPTS += nslookup
 .endif
 CLEANFILES += ${SCRIPTS}
 
-DOCS =	RELEASE_NOTES
+MANS =	host.1
+DOCS =	RELEASE_NOTES ToDo
 MISCS = malloc.c README_NT
 
-ALL_FILES = Makefile Makefile.BSD $(DOCS) $(HDRS) $(SRCS) $(MANS) $(UTILS) $(MISCS)
+ALL_FILES = Makefile Makefile.BSD $(DOCS) $(HDRS) $(SRCS) $(MANS) $(MISCS)
 
 # GCC apparently has buggy parameter width detection
 NOGCCERROR = 1
@@ -178,40 +179,22 @@ SOELIM = soelim
 	chmod +x $@
 
 .if !target(clobber)
+.PHONY: clobber
 clobber: .NOTMAIN cleandir
 .endif
 
 BSDSRCDIR ?=	/usr/src
 
-ALL_SOURCES =	RELEASE_NOTES			\
-		ToDo				\
-		addr.c				\
-		conf.h				\
-		defs.h				\
-		exit.h				\
-		file.c				\
-		geth.c				\
-		glob.h				\
-		host.1				\
-		host.h				\
-		info.c				\
-		list.c				\
-		main.c				\
-		malloc.c			\
-		misc.c				\
-		mxlookup.sh			\
-		nscheck.sh			\
-		nslookup.sh			\
-		port.h				\
-		rblookup.sh			\
-		rrec.h				\
-		send.c				\
-		test.c				\
-		type.h				\
-		util.c				\
-		vers.c
+ALL_SOURCES =	${DOCS}				\
+		${MANS}				\
+		${SRCS}				\
+		${HEADERS}			\
+		${SCRIPT_SRCS}
 
+SRCINSTDIR ?=	$(BSDSRCDIR)/usr.bin/host
 
-host2netbsd:
-	cp Makefile.BSD $(BSDSRCDIR)/usr.bin/host/Makefile
-	cp $(ALL_SOURCES) $(BSDSRCDIR)/usr.bin/host
+.PHONY: host2netbsd
+host2netbsd: ${ALL_SOURCES} Makefile
+	${INSTALL_DIR} ${SRCINSTDIR}
+	cp Makefile.BSD ${SRCINSTDIR}/Makefile
+	cp $(ALL_SOURCES) ${SRCINSTDIR}
