@@ -1,4 +1,4 @@
-#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 970830
+#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 971216
 
 # ----------------------------------------------------------------------
 # Adapt the installation directories to your local standards.
@@ -44,6 +44,10 @@ SYSDEFS =
 # Configuration definitions.
 # See also the header file conf.h for more configuration definitions.
 # ----------------------------------------------------------------------
+
+#if defined(BIND_49) && __res_state is still shipped as struct state
+CONFIGDEFS = -DOLD_RES_STATE
+#endif
 
 #if defined(BIND_48) && You want to use the default bind res_send()
 CONFIGDEFS = -DBIND_RES_SEND
@@ -150,7 +154,7 @@ OBJS = host.o send.o vers.o
 MANS = host.1
 DOCS = RELEASE_NOTES
 
-UTILS = nslookup mxlookup
+UTILS = nslookup mxlookup rblookup
 MISCS = malloc.c README_NT
 
 FILES = Makefile $(DOCS) $(HDRS) $(SRCS) $(MANS) $(UTILS) $(MISCS)
@@ -195,7 +199,7 @@ ABBREVIATIONS = mb mg mr minfo				# deprecated
 ABBREVIATIONS = md mf null				# obsolete
 ABBREVIATIONS = rp afsdb x25 isdn rt nsap nsap-ptr	# new
 ABBREVIATIONS = sig key px gpos aaaa loc nxt srv	# very new
-ABBREVIATIONS = eid nimloc atma naptr			# draft
+ABBREVIATIONS = eid nimloc atma naptr kx		# draft
 ABBREVIATIONS = uinfo uid gid unspec			# nonstandard
 ABBREVIATIONS = maila mailb any				# filters
 
