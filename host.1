@@ -1,7 +1,7 @@
 .\"
-.\"	@(#)host.1              e07@nikhef.nl (Eric Wassenaar) 980903
+.\"	@(#)host.1              e07@nikhef.nl (Eric Wassenaar) 990607
 .\"
-.TH host 1 "980903"
+.TH host 1 "990607"
 .SH NAME
 host \- query nameserver about domain names and zones
 .SH SYNOPSIS 
@@ -506,13 +506,16 @@ X400 to RFC822 mapping (preference value, rfc822 domain, x400 domain)
 Geographical position (longitude string, latitude string, altitude string)
 .PP
 The following types have been reserved in RFC 1700, and are
-defined in RFC 2065.
+defined in RFC 2065 and revised per RFC 2035.
 .TP 10
 .B SIG
 Security signature
 .TP
 .B KEY
 Security key
+.TP
+.B NXT
+Next valid record
 .PP
 The IP v6 address architecture and DNS extensions are defined in
 RFC 1884 and RFC 1886.
@@ -527,17 +530,11 @@ Geographical location (latitude, longitude, altitude, precision)
 .PP
 The following types have been proposed, but are still in draft.
 .TP 10
-.B NXT
-Next valid record
-.TP
 .B EID
 Endpoint identifier
 .TP
 .B NIMLOC
 Nimrod locator
-.TP
-.B SRV
-Internet service information
 .TP
 .B ATMA
 ATM address
@@ -545,12 +542,17 @@ ATM address
 .B NAPTR
 Naming authority URN
 .PP
+The following type is proposed in RFC 2052.
+.TP 10
+.B SRV
+Internet service information
+.PP
 The following type is proposed in RFC 2230.
 .TP 10
 .B KX
 Key exchanger (preference value, domain name)
 .PP
-The following types have been proposed, but are still in draft.
+The following type is defined in RFC 2538.
 .TP 10
 .B CERT
 Security certificate
@@ -930,9 +932,17 @@ rfc2137, Secure DNS dynamic update
 .br
 rfc2181, Clarifications to the DNS specification
 .br
-rfc2230, Key exchange delegation record for the DNS
+rfc2230, Key exchange delegation record for the DNS (KX)
 .br
 rfc2308, Negative cacheing of DNS queries
+.br
+rfc2317, Classless in-addr.arpa delegation
+.br
+rfc2535, DNS security extensions (KEY/SIG/NXT)
+.br
+rfc2538, Storing certificates in the DNS (CERT)
+.br
+rfc2541, DNS security operational considerations
 .SH AUTHOR
 This program is originally from Rutgers University.
 .br

@@ -1,6 +1,7 @@
-	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 980903
+	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 990701
 
 	URL	ftp://ftp.nikhef.nl/pub/network/host.tar.Z
+	URL	http://www.nikhef.nl/user/e07
 
 yymmdd		Description of changes per release
 TODO		Things that still need to be done
@@ -11,6 +12,41 @@ MISC		Miscellaneous reminders
 # ----------------------------------------------------------------------
 # Description of changes per release
 # ----------------------------------------------------------------------
+
+990701
+	Speedup glue record filtering.
+		Replace lineair search through the list of zones with
+		a hash table lookup. Noticeable speedup may be achieved
+		for zones with very many A records and delegated zones.
+		Hopefully it alleviates the struggle with the .de zone
+		by Peter Koch <pk@TechFak.Uni-Bielefeld.DE>
+	Add extra debugging hooks.
+		Print timestamp messages at various points during zone
+		listing processing. This is done via the undocumented
+		new -K command line option. This option also forces
+		execution of some tasks that would normally be skipped
+		if they are not really necessary in a certain mode.
+	New resource records and query types.
+		Add support for T_CERT resource records (RFC 2538).
+		Adapt T_KEY/T_SIG/T_NXT handling according to RFC 2535.
+	Miscellaneous code cleanup.
+		Split monolithic host.c source into smaller parts.
+		Requires new glob.h file with global definitions.
+	Documentation update.
+		Extend the list of related RFCs in the manual page.
+
+990522
+	Minor portability changes.
+		AIX needs <sys/select.h>
+		Reported by Andreas Ley <andy@rz.uni-karlsruhe.de>
+	There are no functional changes in this release.
+
+990511
+	Minor portability changes.
+		Solaris 2.7 defines `ipaddr_t'. Can you believe it.
+		Fix glitch for bsdi.
+		Noted by Paul Eggert <eggert@twinsun.com>
+	There are no functional changes in this release.
 
 980903
 	New option to define source address port.

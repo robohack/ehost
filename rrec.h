@@ -4,7 +4,7 @@
 **	These define the various resource record fields after decoding
 **	from the internal representation in the nameserver answer buffer.
 **
-**	@(#)rrec.h              e07@nikhef.nl (Eric Wassenaar) 971215
+**	@(#)rrec.h              e07@nikhef.nl (Eric Wassenaar) 990607
 */
 
 #define MAXSTRING 255		/* maximum size of single encoded string */
@@ -135,8 +135,8 @@ typedef struct sig_data {
 	int nlabels;			/* number of labels in SIG name */
 	int sigttl;			/* original ttl of SIG record */
 	time_t expiretime;		/* signature expiration time */
-	time_t sigtime;			/* time signature was signed */
-	int footprint;			/* key identification */
+	time_t incepttime;		/* time signature was signed */
+	int keytag;			/* key identification */
 	char signer[MAXDNAME+1];	/* signer's domain name */
 	u_char sig[MAXMD5SIZE];		/* encoded signature */
 } sig_data_t;
@@ -199,6 +199,13 @@ typedef struct kx_data {
 	int kxpref;			/* preference value */
 	char kxhost[MAXDNAME+1];	/* name of kx host */
 } kx_data_t;
+
+typedef struct cert_data {
+	int certtype;			/* certificate type */
+	int keytag;			/* certificate key */
+	int algorithm;			/* cerfificate encoding algorithm */
+	u_char cert[MAXMD5SIZE];	/* encoded certificate */
+} cert_data_t;
 
 /*
 ** Record-specific data fields, nonstandard types.
@@ -264,6 +271,7 @@ typedef struct rrecord {
 		srv_data_t	data_srv;
 		naptr_data_t	data_naptr;
 		kx_data_t	data_kx;
+		cert_data_t	data_cert;
 		uinfo_data_t	data_uinfo;
 		uid_data_t	data_uid;
 		gid_data_t	data_gid;
@@ -305,6 +313,7 @@ typedef struct rrecord {
 #define t_srv		data.data_srv
 #define t_naptr		data.data_naptr
 #define t_kx		data.data_kx
+#define t_cert		data.data_cert
 #define t_uinfo		data.data_uinfo
 #define t_uid		data.data_uid
 #define t_gid		data.data_gid

@@ -1,4 +1,4 @@
-#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 971216
+#	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 990629
 
 # ----------------------------------------------------------------------
 # Adapt the installation directories to your local standards.
@@ -81,6 +81,7 @@ INCLUDES = -I$(INCL) -I$(COMPINCL)
 DEFS = $(CONFIGDEFS) $(SYSDEFS) $(INCLUDES)
 
 COPTS =
+COPTS = -O -DDEBUG
 COPTS = -O
 
 CFLAGS = $(COPTS) $(DEFS)
@@ -148,9 +149,9 @@ SHELL = /bin/sh
 # ----------------------------------------------------------------------
 
 PROG = host
-HDRS = port.h conf.h exit.h type.h rrec.h defs.h host.h
-SRCS = host.c send.c vers.c
-OBJS = host.o send.o vers.o
+HDRS = port.h conf.h exit.h type.h rrec.h defs.h host.h glob.h
+SRCS = main.c info.c list.c addr.c geth.c util.c misc.c send.c vers.c
+OBJS = main.o info.o list.o addr.o geth.o util.o misc.o send.o vers.o
 MANS = host.1
 DOCS = RELEASE_NOTES
 
@@ -175,7 +176,7 @@ STRIP = -s
 
 all: $(PROG)
 
-$(OBJS): $(SRCS) $(HDRS)
+$(OBJS): $(HDRS)
 
 $(PROG): $(OBJS)
 	$(CC) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBRARIES)
@@ -196,10 +197,10 @@ clean:
 
 ABBREVIATIONS = a ns cname soa wks ptr hinfo mx txt	# standard
 ABBREVIATIONS = mb mg mr minfo				# deprecated
-ABBREVIATIONS = md mf null				# obsolete
+ABBREVIATIONS = md mf null gpos				# obsolete
 ABBREVIATIONS = rp afsdb x25 isdn rt nsap nsap-ptr	# new
-ABBREVIATIONS = sig key px gpos aaaa loc nxt srv	# very new
-ABBREVIATIONS = eid nimloc atma naptr kx		# draft
+ABBREVIATIONS = sig key px aaaa loc nxt srv kx cert	# very new
+ABBREVIATIONS = eid nimloc atma naptr			# draft
 ABBREVIATIONS = uinfo uid gid unspec			# nonstandard
 ABBREVIATIONS = maila mailb any				# filters
 
