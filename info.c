@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.11 2003-04-03 16:31:41 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.12 2003-04-04 04:10:49 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -161,12 +161,12 @@ get_hostinfo(name, qualified)
 		/* restore nodata status from search */
 		if (bindcompat && nodata) {
 			realname = strcpy(realnamebuf, oldname);
-			seth_errno(nodata);
+			set_h_errno(nodata);
 		}
 
 		/* set status in case we never queried */
 		if (!bitset(RES_DEFNAMES, _res.options))
-			seth_errno(HOST_NOT_FOUND);
+			set_h_errno(HOST_NOT_FOUND);
 
 		return (FALSE);
 	}
@@ -179,7 +179,7 @@ get_hostinfo(name, qualified)
 	/* restore nodata status from search */
 	if (!result && bindcompat && nodata) {
 		realname = strcpy(realnamebuf, oldname);
-		seth_errno(nodata);
+		set_h_errno(nodata);
 	}
 
 	return (result);
@@ -303,29 +303,29 @@ get_info(answerbuf, name, type, class)
 	 * res_send() will leave also other error statuses, and will clear
 	 * errno if an answer was obtained.
 	 */
-	seterrno(0);	/* reset before querying nameserver */
+	set_errno(0);	/* reset before querying nameserver */
 
 	if ((n = res_mkquery(QUERY, name, class, type, (qbuf_t *) NULL, 0,
 			     (rrec_t *) NULL, (qbuf_t *) &query, sizeof(querybuf_t))) < 0) {
 		if (debug)
 			printf("%sres_mkquery failed\n", dbprefix);
-		seth_errno(NO_RECOVERY);
+		set_h_errno(NO_RECOVERY);
 		return (-1);
 	}
 
 	if ((n = res_send((qbuf_t *) &query, n, (qbuf_t *) answerbuf, sizeof(querybuf_t))) < 0) {
 		if (debug)
 			printf("%sres_send failed\n", dbprefix);
-		seth_errno(TRY_AGAIN);
+		set_h_errno(TRY_AGAIN);
 		return (-1);
 	}
 
-	seterrno(0);	/* reset after we got an answer */
+	set_errno(0);	/* reset after we got an answer */
 
 	if (n < HFIXEDSZ) {
 		pr_error("answer length %s too short after %s query for %s",
 			 dtoa(n), pr_type(type), name);
-		seth_errno(NO_RECOVERY);
+		set_h_errno(NO_RECOVERY);
 		return (-1);
 	}
 
@@ -344,24 +344,24 @@ get_info(answerbuf, name, type, class)
 		switch (bp->rcode) {
 		case NXDOMAIN:
 			/* distinguish between authoritative or not */
-			seth_errno(bp->aa ? HOST_NOT_FOUND : NO_HOST);
+			set_h_errno(bp->aa ? HOST_NOT_FOUND : NO_HOST);
 			break;
 
 		case NOERROR:
 			/* distinguish between authoritative or not */
-			seth_errno(bp->aa ? NO_DATA : NO_RREC);
+			set_h_errno(bp->aa ? NO_DATA : NO_RREC);
 			break;
 
 		case SERVFAIL:
-			seth_errno(SERVER_FAILURE); /* instead of TRY_AGAIN */
+			set_h_errno(SERVER_FAILURE); /* instead of TRY_AGAIN */
 			break;
 
 		case REFUSED:
-			seth_errno(QUERY_REFUSED); /* instead of NO_RECOVERY */
+			set_h_errno(QUERY_REFUSED); /* instead of NO_RECOVERY */
 			break;
 
 		default:
-			seth_errno(NO_RECOVERY); /* FORMERR NOTIMP NOCHANGE */
+			set_h_errno(NO_RECOVERY); /* FORMERR NOTIMP NOCHANGE */
 			break;
 		}
 		n = querysize(n);
@@ -370,7 +370,7 @@ get_info(answerbuf, name, type, class)
 	}
 
 	/* valid answer received, avoid buffer overrun */
-	seth_errno(0);
+	set_h_errno(0);
 	n = querysize(n);
 
 	return (n);
@@ -425,7 +425,7 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 		if (qdcount) {
 			pr_error("invalid qdcount after %s query for %s",
 				pr_type(type), name);
-			seth_errno(NO_RECOVERY);
+			set_h_errno(NO_RECOVERY);
 			return (FALSE);
 		}
 	}
@@ -464,7 +464,7 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 		if (ancount) {
 			pr_error("invalid ancount after %s query for %s",
 				 pr_type(type), name);
-			seth_errno(NO_RECOVERY);
+			set_h_errno(NO_RECOVERY);
 			return (FALSE);
 		}
 	}
@@ -493,7 +493,7 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 		if (nscount) {
 			pr_error("invalid nscount after %s query for %s",
 				pr_type(type), name);
-			seth_errno(NO_RECOVERY);
+			set_h_errno(NO_RECOVERY);
 			return (FALSE);
 		}
 	}
@@ -515,7 +515,7 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 		if (arcount) {
 			pr_error("invalid arcount after %s query for %s",
 				pr_type(type), name);
-			seth_errno(NO_RECOVERY);
+			set_h_errno(NO_RECOVERY);
 			return (FALSE);
 		}
 	}
@@ -1718,8 +1718,8 @@ get_recursive(name)
 	result = get_hostinfo(newname, TRUE);
 	level--;
 
-	seterrno(save_errno);
-	seth_errno(save_herrno);
+	set_errno(save_errno);
+	set_h_errno(save_herrno);
 
 	return (result);
 }

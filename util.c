@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.10 2003-04-03 23:17:38 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.11 2003-04-04 04:10:48 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -1486,7 +1486,7 @@ expand_name(name, type, cp, msg, eom, namebuf)
 	if (n < 0) {
 		pr_error("expand error in %s record for %s, offset %s",
 			pr_type(type), name, dtoa(cp - msg));
-		seth_errno(NO_RECOVERY);
+		set_h_errno(NO_RECOVERY);
 		return (-1);
 	}
 
@@ -1532,7 +1532,7 @@ check_size(name, type, cp, msg, eor, size)
 			pr_warning("incomplete %s record for %s",
 				   pr_type(type), name);
 		}
-		seth_errno(NO_RECOVERY);
+		set_h_errno(NO_RECOVERY);
 		return (-1);
 	}
 
@@ -1668,8 +1668,8 @@ canonical(name)
 	hp = geth_byname(name);
 	status = h_errno;
 
-	seterrno(save_errno);
-	seth_errno(save_herrno);
+	set_errno(save_errno);
+	set_h_errno(save_herrno);
 
 	/*
 	 * Indicate negative result only after definitive lookup failures.
@@ -1722,8 +1722,8 @@ mapreverse(name, inaddr)
 	hp = geth_byaddr((char *) &inaddr, INADDRSZ, AF_INET);
 	status = h_errno;
 
-	seterrno(save_errno);
-	seth_errno(save_herrno);
+	set_errno(save_errno);
+	set_h_errno(save_herrno);
 
 	/*
 	 * Indicate negative result only after definitive lookup failures.
@@ -1787,8 +1787,8 @@ anyrecord(name)
 	n = get_info(&answer, name, T_ANY, queryclass);
 	status = h_errno;
 
-	seterrno(save_errno);
-	seth_errno(save_herrno);
+	set_errno(save_errno);
+	set_h_errno(save_herrno);
 
 	/*
 	 * Indicate negative result only after definitive lookup failures.

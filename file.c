@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: file.c,v 1.11 2003-04-04 04:01:20 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: file.c,v 1.12 2003-04-04 04:10:49 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)file.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -151,7 +151,7 @@ cache_open(name, create)
 					return (-1);
 				}
 			} else if ((st.st_mode & S_IFMT) != S_IFDIR) {
-				seterrno(ENOTDIR);
+				set_errno(ENOTDIR);
 				cache_perror("Cannot create", cachefile);
 				return (-1);
 			}
@@ -218,7 +218,7 @@ cache_close(create)
 	cachefd = -1;
 
 	/* restore state */
-	seterrno(save_errno);
+	set_errno(save_errno);
 
 	return (status);
 }
@@ -268,7 +268,7 @@ cache_write(buf, bufsize)
 	}
 	if (buflen != 0) {
 		if (errno == 0)
-			seterrno(EIO);
+			set_errno(EIO);
 		cache_perror("Cannot write answer length", tempcache);
 		return (-1);
 	}
@@ -285,7 +285,7 @@ cache_write(buf, bufsize)
 	}
 	if (buflen != 0) {
 		if (errno == 0)
-			seterrno(EIO);
+			set_errno(EIO);
 		cache_perror("Cannot write answer", tempcache);
 		return (-1);
 	}
@@ -337,7 +337,7 @@ cache_read(buf, bufsize)
 	}
 	if (buflen != 0) {
 		if (errno == 0)
-			seterrno(EIO);
+			set_errno(EIO);
 		cache_perror("Cannot read answer length", cachefile);
 		return (-1);
 	}
@@ -365,11 +365,11 @@ cache_perror(message, filename)
 		(void) fprintf(stderr, "%s ", message);
 
 	/* issue actual message */
-	seterrno(save_errno);
+	set_errno(save_errno);
 	perror(filename);
 
 	/* restore state */
-	seterrno(save_errno);
+	set_errno(save_errno);
 
 	return;
 }

@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.15 2003-04-04 03:59:48 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.16 2003-04-04 04:10:48 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -882,7 +882,7 @@ get_nsinfo(answerbuf, answerlen, name, qtype, qclass)
 	if (qdcount) {
 		pr_error("invalid qdcount after %s query for %s",
 			 pr_type(qtype), name);
-		seth_errno(NO_RECOVERY);
+		set_h_errno(NO_RECOVERY);
 		return (FALSE);
 	}
 
@@ -962,7 +962,7 @@ get_nsinfo(answerbuf, answerlen, name, qtype, qclass)
 		if (cp != eor) {
 			pr_error("size error in %s record for %s, off by %s",
 				 pr_type(type), rname, dtoa(cp - eor));
-			seth_errno(NO_RECOVERY);
+			set_h_errno(NO_RECOVERY);
 			return (FALSE);
 		}
 		rrcount--;
@@ -970,12 +970,12 @@ get_nsinfo(answerbuf, answerlen, name, qtype, qclass)
 	if (rrcount) {
 		pr_error("invalid rrcount after %s query for %s",
 			 pr_type(qtype), name);
-		seth_errno(NO_RECOVERY);
+		set_h_errno(NO_RECOVERY);
 		return (FALSE);
 	}
 
 	/* set proper status if no answers found */
-	seth_errno((nservers > 0) ? 0 : TRY_AGAIN);
+	set_h_errno((nservers > 0) ? 0 : TRY_AGAIN);
 
 	return (TRUE);
 }
@@ -1330,7 +1330,7 @@ do_transfer(name)
 			/* zone transfer request was explicitly refused */
 			if (h_errno == QUERY_REFUSED) {
 				do_soa(name, ipaddr[n][i], nsname[n]);
-				seth_errno(QUERY_REFUSED);
+				set_h_errno(QUERY_REFUSED);
 				break;
 			}
 
@@ -1418,7 +1418,7 @@ transfer_zone(name, inaddr, host)
 	 * In case this fails, the entire zone transfer is cancelled.
 	 */
 	if (dumping && (cache_open(name, TRUE) < 0)) {
-		seth_errno(CACHE_ERROR);
+		set_h_errno(CACHE_ERROR);
 		return (FALSE);
 	}
 
@@ -1434,7 +1434,7 @@ transfer_zone(name, inaddr, host)
 	 * If the cache cannot be created, the transfer is marked to have failed.
 	 */
 	if (dumping && (cache_close(result) < 0)) {
-		seth_errno(CACHE_ERROR);
+		set_h_errno(CACHE_ERROR);
 		result = FALSE;
 	}
 
@@ -1502,7 +1502,7 @@ get_zone(name, inaddr, host)
 	zonecount = 0;			/* count of delegated zones */
 	hostcount = 0;			/* count of host names */
 
-	seterrno(0);	/* reset before going on any furhter */
+	set_errno(0);	/* reset before going on any furhter */
 
 	/*
 	 * When loading the zone from the local cache, the cache file must exist.
@@ -1512,7 +1512,7 @@ get_zone(name, inaddr, host)
 		 * open the cache file for reading....
 		 */
 		if (cache_open(name, FALSE) < 0) {
-			seth_errno(NO_RREC);
+			set_h_errno(NO_RREC);
 			return (FALSE);
 		}
 
@@ -1527,7 +1527,7 @@ get_zone(name, inaddr, host)
 		if (n < 0) {
 			if (debug)
 				printf("%sres_mkquery failed\n", dbprefix);
-			seth_errno(NO_RECOVERY);
+			set_h_errno(NO_RECOVERY);
 			return (FALSE);
 		}
 
@@ -1546,7 +1546,7 @@ get_zone(name, inaddr, host)
 		sock = _res_socket(AF_INET, SOCK_STREAM, 0);
 		if (sock < 0) {
 			_res_perror(&ns_sin, host, "socket()");
-			seth_errno(TRY_AGAIN);
+			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
 
@@ -1554,7 +1554,7 @@ get_zone(name, inaddr, host)
 			if (verbose || debug)
 				_res_perror(&ns_sin, host, "connect()");
 			(void) _res_close(sock);
-			seth_errno(TRY_AGAIN);
+			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
 
@@ -1566,7 +1566,7 @@ get_zone(name, inaddr, host)
 		 */
 		if (_res_write(sock, &ns_sin, host, (char *) &query, (size_t) n) < 0) {
 			(void) _res_close(sock);
-			seth_errno(TRY_AGAIN);
+			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
 	}
@@ -1585,7 +1585,7 @@ get_zone(name, inaddr, host)
 			n = cache_read(buffer, buflen);
 			if (n < 0 || n != (int) buflen) {
 				(void) cache_close(FALSE);
-				seth_errno(TRY_AGAIN);
+				set_h_errno(TRY_AGAIN);
 				return (FALSE);
 			}
 #if 0 /* why not? */
@@ -1612,7 +1612,7 @@ get_zone(name, inaddr, host)
 			if (buflen != 0) {
 				_res_perror(&ns_sin, host, "recv_sock(): error reading answer length");
 				(void) _res_close(sock);
-				seth_errno(TRY_AGAIN);
+				set_h_errno(TRY_AGAIN);
 				return (FALSE);
 			}
 #if 0 /* why not? */
@@ -1629,13 +1629,13 @@ get_zone(name, inaddr, host)
 		 * Terminate if length is zero.
 		 */
 		if (len == 0) {
-			seterrno(EINVAL);
+			set_errno(EINVAL);
 			_res_perror(&ns_sin, host, "answer has length of zero");
 			if (loading)
 				(void) cache_close(FALSE);
 			else
 				(void) _res_close(sock);
-			seth_errno(TRY_AGAIN);
+			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
 
@@ -1651,7 +1651,7 @@ get_zone(name, inaddr, host)
 				(void) cache_close(FALSE);
 			else
 				(void) _res_close(sock);
-			seth_errno(TRY_AGAIN);
+			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
 
@@ -1666,7 +1666,7 @@ get_zone(name, inaddr, host)
 				(void) cache_close(FALSE);
 			else
 				(void) _res_close(sock);
-			seth_errno(TRY_AGAIN);
+			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
 
@@ -1676,7 +1676,7 @@ get_zone(name, inaddr, host)
 			break;
 		}
 
-		seterrno(0);	/* reset after we have a possible answer */
+		set_errno(0);	/* reset after we have a possible answer */
 
 		if (n < HFIXEDSZ) {
 			pr_error("answer length of %s too short for a header during %s for %s from %s",
@@ -1685,7 +1685,7 @@ get_zone(name, inaddr, host)
 				(void) cache_close(FALSE);
 			else
 				(void) _res_close(sock);
-			seth_errno(TRY_AGAIN);
+			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
 
@@ -1696,7 +1696,7 @@ get_zone(name, inaddr, host)
 				(void) cache_close(FALSE);
 			else
 				(void) _res_close(sock);
-			seth_errno(TRY_AGAIN);
+			set_h_errno(TRY_AGAIN);
 			return (FALSE);
 		}
 
@@ -1721,27 +1721,27 @@ get_zone(name, inaddr, host)
 			switch (bp->rcode) {
 			case NXDOMAIN:
 				/* distinguish between authoritative or not */
-				seth_errno(bp->aa ? HOST_NOT_FOUND : NO_HOST);
+				set_h_errno(bp->aa ? HOST_NOT_FOUND : NO_HOST);
 				break;
 
 			case NOERROR:
 				/* distinguish between authoritative or not */
-				seth_errno(bp->aa ? NO_DATA : NO_RREC);
+				set_h_errno(bp->aa ? NO_DATA : NO_RREC);
 				break;
 
 			case REFUSED:
 				/* special status if zone transfer refused */
-				seth_errno(QUERY_REFUSED);
+				set_h_errno(QUERY_REFUSED);
 				break;
 
 			case SERVFAIL:
 				/* special status upon explicit failure */
-				seth_errno(SERVER_FAILURE);
+				set_h_errno(SERVER_FAILURE);
 				break;
 
 			default:
 				/* all other errors will cause a retry */
-				seth_errno(TRY_AGAIN);
+				set_h_errno(TRY_AGAIN);
 				break;
 			}
 			if (npackets != 0) {
@@ -1756,7 +1756,7 @@ get_zone(name, inaddr, host)
 		}
 
 		/* valid answer received, avoid buffer overrun */
-		seth_errno(0);
+		set_h_errno(0);
 
 		/*
 		 * The nameserver and additional info section should be empty.
@@ -1798,7 +1798,7 @@ get_zone(name, inaddr, host)
 		 */
 		if (dumping && (cache_write(answer, (size_t) n) < 0)) {
 			(void) _res_close(sock);
-			seth_errno(CACHE_ERROR);
+			set_h_errno(CACHE_ERROR);
 			return (FALSE);
 		}
 	} while (n > 0 && soacount < 2);
@@ -1818,7 +1818,7 @@ get_zone(name, inaddr, host)
 	if (dumping && (cache_write(answer, 0) < 0)) {
 		assert(!loading);
 		(void) _res_close(sock);
-		seth_errno(CACHE_ERROR);
+		set_h_errno(CACHE_ERROR);
 		return (FALSE);
 	}
 	/*
@@ -1837,7 +1837,7 @@ get_zone(name, inaddr, host)
 	if (nrecords <= soacount) {
 		pr_error("empty zone transfer for %s from %s",
 			 name, host);
-		seth_errno(NO_RREC);
+		set_h_errno(NO_RREC);
 		return (FALSE);
 	}
 
@@ -2234,7 +2234,7 @@ get_soainfo(answerbuf, answerlen, name, qtype, qclass)
 	if (qdcount) {
 		pr_error("invalid qdcount after %s query for %s",
 			 pr_type(qtype), name);
-		seth_errno(NO_RECOVERY);
+		set_h_errno(NO_RECOVERY);
 		return (FALSE);
 	}
 
@@ -2312,7 +2312,7 @@ get_soainfo(answerbuf, answerlen, name, qtype, qclass)
 		if (cp != eor) {
 			pr_error("size error in %s record for %s, off by %s",
 				 pr_type(type), rname, dtoa(cp - eor));
-			seth_errno(NO_RECOVERY);
+			set_h_errno(NO_RECOVERY);
 			return (FALSE);
 		}
 		ancount--;
@@ -2320,12 +2320,12 @@ get_soainfo(answerbuf, answerlen, name, qtype, qclass)
 	if (ancount) {
 		pr_error("invalid ancount after %s query for %s",
 			 pr_type(qtype), name);
-		seth_errno(NO_RECOVERY);
+		set_h_errno(NO_RECOVERY);
 		return (FALSE);
 	}
 
 	/* set proper status if no answers found */
-	seth_errno((soaname != NULL) ? 0 : TRY_AGAIN);
+	set_h_errno((soaname != NULL) ? 0 : TRY_AGAIN);
 
 	return (TRUE);
 }
@@ -2349,18 +2349,18 @@ load_soa(answerbuf, name)
 	register int n;
 
 	if (cache_open(name, FALSE) < 0) {
-		seth_errno(NO_RREC);
+		set_h_errno(NO_RREC);
 		return (-1);
 	}
 
 	if ((n = cache_read((char *) answerbuf, sizeof(querybuf_t))) < 0) {
 		(void) cache_close(FALSE);
-		seth_errno(TRY_AGAIN);
+		set_h_errno(TRY_AGAIN);
 		return (-1);
 	}
 
 	(void) cache_close(FALSE);
-	seth_errno(0);
+	set_h_errno(0);
 
 	return (n);
 }

@@ -4,7 +4,7 @@
 ** from: @(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.12 2003-03-31 21:58:44 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.13 2003-04-04 04:10:48 -0800 woods Exp $"
 
 #if (defined(__SVR4) || defined(__svr4) || defined(SVR4) || defined(svr4)) && !defined(__svr4__)
 # define __svr4__	1
@@ -309,11 +309,11 @@ typedef int	free_t;
 #endif /*WINNT*/
 
 #if defined(WINNT)
-# define seterrno(n)	WSASetLastError(n)
-# define seth_errno(n)	WSASetLastError(n)
+# define set_errno(n)	WSASetLastError(n)
+# define set_h_errno(n)	WSASetLastError(n)
 #else
-# define seterrno(n)	errno = (n)
-# define seth_errno(n)	h_errno = (n)
+# define set_errno(n)	errno = (n)
+# define set_h_errno(n)	h_errno = (n)
 #endif
 
 #if defined(WINNT)

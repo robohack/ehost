@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.11 2003-04-03 23:17:27 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.12 2003-04-04 04:10:48 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1519,12 +1519,12 @@ host_query(name, addr)
 	inaddr.s_addr = addr;
 
 	result = FALSE;
-	seth_errno(TRY_AGAIN);
+	set_h_errno(TRY_AGAIN);
 
 	/* retry until positive result or permanent failure */
 	while (result == FALSE && h_errno == TRY_AGAIN) {
 		/* reset before each query to avoid stale data */
-		seterrno(0);
+		set_errno(0);
 		realname = NULL;
 
 		if (addr == NOT_DOTTED_QUAD) {
@@ -1547,7 +1547,7 @@ host_query(name, addr)
 				}
 
 				result = FALSE;
-				seth_errno(TRY_AGAIN);
+				set_h_errno(TRY_AGAIN);
 				continue;
 			}
 		} else {

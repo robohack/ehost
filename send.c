@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.10 2003-04-03 18:27:38 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.11 2003-04-04 04:10:48 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -162,7 +162,7 @@ retry:
 			}
 
 			/* we have an answer; clear possible error condition */
-			seterrno(0);
+			set_errno(0);
 			return (n);
 		}
 	}
@@ -461,7 +461,7 @@ _res_socket(family, type, protocol)
 
 			/* bad source address, or no free port numbers */
 			(void) close(sock);
-			seterrno(save_errno);
+			set_errno(save_errno);
 			return (-1);
 		}
 		if (bitset(RES_DEBUG, _res.options)) {
@@ -575,7 +575,7 @@ _res_connect(sock, addr, addrlen)
 	input socklen_t addrlen;
 {
 	if (setjmp(timer_buf) != 0) {
-		seterrno(ETIMEDOUT);
+		set_errno(ETIMEDOUT);
 		setalarm(0);
 		return (-1);
 	}
@@ -585,7 +585,7 @@ _res_connect(sock, addr, addrlen)
 
 	if (connect(sock, (struct sockaddr *) addr, addrlen) < 0) {
 		if (errno == EINTR)
-			seterrno(ETIMEDOUT);
+			set_errno(ETIMEDOUT);
 		setalarm(0);
 		return (-1);
 	}
@@ -858,7 +858,7 @@ rewait:
 	if (n < 0 && errno == EINTR)
 		goto rewait;
 	if (n == 0)
-		seterrno(ETIMEDOUT);
+		set_errno(ETIMEDOUT);
 	if (n <= 0)
 		return (-1);
 reread:
@@ -870,7 +870,7 @@ reread:
 	if (n < 0 && errno == EWOULDBLOCK)
 		goto rewait;
 	if (n == 0)
-		seterrno(ECONNRESET);
+		set_errno(ECONNRESET);
 
 	return (n);
 }
@@ -899,7 +899,7 @@ recv_sock(sock, buffer, buflen)
 	register int n;
 
 	if (setjmp(timer_buf) != 0) {
-		seterrno(ETIMEDOUT);
+		set_errno(ETIMEDOUT);
 		setalarm(0);
 		return (-1);
 	}
@@ -913,7 +913,7 @@ reread:
 	if (n < 0 && errno == EINTR)
 		goto reread;
 	if (n == 0)
-		seterrno(ECONNRESET);
+		set_errno(ECONNRESET);
 
 	setalarm(0);
 
@@ -945,11 +945,11 @@ _res_perror(addr, host, message)
 		(void) fprintf(stderr, "(%s) ", host);
 
 	/* issue actual message */
-	seterrno(save_errno);
+	set_errno(save_errno);
 	perror(message);
 
 	/* restore state */
-	seterrno(save_errno);
+	set_errno(save_errno);
 
 	return;
 }
