@@ -1,5 +1,5 @@
 .\"
-.\"#ident "@(#)host:$Name:  $:$Id: host.1,v 1.5 2003-03-29 19:48:24 -0800 woods Exp $"
+.\"#ident "@(#)host:$Name:  $:$Id: host.1,v 1.6 2003-04-04 19:02:57 -0800 woods Exp $"
 .\"
 .\" from: @(#)host.1              e07@nikhef.nl (Eric Wassenaar) 991527
 .\"
@@ -943,6 +943,8 @@ rfc1183, New DNS RR definitions
 .br
 rfc1348, DNS NSAP RRs
 .br
+rfc1401, Correspondence between the IAB and DISA on the use of DNS
+.br
 rfc1535, A security problem and proposed correction
 .br
 rfc1536, Common DNS implementation errors
@@ -952,6 +954,10 @@ rfc1537, Common DNS data file configuration errors
 rfc1591, Domain Name System structure and delegation
 .br
 rfc1597, Address allocation for private internets
+.\".br
+.\"rfc1611, DNS Server MIB Extensions
+.\".br
+.\"rfc1612, DNS Resolver MIB Extensions
 .br
 rfc1627, Network 10 considered harmful
 .br
@@ -993,27 +999,104 @@ rfc2136, Dynamic updates in the DNS
 .br
 rfc2137, Secure DNS dynamic update
 .br
-rfc2163, Using DNS to distribute global address mapping (PX)
+rfc2163, Using DNS to distribute MIXER Conformant Global Address Mapping (MCGAM) (PX)
 .br
-rfc2168, Resolution of Uniform Resource Identifiers (NAPTR)
+rfc2168, Resolution of Uniform Resource Identifiers using the Domain Name System (NAPTR)
 .br
 rfc2181, Clarifications to the DNS specification
 .br
+rfc2182, Selection and Operation of Secondary DNS Servers
+.br
+rfc2219, Use of DNS Aliases for Network Services
+.br
 rfc2230, Key exchange delegation record for the DNS (KX)
+.\".br
+.\" obsoleted by rfc2352
+.\"rfc2240, A Legal Basis for Domain Name Allocation
+.br
+rfc2242, NetWare/IP Domain Name and Information
 .br
 rfc2308, Negative cacheing of DNS queries
 .br
 rfc2317, Classless in-addr.arpa delegation
 .br
+rfc2345, Domain Names and Company Name Retrieval
+.br
+rfc2352, A Convention For Using Legal Names as Domain Names
+.br
 rfc2535, DNS security extensions (KEY/SIG/NXT)
+.\".br
+.\"rfc2536, DSA KEYs and SIGs in the Domain Name System
+.\".br
+.\"rfc2537, RSA/MD5 KEYs and SIGs in the Domain Name System
 .br
 rfc2538, Storing certificates in the DNS (CERT)
+.\".br
+.\"rfc2539, Storage of Diffie-Hellman Keys in the Domain Name System
+.br
+rfc2540, Detached Domain Name System (DNS) Information
 .br
 rfc2541, DNS security operational considerations
 .br
-rfc2671, Extension mechanisms for DNS (OPT)
+rfc2606, Reserved Top Level DNS Names
+.br
+rfc2671, Extension mechanisms for DNS (EDNS0) (OPT)
+.\".br
+.\"rfc2672, Non-Terminal DNS Name Redirection
+.\".br
+.\"rfc2673, Binary Labels in the Domain Name System
 .br
 rfc2782, Specifying the location of services (SRV)
+.br
+rfc2825, A Tangled Web: Issues of I18N, Domain Names, and the Other Internet protocols
+.br
+rfc2826, IAB Technical Comment on the Unique DNS Root
+.\".br
+.\"rfc2845, Secret Key Transaction Authentication for DNS (TSIG)
+.\".br
+.\"rfc2874, DNS Extensions to Support IPv6 Address Aggregation and Renumbering
+.br
+rfc2915, The Naming Authority Pointer (NAPTR) DNS Resource Record
+.\".br
+.\"rfc2916, E.164 number and DNS
+.br
+rfc2929, Domain Name System (DNS) IANA Considerations
+.\".br
+.\"rfc2930, Secret Key Establishment for DNS (TKEY)
+.\".br
+.\"rfc2931, DNS Request and Transaction Signatures (SIG(0)s)
+.br
+rfc3008, Domain Name System Security (DNSSEC) Signing Authority
+.br
+rfc3071, Reflections on the DNS, RFC 1591, and Categories of Domains
+.br
+rfc3090, DNS Security Extension Clarification on Zone Status
+.\".br
+.\"rfc3110, RSA/SHA-1 SIGs and RSA KEYs in the Domain Name System
+.\".br
+.\"rfc3123, A DNS RR Type for Lists of Address Prefixes (APL)
+.br
+rfc3130, Notes from the State-Of-The-Technology: DNSSEC
+.br
+rfc3197, Applicability Statement for DNS MIB Extensions
+.br
+rfc3225, Indicating Resolver Support of DNSSEC
+.\".br
+.\"rfc3226, DNSSEC and IPv6 A6 aware server/resolver message size requirements
+.\".br
+.\"rfc3363, Representing Internet Protocol version 6 (IPv6) Addresses in the Domain Name System
+.\".br
+.\"rfc3364, Tradeoffs in Domain Name System (DNS) Support for Internet Protocol version 6 (IPv6)
+.\".br
+.\"rfc3403, Dynamic Delegation Discovery System (DDDS) Part Three: The Domain Name System (DNS) Database
+.br
+rfc3467, Role of the Domain Name System
+.\".br
+.\"rfc3490, Internationalizing Domain Names in Applications (IDNA)
+.\".br
+.\"rfc3491, Nameprep: A Stringprep Profile for Internationalized Domain Names (IDN)
+.\".br
+.\"rfc3492, Punycode: A Bootstring encoding of Unicode for Internationalized Domain Names in Applications (IDNA)
 .\"
 .SH "AUTHOR"
 This program is originally from Rutgers University.
@@ -1023,4 +1106,4 @@ Rewritten by Eric Wassenaar, NIKHEF, <e07@nikhef.nl>
 Now maintained by Greg A. Woods, <woods-host@planix.com>
 .\"
 .SH "SEE ALSO"
-named(8), resolv.conf(5), resolver(3)
+named(8), resolv.conf(5), resolver(3), hostname(7)
