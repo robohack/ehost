@@ -1,11 +1,11 @@
 #
-#	Makefile.BSD - input for pmake (for use in base OS or pkgsrc)
+#	Makefile.BSD - input for pmake (for use in base OS or for packages)
 #
 # Define control variables on the command-line as necessary.
 #
 #	make -f Makefile.BSD __NetBSD__=1 __GNUC__=2
 #
-#ident	"@(#)newsyslog:$Name:  $:$Id: Makefile.BSD,v 1.5 2003-04-05 03:32:55 -0800 woods Exp $"
+#ident	"@(#)newsyslog:$Name:  $:$Id: Makefile.BSD,v 1.6 2003-04-06 21:37:00 -0800 woods Exp $"
 #
 
 .if defined(HOSTNAME) && $(HOSTNAME) == "proven"
@@ -52,15 +52,13 @@ SRCS =	main.c info.c list.c addr.c geth.c util.c misc.c test.c \
 
 HEADERS = port.h conf.h exit.h type.h rrec.h defs.h host.h glob.h
 
-DOCS =	RELEASE_NOTES
-MISCS = malloc.c README_NT
-
 SCRIPT_SRCS = nscheck.sh nslookup.sh mxlookup.sh rblookup.sh
 SCRIPTS = nscheck nslookup mxlookup rblookup
 
-FILES =	${PROG} ${SCRIPTS}
+DOCS =	RELEASE_NOTES
+MISCS = malloc.c README_NT
 
-ALL_FILES = Makefile $(DOCS) $(HDRS) $(SRCS) $(MANS) $(UTILS) $(MISCS)
+ALL_FILES = Makefile Makefile.BSD $(DOCS) $(HDRS) $(SRCS) $(MANS) $(UTILS) $(MISCS)
 
 # GCC apparently has buggy parameter width detection
 NOGCCERROR = 1
