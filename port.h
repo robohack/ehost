@@ -1,10 +1,12 @@
 /*
 ** Various portability definitions.
 **
-** from: @(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.13 2003-04-04 04:10:48 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.14 2003-04-06 03:19:55 -0800 woods Exp $"
+/*
+ * from: @(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
+ */
 
 #if (defined(__SVR4) || defined(__svr4) || defined(SVR4) || defined(svr4)) && !defined(__svr4__)
 # define __svr4__	1
@@ -70,9 +72,11 @@
 ** Distinguish between various BIND releases.
 */
 
-#if defined(RES_PRF_STATS)
-# define BIND_4_9	1
-#else
+/*
+ * Every other conceivable version of the BIND-based resolvers should have one
+ * or both of __BIND and/or __NAMESER defined to define their API version.
+ */
+#if !defined(__BIND) && !defined(__NAMESER)
 # define BIND_4_8	1
 #endif
 
@@ -125,6 +129,38 @@ typedef int		bool_t;		/* boolean type */
      (defined(BSD4_3) && !defined(BSD4_4)) || \
      (defined(BSD) && (BSD >= 199103)))
 # define HAVE_INET_ATON
+#endif
+
+/*
+ * A special version of res_send() is included in send.c.  It is highly
+ * desirable to use it when compiling with ancient resolvers, but much less
+ * desirable for modern resolvers unless your vendor has corrupted your DNS
+ * resolver with non-DNS lookup methods (especially if the target system 'host'
+ * will be run on uses such foreign schemes -- host is intended to be used only
+ * with the DNS)
+ */
+#if !defined(HOST_RES_SEND) && !defined(BIND_RES_SEND)
+# if (defined(__BIND) && (__BIND - 0) > 19950621) || \
+     (defined(__NAMESER) && (__NAMESER - 0) > 19961001)
+#  define BIND_RES_SEND		/* use the default BIND res_send() */
+# else
+#  define HOST_RES_SEND		/* use the special host res_send() */
+# endif
+#endif
+
+/*
+ * For now we assume these are constant in all resolvers...
+ */
+#define MAXALIAS	35	/* maximum aliases count from gethnamaddr.c */
+#define MAXADDRS	35	/* maximum address count from gethnamaddr.c */
+
+/*
+ * Prefix for messages on stdout in debug mode.
+ */
+#if !defined(BIND_4_8)
+# define DEBUG_PREFIX	";; "
+#else
+# define DEBUG_PREFIX	""
 #endif
 
 #if defined(BIND_4_8) || defined(OLD_RES_STATE)
