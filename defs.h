@@ -1,7 +1,7 @@
 /*
 ** Declaration of functions.
 **
-**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 990629
+**	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
 /*
@@ -13,6 +13,7 @@
 int main		PROTO((int, char **));
 void set_defaults	PROTO((char *, int, char **));
 int getval		PROTO((char *, char *, int, int));
+char *cvtopt		PROTO((char *));
 int process_argv	PROTO((int, char **));
 int process_file	PROTO((FILE *));
 int process_name	PROTO((char *));
@@ -22,6 +23,7 @@ bool host_query		PROTO((char *, ipaddr_t));
 char *myhostname	PROTO((void));
 void set_server		PROTO((char *));
 void set_logfile	PROTO((char *));
+void set_cachedir	PROTO((char *));
 void fatal		PROTO((char *, ...));
 void errmsg		PROTO((char *, ...));
 
@@ -42,7 +44,7 @@ bool get_recursive	PROTO((char **));
 bool list_zone		PROTO((char *));
 bool find_servers	PROTO((char *));
 bool get_servers	PROTO((char *));
-bool get_nsinfo		PROTO((querybuf *, int, char *));
+bool get_nsinfo		PROTO((querybuf *, int, char *, int, int));
 void sort_servers	PROTO((void));
 bool skip_transfer	PROTO((char *));
 void do_check		PROTO((char *));
@@ -53,9 +55,12 @@ bool get_zone		PROTO((char *, struct in_addr, char *));
 void update_zone	PROTO((char *));
 bool get_mxrec		PROTO((char *));
 char *get_primary	PROTO((char *));
-bool check_zone		PROTO((char *));
-bool get_soainfo	PROTO((querybuf *, int, char *));
-void check_soa		PROTO((querybuf *, char *));
+bool check_zone		PROTO((char *, char *));
+bool check_cache	PROTO((char *, char *));
+bool compare_soa	PROTO((char *));
+bool get_soainfo	PROTO((querybuf *, int, char *, int, int));
+int load_soa		PROTO((querybuf *, char *));
+void check_soa		PROTO((querybuf *, char *, char *));
 bool check_dupl		PROTO((ipaddr_t));
 bool check_ttl		PROTO((char *, int, int, int));
 void clear_ttltab	PROTO((void));
@@ -85,12 +90,12 @@ char *in_addr_arpa	PROTO((char *));
 char *nsap_int		PROTO((char *));
 void print_host		PROTO((char *, struct hostent *));
 void show_res		PROTO((void));
-void print_statistics	PROTO((char *, int, int));
-void clear_statistics	PROTO((void));
+void print_stats	PROTO((int *, int, char *, int, int));
+void clear_stats	PROTO((int *));
 void show_types		PROTO((char *, int, int));
 void ns_error		PROTO((char *, int, int, char *));
 char *decode_error	PROTO((int));
-void print_status	PROTO((querybuf *, int));
+void print_answer	PROTO((querybuf *, int));
 void pr_error		PROTO((char *, ...));
 void pr_warning		PROTO((char *, ...));
 void pr_timestamp	PROTO((char *, ...));
@@ -110,6 +115,7 @@ int check_size		PROTO((char *, int, u_char *, u_char *, u_char *, int));
 bool valid_name		PROTO((char *, bool, bool, bool));
 int canonical		PROTO((char *));
 char *mapreverse	PROTO((char *, struct in_addr));
+int anyrecord		PROTO((char *));
 int compare_name	Proto((const ptr_t *, const ptr_t *));
 
 	/* misc.c */
@@ -127,6 +133,20 @@ char *pr_time		PROTO((int, bool));
 char *pr_spherical	PROTO((int, char *, char *));
 char *pr_vertical	PROTO((int, char *, char *));
 char *pr_precision	PROTO((int));
+int convtime		PROTO((char *, char));
+
+	/* test.c */
+
+bool test		PROTO((char *, ipaddr_t));
+
+	/* file.c */
+
+char *cachename		PROTO((char *, char *, char));
+int cache_open		PROTO((char *, bool));
+int cache_close		PROTO((bool));
+int cache_write		PROTO((char *, int));
+int cache_read		PROTO((char *, int));
+void cache_perror	PROTO((char *, char *));
 
 	/* send.c */
 

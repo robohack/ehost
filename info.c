@@ -18,7 +18,7 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 990607";
+static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
 #endif
 
 #include "host.h"
@@ -129,7 +129,7 @@ input bool qualified;			/* assume fully qualified if set */
 				return(FALSE);
 
 			/* if no further search desired (single name) */
-	    		if (!bitset(RES_DNSRCH, _res.options))
+			if (!bitset(RES_DNSRCH, _res.options))
 				break;
 
 			/* if name exists but has not requested type */
@@ -343,7 +343,7 @@ input int class;			/* specific resource record class */
  * Analyze the status of the answer from the nameserver.
  */
 	if ((verbose > print_level) || debug)
-		print_status(answerbuf, n);
+		print_answer(answerbuf, n);
 
 	bp = (HEADER *)answerbuf;
 	ancount = ntohs((u_short)bp->ancount);
@@ -612,6 +612,12 @@ input char *a, *b, *c, *d;		/* optional arguments */
 /* check the RHS domain name of these records for canonical host names */
 #define test_canon(t)	(t == T_NS || t == T_MX)
 
+/* an ordinary PTR record in a reverse zone */
+#define test_ptr(t,s)	(((t == T_PTR) && reverse) && !zeroname(s))
+
+/* an ordinary A record in a forward zone */
+#define test_adr(t,a)	(((t == T_A) && !reverse) && !fakeaddr(a))
+
 u_char *
 print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 input char *name;			/* full name we are querying about */
@@ -658,6 +664,8 @@ input bool regular;			/* set if this is a regular lookup */
 	dlen = _getshort(cp);
 	cp += INT16SZ;
 
+	if (check_size(rname, type, cp, msg, eom, dlen) < 0)
+		return(NULL);
 	eor = cp + dlen;
 
 /*
@@ -1391,6 +1399,41 @@ input bool regular;			/* set if this is a regular lookup */
 		cp += dlen;
 		break;
 
+	    case T_A6:
+		dumpmsg = "not implemented";
+		cp += dlen;
+		break;
+
+	    case T_DNAME:
+		dumpmsg = "not implemented";
+		cp += dlen;
+		break;
+
+	    case T_SINK:
+		dumpmsg = "not implemented";
+		cp += dlen;
+		break;
+
+	    case T_OPT:
+		dumpmsg = "not implemented";
+		cp += dlen;
+		break;
+
+	    case T_ADDRS:
+		dumpmsg = "not implemented";
+		cp += dlen;
+		break;
+
+	    case T_TKEY:
+		dumpmsg = "not implemented";
+		cp += dlen;
+		break;
+
+	    case T_TSIG:
+		dumpmsg = "not implemented";
+		cp += dlen;
+		break;
+
 	    default:
 		dumpmsg = "unknown type";
 		cp += dlen;
@@ -1440,8 +1483,9 @@ input bool regular;			/* set if this is a regular lookup */
  * Suppress the subsequent checks in quiet mode.
  * This can safely be done as there are no side effects.
  * It may speedup things, and nothing would be printed anyway.
+ * Also suppress the checks if explicitly requested in quick mode.
  */
-	if (quiet)
+	if (quiet || quick)
 		return(cp);
 
 /*
@@ -1470,15 +1514,21 @@ input bool regular;			/* set if this is a regular lookup */
 /*
  * Check validity of 'host' related domain names in certain resource records.
  * These include LHS record names and RHS domain names of selected records.
- * Currently underscores are not reported during deep recursive listings.
+ * By default underscores are not reported during deep recursive listings.
  */
-	if (test_valid(type) && !valid_name(rname, TRUE, FALSE, recurskip))
+	if (test_valid(type) && !valid_name(rname, TRUE, FALSE, underskip))
 	{
 		pr_warning("%s %s record has illegal name",
 			rname, pr_type(type));
 	}
 
-	if (test_canon(type) && !valid_name(dname, FALSE, FALSE, recurskip))
+	if (test_canon(type) && !valid_name(dname, FALSE, FALSE, underskip))
+	{
+		pr_warning("%s %s host %s has illegal name",
+			rname, pr_type(type), dname);
+	}
+
+	if (test_ptr(type, rname) && !valid_name(dname, FALSE, FALSE, underskip))
 	{
 		pr_warning("%s %s host %s has illegal name",
 			rname, pr_type(type), dname);
@@ -1487,9 +1537,10 @@ input bool regular;			/* set if this is a regular lookup */
 /*
  * The RHS of various resource records should refer to a canonical host name,
  * i.e. it should exist and have an A record and not be a CNAME.
- * Currently this test is suppressed during deep recursive zone listings.
+ * By default this test is suppressed during deep recursive zone listings.
+ * Results are cached globally, not on a per-zone basis.
  */
-	if (!recurskip && test_canon(type) && ((n = check_canon(dname)) != 0))
+	if (!canonskip && test_canon(type) && ((n = check_canon(dname)) != 0))
 	{
 		/* only report definitive target host failures */
 		if (n == HOST_NOT_FOUND)
@@ -1512,11 +1563,37 @@ input bool regular;			/* set if this is a regular lookup */
 	}
 
 /*
+ * On request, check the RHS of a PTR record when processing a reverse zone,
+ * which should refer to a canonical host name, i.e. it should exist and
+ * have an A record and not be a CNAME. Results are not cached in this case.
+ * Currently this option has effect here only during zone listings.
+ * Note that this does not check CIDR delegations as mentioned in RFC 2317,
+ * where PTR records are replaced with CNAME records.
+ * Also note that this may generate warnings for PTR records for host 0 or
+ * host 255 entries, indicating network names as suggested by RFC 1101.
+ */
+	if (addrmode && test_ptr(type, rname) && ((n = canonical(dname)) != 0))
+	{
+		/* only report definitive target host failures */
+		if (n == HOST_NOT_FOUND)
+			pr_warning("%s %s host %s does not exist",
+				rname, pr_type(type), dname);
+		else if (n == NO_DATA)
+			pr_warning("%s %s host %s has no A record",
+				rname, pr_type(type), dname);
+		else if (n == HOST_NOT_CANON)
+			pr_warning("%s %s host %s is not canonical",
+				rname, pr_type(type), dname);
+	}
+
+/*
  * On request, reverse map the address of an A record, and verify that
  * it is registered and maps back to the name of the A record.
  * Currently this option has effect here only during zone listings.
+ * Note that in reverse zones there are usually no A records, except
+ * perhaps to specify a network mask as suggested in RFC 1101.
  */
-	if (addrmode && ((type == T_A) && !reverse) && !fakeaddr(address))
+	if (addrmode && test_adr(type, address))
 	{
 		host = mapreverse(rname, inaddr);
 		if (host == NULL)
@@ -1525,6 +1602,20 @@ input bool regular;			/* set if this is a regular lookup */
 		else if (host != rname)
 			pr_warning("%s address %s maps to %s",
 				rname, inet_ntoa(inaddr), host);
+	}
+
+/*
+ * On request, check the target in CNAME records for existence.
+ */
+	if (cnamecheck && (type == T_CNAME) && ((n = anyrecord(dname)) != 0))
+	{
+		/* only report definitive target host failures */
+		if (n == HOST_NOT_FOUND)
+			pr_warning("%s %s target %s does not exist",
+				rname, pr_type(type), dname);
+		else if (n == NO_DATA)
+			pr_warning("%s %s target %s has no ANY record",
+				rname, pr_type(type), dname);
 	}
 
 /*

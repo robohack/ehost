@@ -18,7 +18,7 @@
  */
 
 #ifndef lint
-static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 990629";
+static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
 #endif
 
 #include "host.h"
@@ -84,6 +84,10 @@ input char *str;			/* input string with record type */
 	if (sameword(str, "NAPTR"))	return(T_NAPTR);
 	if (sameword(str, "KX"))	return(T_KX);
 	if (sameword(str, "CERT"))	return(T_CERT);
+	if (sameword(str, "A6"))	return(T_A6);
+	if (sameword(str, "DNAME"))	return(T_DNAME);
+	if (sameword(str, "SINK"))	return(T_SINK);
+	if (sameword(str, "OPT"))	return(T_OPT);
 
 		/* nonstandard types */
 
@@ -91,6 +95,12 @@ input char *str;			/* input string with record type */
 	if (sameword(str, "UID"))	return(T_UID);
 	if (sameword(str, "GID"))	return(T_GID);
 	if (sameword(str, "UNSPEC"))	return(T_UNSPEC);
+
+		/* special types */
+
+	if (sameword(str, "ADDRS"))	return(T_ADDRS);
+	if (sameword(str, "TKEY"))	return(T_TKEY);
+	if (sameword(str, "TSIG"))	return(T_TSIG);
 
 		/* filters */
 
@@ -310,7 +320,7 @@ show_res()
 	printf("\n");
 
 /*
- * The search domains are extracted from the default domain components,
+ * The search domains are extracted from the default domain label components,
  * but may be overridden by "search" directives in /etc/resolv.conf
  * since 4.8.3.
  */
@@ -384,54 +394,79 @@ show_res()
 }
 
 /*
-** PRINT_STATISTICS -- Print resource record statistics
-** ----------------------------------------------------
+** PRINT_STATS -- Print resource record statistics
+** -----------------------------------------------
 **
 **	Returns:
 **		None.
 **
 **	Inputs:
 **		The record_stats[] counts have been updated by print_rrec().
+**		The total_stats[]  counts have been updated by list_zone().
 */
 
 void
-print_statistics(name, filter, class)
+print_stats(stats, nzones, name, filter, class)
+input int stats[];			/* count of resource records per type */
+input int nzones;			/* number of zones processed */
 input char *name;			/* name of zone we are listing */
 input int filter;			/* type of records we want to see */
 input int class;			/* class of records we want to see */
 {
 	register int type;
 	int nrecords;
+	int total;
 
-	for (type = T_FIRST; type <= T_LAST; type++)
+	for (total = 0, type = T_FIRST; type <= T_LAST; type++)
 	{
-		nrecords = record_stats[type];
+		nrecords = stats[type];
+		total += nrecords;
+
 		if (nrecords > 0 || ((filter != T_ANY) && want_type(type, filter)))
 		{
-			printf("Found %4d %-5s record%-1s", nrecords,
+			printf("Found %d %s record%s", nrecords,
 				pr_type(type), plural(nrecords));
 
 			if (class != C_IN)
 				printf(" in class %s", pr_class(class));
 
+			if (nzones > 0)
+				printf(" in %d zone%s", nzones, plural(nzones));
+
 			printf(" within %s\n", name);
 		}
 	}
+
+	if (total > 0)
+	{
+		printf("Found %d resource record%s", total, plural(total));
+
+		if (class != C_IN)
+			printf(" in class %s", pr_class(class));
+
+		if (nzones > 0)
+			printf(" in %d zone%s", nzones, plural(nzones));
+
+		printf(" within %s\n", name);
+	}
 }
 
-
-/*
-** CLEAR_STATISTICS -- Clear resource record statistics
-** ----------------------------------------------------
+/*
+** CLEAR_STATS -- Clear resource record statistics
+** -----------------------------------------------
 **
 **	Returns:
 **		None.
 */
 
 void
-clear_statistics()
+clear_stats(stats)
+output int stats[];			/* count of resource records per type */
 {
-	bzero((char *)record_stats, sizeof(record_stats));
+	register int type;
+
+	for (type = T_FIRST; type <= T_LAST; type++)
+		stats[type] = 0;
 }
 
 /*
@@ -728,7 +763,7 @@ input int rcode;			/* error code from bp->rcode */
 }
 
 /*
-** PRINT_STATUS -- Print result status after nameserver query
+** PRINT_ANSWER -- Print result status after nameserver query
 ** ----------------------------------------------------------
 **
 **	Returns:
@@ -741,7 +776,7 @@ input int rcode;			/* error code from bp->rcode */
 */
 
 void
-print_status(answerbuf, answerlen)
+print_answer(answerbuf, answerlen)
 input querybuf *answerbuf;		/* location of answer buffer */
 input int answerlen;			/* length of answer buffer */
 {
@@ -1073,7 +1108,7 @@ input int nzones;			/* number of known delegated zones */
 ** --------------------------------------------------------------
 **
 **	Returns:
-**		Number of shared trailing components in both names.
+**		Number of shared trailing label components in both names.
 **
 **	Note. This routine is currently used only to compare nameserver
 **	names in the RHS of NS records, so there is no need to check
@@ -1286,6 +1321,10 @@ input int type;				/* resource record type */
 	    case T_NAPTR:   return("NAPTR");	/* naming authority urn */
 	    case T_KX:      return("KX");	/* key exchange info */
 	    case T_CERT:    return("CERT");	/* security certificate */
+	    case T_A6:      return("A6");
+	    case T_DNAME:   return("DNAME");
+	    case T_SINK:    return("SINK");
+	    case T_OPT:     return("OPT");
 
 		/* nonstandard types */
 
@@ -1293,6 +1332,12 @@ input int type;				/* resource record type */
 	    case T_UID:     return("UID");	/* user ident */
 	    case T_GID:     return("GID");	/* group ident */
 	    case T_UNSPEC:  return("UNSPEC");	/* unspecified binary data */
+
+		/* special types */
+
+	    case T_ADDRS:   return("ADDRS");
+	    case T_TKEY:    return("TKEY");	/* transaction key */
+	    case T_TSIG:    return("TSIG");	/* transaction signature */
 
 		/* filters */
 
@@ -1489,11 +1534,11 @@ input bool underscore;			/* set if underscores are allowed */
 		}
 
 		/* basic character set */
-		if (is_alnum(c) || (c == '-'))
+		if (is_alnum(c) || ((c == '-') && in_label(p, name)))
 			continue;
 
-		/* start of a new component */
-		if (c == '.')
+		/* start of a new label component */
+		if ((c == '.') && in_label(p, name))
 			continue;
 
 		/* allow '*' for use in wildcard names */
@@ -1643,6 +1688,56 @@ input struct in_addr inaddr;		/* address of A record to check */
  * The reverse mapping did not yield the given name.
  */
 	return((char *)hp->h_name);
+}
+
+/* 
+** ANYRECORD -- Check whether domain name has any resource records
+** ---------------------------------------------------------------
+**
+**	Returns:
+**		Nonzero if there are no resource records available.
+**		0 if there are, or if it remains undecided.
+*/
+
+int
+anyrecord(name)
+input char *name;			/* the domain name to check */
+{
+	querybuf answer;
+	register int n;
+	int status;
+	int save_errno;
+	int save_herrno;
+	
+/*
+ * Preserve state when querying, to avoid clobbering current values.
+ */
+	save_errno = errno;
+	save_herrno = h_errno;
+
+	n = get_info(&answer, name, T_ANY, queryclass);
+	status = h_errno;
+
+	seterrno(save_errno);
+	seth_errno(save_herrno);
+
+/*
+ * Indicate negative result only after definitive lookup failures.
+ */
+	if (n < 0)
+	{
+		/* authoritative denial -- not existing or no ANY record */
+		if (status == NO_DATA || status == HOST_NOT_FOUND)
+			return(status);
+
+		/* nameserver failure -- still undecided, assume ok */
+		return(0);
+	}
+
+/*
+ * The domain name exists, and there are resource records available.
+ */
+	return(0);
 }
 
 /* 

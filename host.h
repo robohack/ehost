@@ -1,7 +1,7 @@
 /*
 ** Master include file of the host utility.
 **
-**	@(#)host.h              e07@nikhef.nl (Eric Wassenaar) 990522
+**	@(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
 #if defined(apollo) && defined(lint)
@@ -21,10 +21,14 @@
 
 #include <sys/types.h>		/* not always automatically included */
 #if !defined(WINNT)
-#include <sys/time.h>
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#endif
+
+#include <sys/stat.h>
+#if !defined(WINNT)
+#include <sys/time.h>
 #endif
 #if defined(_AIX)
 #include <sys/select.h>		/* needed for fd_set */
@@ -45,11 +49,12 @@
 #define NO_DATA	NO_ADDRESS	/* used here only in case authoritative */
 #endif
 
-#define NO_RREC	(NO_DATA + 1)	/* used for non-authoritative NO_DATA */
-#define NO_HOST	(NO_DATA + 2)	/* used for non-authoritative HOST_NOT_FOUND */
-#define QUERY_REFUSED  (NO_DATA + 3)	/* query explicitly refused by server */
-#define SERVER_FAILURE (NO_DATA + 4)	/* instead of TRY_AGAIN upon SERVFAIL */
-#define HOST_NOT_CANON (NO_DATA + 5)	/* host name is not canonical */
+#define NO_RREC		(NO_DATA + 1)	/* non-authoritative NO_DATA */
+#define NO_HOST		(NO_DATA + 2)	/* non-authoritative HOST_NOT_FOUND */
+#define QUERY_REFUSED	(NO_DATA + 3)	/* query explicitly refused by server */
+#define SERVER_FAILURE	(NO_DATA + 4)	/* instead of TRY_AGAIN upon SERVFAIL */
+#define HOST_NOT_CANON	(NO_DATA + 5)	/* host name is not canonical */
+#define CACHE_ERROR	(NO_DATA + 6)	/* to signal local cache I/O errors */
 
 #define T_NONE	0		/* yet unspecified resource record type */
 #define T_FIRST	T_A		/* first possible type in resource record */
@@ -92,6 +97,8 @@ typedef union {
 #define MAXINT8		255
 #define MAXINT16	65535
 
+#define HASHSIZE	2003	/* size of various hash tables */
+
 #ifdef lint
 #define EXTERN
 #else
@@ -114,6 +121,7 @@ EXTERN res_state_t _res;	/* defined in res_init.c */
 #define plurale(n)	(((n) == 1) ? "" : "es")
 
 #define is_xdigit(c)	(isascii(c) && isxdigit(c))
+#define is_digit(c)	(isascii(c) && isdigit(c))
 #define is_print(c)	(isascii(c) && isprint(c))
 #define is_space(c)	(isascii(c) && isspace(c))
 #define is_alnum(c)	(isascii(c) && isalnum(c))
@@ -124,11 +132,12 @@ EXTERN res_state_t _res;	/* defined in res_init.c */
 #define hexdigit(c)	(((c) < 10) ? '0' + (c) : 'A' + (c) - 10);
 
 #define bitset(a,b)	(((a) & (b)) != 0)
-#define sameword(a,b)	(strcasecmp(a,b) == 0)
-#define samepart(a,b)	(strncasecmp(a,b,strlen(b)) == 0)
-#define samehead(a,b)	(strncasecmp(a,b,sizeof(b)-1) == 0)
+#define sameword(a,b)	(strcasecmp(a, b) == 0)
+#define samepart(a,b)	(strncasecmp(a, b, strlen(b)) == 0)
+#define samehead(a,b)	(strncasecmp(a, b, sizeof(b)-1) == 0)
 
-#define fakename(a)	(samehead(a,"localhost.") || samehead(a,"loopback."))
+#define zeroname(a)	(samehead(a, "0.") || samehead(a, "255."))
+#define fakename(a)	(samehead(a, "localhost.") || samehead(a, "loopback."))
 #define nulladdr(a)	(((a) == 0) || ((a) == BROADCAST_ADDR))
 #define fakeaddr(a)	(nulladdr(a) || ((a) == htonl(LOCALHOST_ADDR)))
 #define incopy(a)	*((struct in_addr *)(a))
@@ -141,8 +150,10 @@ EXTERN res_state_t _res;	/* defined in res_init.c */
 #define xfree(a)	(void) free((ptr_t *)(a))
 
 #define strlength(s)	(int)strlen(s)
-#define in_string(s,c)	(index(s,c) != NULL)
+#define in_string(s,c)	(index(s, c) != NULL)
+#define in_label(a,b)	(((a) > (b)) && ((a)[-1] != '.') && ((a)[1] != '.'))
 #define is_quoted(a,b)	(((a) > (b)) && ((a)[-1] == '\\'))
+#define is_empty(s)	(((s) == NULL) || ((s)[0] == '\0'))
 
 #ifdef DEBUG
 #define assert(condition)\
