@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.7 2003-03-30 20:55:14 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.8 2003-03-31 21:05:43 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -789,7 +789,7 @@ decode_error(rcode)
 void
 print_answer(answerbuf, answerlen, type)
 	input querybuf_t *answerbuf;	/* location of answer buffer */
-	input int answerlen;		/* length of answer buffer */
+	input size_t answerlen;		/* length of answer buffer */
 	input int type;			/* type of query we made */
 {
 	HEADER *bp;
@@ -813,7 +813,7 @@ print_answer(answerbuf, answerlen, type)
 
 	if (bp->tc) {
 		if (answerlen > sizeof(querybuf_t))
-			printf(" (truncated to %d)", sizeof(querybuf_t));
+			printf(" (truncated to %lu)", (unsigned long) sizeof(querybuf_t));
 		else
 			printf(" (truncated)");
 	}
@@ -822,7 +822,7 @@ print_answer(answerbuf, answerlen, type)
 
 	printf(", %s", bp->aa ? "authoritative, " : "");
 
-	printf("status: %s\n", decode_error((int)bp->rcode));
+	printf("status: %s\n", decode_error((int) bp->rcode));
 
 	return;
 }
@@ -1248,7 +1248,7 @@ pr_dotname(name)
 #ifdef obsolete
 	(void) sprintf(buf, "%.*s.", MAXDNAME, name);
 #endif
-	bcopy(name, buf, n);
+	memcpy(name, buf, n);
 	buf[n] = '.';
 	buf[n + 1] = '\0';
 
