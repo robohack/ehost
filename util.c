@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.18 2003-12-01 20:19:32 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.19 2006-12-18 18:51:07 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -818,7 +818,7 @@ print_answer(answerbuf, answerlen, type)
 			printf(" (truncated)");
 	}
 
-	printf(", %d answer%s", type == T_NS ? nscount : ancount, plural(type == T_NS ? nscount : ancount));
+	printf(", %d answer%s", ancount, plural(ancount));
 
 	printf(", %s", bp->aa ? "authoritative, " : "");
 
