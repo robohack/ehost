@@ -3,7 +3,7 @@
 **
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.17 2004-10-17 18:39:50 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.18 2006-12-18 18:49:31 -0800 woods Exp $"
 /*
  * from: @(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
  */
@@ -137,7 +137,9 @@ typedef int		bool_t;		/* boolean type */
 #endif
 
 /*
- * getipnodeby*() and freehostent() were added in BIND-8.2.2
+ * getipnodeby*() and freehostent() were added in BIND-8.2.2 (19991006)
+ *
+ * Why does everyone have to break defined APIs?
  *
  * FreeBSD added getipnodeby*() separately, obtaining them from KAME, but
  * without adjusting their resolver API version number (leaving it at the
@@ -150,10 +152,14 @@ typedef int		bool_t;		/* boolean type */
  * Even worse the GLIBC implementation of gethostbyaddr() is totally broken and
  * does not return multiple PTRs.
  *
+ * NetBSD 3.x and newer incorporates the BIND-8 resolver (from the BIND-9
+ * distribution), but sadly does not include the getipnodeby*() API which is
+ * still provided in libbind.  If you're going to do something, do it right!
+ *
  * PLEASE always build and link against BIND-8.4.0 or newer!
  */
 #if defined(__NAMESER) && (!defined(__GLIBC__) || ((__RES - 0) > 19991006)) && \
-	((__NAMESER - 0) >= 19991006 || \
+	(((__NAMESER - 0) >= 19991006 && !defined(__NetBSD__)) || \
 	 (defined(__FreeBSD__) && (__NAMESER - 0) >= 19961001))
 # define HAVE_GETIPNODEBYNAME	1
 # define HAVE_GETIPNODEBYADDR	1
