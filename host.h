@@ -4,7 +4,7 @@
 ** from: @(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: host.h,v 1.15 2004-08-12 20:25:56 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.16 2006-12-18 18:53:04 -0800 woods Exp $"
 
 #if defined(apollo) && defined(lint)
 # define __attribute(x)		/* XXX ??? */
@@ -122,13 +122,13 @@
 
 #define MAXINT16	65536		/* 2^16 */
 
-#if !defined(MAXPACKET)
-# if PACKETSZ > MAXINT16
-#  define MAXPACKET	PACKETSZ
-# else
-#  define MAXPACKET	MAXINT16	/* maximum TCP answer length... RFC 1035 §4.2.2 */
-# endif
-#endif
+/*
+ * maximum TCP answer length... RFC 1035 §4.2.2
+ *
+ * note: the first two bytes are of course the length of the remaining data.
+ */
+#define MAXPACKET	MAXINT16
+
 
 #ifndef HFIXEDSZ
 # define HFIXEDSZ	12		/* actually sizeof(HEADER) */
