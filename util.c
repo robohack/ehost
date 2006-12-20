@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.19 2006-12-18 18:51:07 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.20 2006-12-20 20:19:39 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -106,8 +106,8 @@ parse_type(str)
 
 	/* filters */
 
-	if (sameword(str, "IXFR"))	return (-1);		/* illegal */
-	if (sameword(str, "AXFR"))	return (-1);		/* illegal */
+	if (sameword(str, "IXFR"))	return (-1);		/* invalid */
+	if (sameword(str, "AXFR"))	return (-1);		/* invalid */
 	if (sameword(str, "MAILB"))	return (T_MAILB);
 	if (sameword(str, "MAILA"))	return (T_MAILA);	/* obsolete */
 	if (sameword(str, "ANY"))	return (T_ANY);
@@ -338,12 +338,12 @@ show_res()
 	 * by the multiple addresses of the same server.
 	 * When doing a zone transfer _res.retrans is used for the connect timeout.
 	 */
-	printf("Timeout per retry: %d secs\n", _res.retrans);
+	printf("Timeout per retry: %d seconds\n", _res.retrans);
 	printf("Number of retries: %d\n", _res.retry);
 
-	printf("Number of addresses: %d\n", _res.nscount);
+	printf("Number of nameserver addresses: %d\n", _res.nscount);
 	for (i = 0; i < _res.nscount; i++)
-		printf("%s\n", inet_ntoa(nslist(i).sin_addr));
+		printf("Nameserver %d: %s\n", i+1, inet_ntoa(nslist(i).sin_addr));
 
 	/*
 	 * The resolver options are initialized by res_init() to contain the
@@ -1588,7 +1588,7 @@ check_size(name, type, cp, msg, eor, size)
 **	Only alphanumeric characters and dash '-' may be used (dash
 **	only in the middle). We only check the individual characters.
 **	Strictly speaking, this restriction is only for ``host names''.
-**	The underscore is illegal, at least not recommended, but is
+**	The underscore is invalid, at least not recommended, but is
 **	so abundant that it requires special processing.
 **
 **	If the domain name represents a mailbox specification, the
@@ -1653,11 +1653,11 @@ valid_name(name, wildcard, localpart, underscore)
 			continue;
 
 		/* ignore underscore in certain circumstances */
-		if ((c == '_') && underscore && !illegal)
+		if ((c == '_') && underscore && !invalid)
 			continue;
 
 		/* silently allowed widespread exceptions */
-		if (illegal && in_string(illegal, c))
+		if (invalid && in_string(invalid, c))
 			continue;
 
 		return (FALSE);
