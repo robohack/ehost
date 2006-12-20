@@ -1,5 +1,5 @@
 .\"
-.\"#ident "@(#)host:$Name:  $:$Id: host.1,v 1.8 2003-12-04 03:43:28 -0800 woods Exp $"
+.\"#ident "@(#)host:$Name:  $:$Id: host.1,v 1.9 2006-12-20 20:19:06 -0800 woods Exp $"
 .\"
 .\" from: @(#)host.1              e07@nikhef.nl (Eric Wassenaar) 991527
 .\"
@@ -292,7 +292,7 @@ the logfile, and stdout gets only the extra resource record output
 (so that it can be used in pipes).
 .TP
 .BI \-I " chars"
-suppresses warning messages about illegal domain names containing
+suppresses warning messages about invalid domain names containing
 invalid characters, by specifying such characters in the string
 \fIchars\fP.  The underscore is a good candidate.
 .TP
@@ -761,12 +761,12 @@ in zone listings.  This is sometimes not the case, due to the independent
 definition of glue records or other information in the parent zone, which
 is not kept in sync with the definition in the delegated zone.
 .TP
-\fIname\fP \fItype\fP record has illegal name
+\fIname\fP \fItype\fP record has an invalid name
 The name of an A or MX record contains invalid characters.
 Only alphanumeric characters and hyphen '-' are valid in
 components (labels) between dots.
 .TP
-\fIname\fP \fItype\fP host \fIserver\fP has illegal name
+\fIname\fP \fItype\fP host \fIserver\fP has andinvalid name
 The name of an NS or MX target host contains invalid characters.
 Only alphanumeric characters and hyphen '-' are valid in
 components (labels) between dots.
@@ -827,10 +827,10 @@ This is not an error per se, since only publicly accessible
 nameservers may be advertised, and others may be behind a
 firewall.
 .TP
-\fIzone\fP SOA primary \fIserver\fP has illegal name
+\fIzone\fP SOA primary \fIserver\fP has an invalid name
 The name of the primary nameserver contains invalid characters.
 .TP
-\fIzone\fP SOA hostmaster \fImailbox\fP has illegal mailbox
+\fIzone\fP SOA hostmaster \fImailbox\fP has an invalid mailbox specification
 The name of the hostmaster mailbox contains invalid characters.
 A common mistake is to use an RFC822 email address with a ``@'',
 whereas the at-sign should have been replaced with a dot.

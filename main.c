@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.23 2004-10-17 18:40:22 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.24 2006-12-20 20:19:06 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -59,7 +59,7 @@ static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
  * - Maintain resource record statistics during zone listings.
  * - Maintain count of hosts during zone listings.
  * - Check for various extraneous conditions during zone listings.
- * - Check for illegal domain names containing invalid characters.
+ * - Check for invalid domain names containing invalid characters.
  * - Verify that certain domain names represent canonical host names.
  * - Perform TTL consistency checking during zone listings.
  * - Exploit multiple server addresses if available.
@@ -482,7 +482,7 @@ main(argc, argv)
 			case 'I' :
 				if (argv[2] == NULL || argv[2][0] == '-')
 					usage_error("Missing allowed chars");
-				illegal = argv[2];
+				invalid = argv[2];
 				argv++; argc--;
 				break;
 
@@ -1805,8 +1805,8 @@ set_cachedir(filename)
 }
 
 /*
-** FATAL -- Abort program when illegal option encountered
-** ------------------------------------------------------
+** FATAL -- Abort program when an invalid option is encountered
+** ------------------------------------------------------------
 **
 **	Returns:
 **		Aborts after issuing error message.

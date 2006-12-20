@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.25 2004-08-12 20:26:40 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.26 2006-12-20 20:19:06 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -2531,7 +2531,7 @@ check_soa(answerbuf, name, host)
 	/*
 	 * Make few timer consistency checks only for the first one in a series.
 	 * Compare the primary field against the list of authoritative servers.
-	 * Explicitly check the hostmaster field for illegal characters ('@').
+	 * Explicitly check the hostmaster field for invalid characters ('@').
 	 * Yell if the serial has the high bit set (not always intentional).
 	 * Make sanity checks for refresh and retry times.
 	 * Check for bizarre expire values.
@@ -2546,11 +2546,11 @@ check_soa(answerbuf, name, host)
 				   name, soa.primary);
 		}
 		if (!valid_name(soa.primary, FALSE, FALSE, FALSE)) {
-			pr_warning("%s SOA primary %s has illegal name",
+			pr_warning("%s SOA primary %s has an invalid name",
 				   name, soa.primary);
 		}
 		if (!valid_name(soa.hostmaster, FALSE, TRUE, FALSE)) {
-			pr_warning("%s SOA hostmaster %s has illegal mailbox",
+			pr_warning("%s SOA hostmaster %s has an invalid mailbox specification",
 				   name, soa.hostmaster);
 		}
 		if (bitset(0x80000000U, soa.serial)) {

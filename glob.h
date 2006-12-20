@@ -4,7 +4,7 @@
 **	@(#)glob.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: glob.h,v 1.8 2003-12-01 20:18:12 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: glob.h,v 1.9 2006-12-20 20:19:06 -0800 woods Exp $"
 
 #ifdef _DEFINE
 # define GLOBAL
@@ -54,7 +54,7 @@ GLOBAL char *realname;		/* the actual name that was queried */
 GLOBAL FILE *logfile;		/* default is stdout only */
 GLOBAL bool_t logexchange;	/* exchange role of log file and stdout */
 
-GLOBAL char *illegal;		/* give warning about illegal domain names */
+GLOBAL char *invalid;		/* give warning about invalid domain names */
 GLOBAL char *skipzone;		/* zone(s) for which to skip zone transfer */
 GLOBAL char *prefserver;	/* preferred server(s) for zone listing */
 
