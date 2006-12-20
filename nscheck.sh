@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-#ident "@(#)host:$Name:  $:$Id: nscheck.sh,v 1.4 2003-12-04 03:41:18 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: nscheck.sh,v 1.5 2006-12-20 20:25:42 -0800 woods Exp $"
 #
 #	nscheck - check NS RRs at every parent NS
 #
@@ -9,6 +9,7 @@
 # checking for NS records by default
 #
 # For now the comparison must be done visually.
+# (ToDo: collect and compare each with the next, show only one set)
 #
 # Using '-a' should also show any glue records the parent nameservers
 # may have -- however modern BIND-9 will return delegations in the
@@ -68,6 +69,12 @@ done
 shift $(($OPTIND - 1))
 
 for domain in $@; do
+	case "$domain" in
+	*.*)
+		;;
+	*)	
+		domain=${domain}.
+	esac
 	if [ -z "$pzone" ]; then
 		pzone=$(host -v -P $domain 2> /dev/null | fgrep 'parent zone:' | tail -1 | awk '{sub(/\)/, "", $NF); print $NF}')
 	fi
@@ -77,15 +84,15 @@ for domain in $@; do
 	*)	
 		pzone=${pzone}.
 	esac
-	nslist=$(host --canonskip -t NS $pzone | awk '{print $NF}')
-	for ns in $nslist ; do
+	pub_nslist=$(host --canonskip -t NS $pzone | awk '$2 == "NS" {print $NF}')
+	for ns in $pub_nslist ; do
 		echo ""
 		case "$flags" in
 		*-v*|*-d*)
 			echo "========================================"
 			;;
 		esac
-		echo "====> Checking $ns for $type records for $domain...."
+		echo "====> Checking $ns for $type $class records for '$domain'...."
 		host $flags $class -t $type $domain $ns
 		rc=${rc:-$?}
 	done
