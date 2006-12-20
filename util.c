@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.20 2006-12-20 20:19:39 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.21 2006-12-20 20:30:27 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -343,7 +343,7 @@ show_res()
 
 	printf("Number of nameserver addresses: %d\n", _res.nscount);
 	for (i = 0; i < _res.nscount; i++)
-		printf("Nameserver %d: %s\n", i+1, inet_ntoa(nslist(i).sin_addr));
+		printf("Nameserver #%d: %s\n", i+1, inet_ntoa(nslist(i).sin_addr));
 
 	/*
 	 * The resolver options are initialized by res_init() to contain the
