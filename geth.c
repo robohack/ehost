@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.12 2004-10-17 18:39:50 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.13 2006-12-20 20:00:46 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)geth.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -67,7 +67,7 @@ geth_byname(name)
 #else
 	hp = gethostbyname(name);
 #endif
-	if (!hp && verbose)
+	if (!hp && verbose > print_level+1)
 		fprintf(stderr, "%s: gethostbyname(%s): %s\n", argv0, name, hstrerror(h_errno));
 
 	return (hp);
@@ -121,7 +121,7 @@ geth_byaddr(addr, size, family)
 #else
 	hp = gethostbyaddr(addr, size, family); /* XXX size _SHOULD_ be socklen_t, but may not be... */
 #endif
-	if (!hp && verbose)
+	if (!hp && verbose > print_level+1)
 		fprintf(stderr, "%s: gethostbyaddr(%s): %s\n", argv0, inet_ntoa(incopy(addr)), hstrerror(h_errno));
 
 	return (hp);
