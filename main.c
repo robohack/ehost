@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.25 2006-12-21 19:21:43 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.26 2006-12-21 23:56:27 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -699,7 +699,11 @@ main(argc, argv)
 	 * set defaults from major modes
 	 */
 	if (listmode && !canoncheck)
-		canonskip = TRUE;
+		canonskip = TRUE;	/* assume --canonskip was given if in
+					 * any zone listing mode, unless an
+					 * explicit --canoncheck was also
+					 * specified
+					 */
 
 	/*
 	 * Check for incompatible options.
@@ -1445,7 +1449,6 @@ execute(name, addr)
 			return (FALSE);
 		}
 		set_server(primaryname);
-		canonskip = TRUE; /* the primary servers may (should!) be non-recursive */
 	} else if (parent) {
 		/*
 		 * XXX this code should be refactored out into a separate
@@ -1743,7 +1746,6 @@ set_server(name)
 		if (verbose)
 			printf("Server: %s\n\n", server);
 	}
-	canonskip = TRUE;
 
 	return;
 }
