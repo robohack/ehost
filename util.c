@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.21 2006-12-20 20:30:27 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.22 2006-12-21 19:22:03 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -360,6 +360,18 @@ show_res()
 	 *	RES_DEFNAMES	add default domain to queryname without dot
 	 *	RES_STAYOPEN	keep tcp socket open for subsequent queries
 	 *	RES_DNSRCH	append search domains even to queryname with dot
+	 *	RES_NOALIASES	shuts off HOSTALIASES feature
+	 *	RES_USE_INET6	use/map IPv6 in gethostbyname()
+	 *	RES_ROTATE	rotate ns list after each query
+	 *	RES_NOCHECKNAME	do not check names for sanity.
+	 *	RES_KEEPTSIG	do not strip TSIG records
+	 *	RES_BLAST	blast all recursive servers
+	 *	RES_NOTLDQUERY	don't unqualified name as a tld
+	 *	RES_USE_DNSSEC	use DNSSEC using OK bit in OPT
+	 *	RES_DEBUG2	nslookup internal
+	 *	RES_USE_DNAME	use DNAME
+	 *	RES_USE_EDNS0	use EDNS0 if configured
+	 *	RES_NO_NIBBLE2	disable alternate nibble lookup
 	 */
 	printf("Options set:");
 	if (bitset(RES_INIT,      _res.options)) printf(" INIT");
@@ -372,6 +384,45 @@ show_res()
 	if (bitset(RES_DEFNAMES,  _res.options)) printf(" DEFNAMES");
 	if (bitset(RES_STAYOPEN,  _res.options)) printf(" STAYOPEN");
 	if (bitset(RES_DNSRCH,    _res.options)) printf(" DNSRCH");
+#ifdef RES_INSECURE1
+	if (bitset(RES_INSECURE1, _res.options)) printf(" INSECURE1");
+#endif
+#ifdef RES_INSECURE2
+	if (bitset(RES_INSECURE2, _res.options)) printf(" INSECURE2");
+#endif
+#ifdef RES_NOALISES
+	if (bitset(RES_NOALIASES, _res.options)) printf(" NOALIASES");
+#endif
+#ifdef RES_USE_INET6
+	if (bitset(RES_USE_INET6, _res.options)) printf(" USE_INET6");
+#endif
+#ifdef RES_ROTATE
+	if (bitset(RES_ROTATE,    _res.options)) printf(" ROTATE");
+#endif
+#ifdef RES_NOCHECKNAME
+	if (bitset(RES_NOCHECKNAME, _res.options)) printf(" NOCHECKNAME");
+#endif
+#ifdef RES_KEEPTSIG
+	if (bitset(RES_KEEPTSIG,  _res.options)) printf(" KEEPTSIG");
+#endif
+#ifdef RES_BLAST
+	if (bitset(RES_BLAST,     _res.options)) printf(" BLAST");
+#endif
+#ifdef RES_NOTLDQUERY
+	if (bitset(RES_NOTLDQUERY,_res.options)) printf(" NOTLDQUERY");
+#endif
+#ifdef RES_USE_DNSSEC
+	if (bitset(RES_USE_DNSSEC,_res.options)) printf(" USE_DNSSEC");
+#endif
+#ifdef RES_USE_DNAME
+	if (bitset(RES_USE_DNAME, _res.options)) printf(" USE_DNAME");
+#endif
+#ifdef RES_USE_EDNS0
+	if (bitset(RES_USE_EDNS0, _res.options)) printf(" USE_EDNS0");
+#endif
+#ifdef RES_NO_NIBBLE2
+	if (bitset(RES_NO_NIBBLE2,_res.options)) printf(" NO_NIBBLE2");
+#endif
 	printf("\n");
 
 	printf("Options clr:");
@@ -385,6 +436,45 @@ show_res()
 	if (!bitset(RES_DEFNAMES, _res.options)) printf(" DEFNAMES");
 	if (!bitset(RES_STAYOPEN, _res.options)) printf(" STAYOPEN");
 	if (!bitset(RES_DNSRCH,   _res.options)) printf(" DNSRCH");
+#ifdef RES_INSECURE1
+	if (!bitset(RES_INSECURE1,_res.options)) printf(" INSECURE1");
+#endif
+#ifdef RES_INSECURE2
+	if (!bitset(RES_INSECURE2,_res.options)) printf(" INSECURE2");
+#endif
+#ifdef RES_NOALISES
+	if (!bitset(RES_NOALIASES,_res.options)) printf(" NOALIASES");
+#endif
+#ifdef RES_USE_INET6
+	if (!bitset(RES_USE_INET6,_res.options)) printf(" USE_INET6");
+#endif
+#ifdef RES_ROTATE
+	if (!bitset(RES_ROTATE,   _res.options)) printf(" ROTATE");
+#endif
+#ifdef RES_NOCHECKNAME
+	if (!bitset(RES_NOCHECKNAME, _res.options)) printf(" NOCHECKNAME");
+#endif
+#ifdef RES_KEEPTSIG
+	if (!bitset(RES_KEEPTSIG, _res.options)) printf(" KEEPTSIG");
+#endif
+#ifdef RES_BLAST
+	if (!bitset(RES_BLAST,    _res.options)) printf(" BLAST");
+#endif
+#ifdef RES_NOTLDQUERY
+	if (!bitset(RES_NOTLDQUERY, _res.options)) printf(" NOTLDQUERY");
+#endif
+#ifdef RES_USE_DNSSEC
+	if (!bitset(RES_USE_DNSSEC, _res.options)) printf(" USE_DNSSEC");
+#endif
+#ifdef RES_USE_DNAME
+	if (!bitset(RES_USE_DNAME, _res.options)) printf(" USE_DNAME");
+#endif
+#ifdef RES_USE_EDNS0
+	if (!bitset(RES_USE_EDNS0, _res.options)) printf(" USE_EDNS0");
+#endif
+#ifdef RES_NO_NIBBLE2
+	if (!bitset(RES_NO_NIBBLE2, _res.options)) printf(" NO_NIBBLE2");
+#endif
 	printf("\n");
 
 	/*
