@@ -4,7 +4,7 @@
 **	@(#)defs.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.20 2003-06-05 01:13:16 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: defs.h,v 1.21 2006-12-21 23:55:09 -0800 woods Exp $"
 
 /*
 ** Internal modules of the host utility
@@ -34,7 +34,7 @@ bool_t get_domaininfo	__P((char *, char *));
 int get_info		__P((querybuf_t *, const char *, int, int));
 bool_t print_info	__P((querybuf_t *, int, const char *, int, int, bool_t));
 void print_data		__P((const char *, ...));
-u_char *print_rrec	__P((const char *, int, int, u_char *, u_char *, u_char *, bool_t));
+u_char *print_rrec	__P((const char *, int, int, HEADER *, u_char *, u_char *, u_char *, bool_t));
 void dump_rrec		__P((u_char *, int, char *));
 u_char *skip_qrec	__P((const char *, int, int, u_char *, u_char *, u_char *));
 bool_t get_recursive	__P((char **));
