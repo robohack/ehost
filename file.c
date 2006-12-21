@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: file.c,v 1.13 2003-06-05 01:13:16 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: file.c,v 1.14 2006-12-21 23:49:30 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)file.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -253,11 +253,7 @@ cache_write(buf, bufsize)
 	/*
 	 * Write the length of the answer buffer.
 	 */
-#if 0
-	len = htons((u_short) bufsize);
-#else
-	ns_put16((u_int) bufsize, (u_char *) &len);
-#endif
+	ns_put16((u_int16_t) bufsize, (u_char *) &len);
 
 	buffer = (char *) &len;
 	buflen = INT16SZ;
@@ -317,11 +313,7 @@ cache_read_anslen()
 		cache_perror("cache_read_anslen(): recv_sock(): error reading answer's length", tempcache);
 		return (-1);
 	}
-#if 0 /* why not? */
-	len = ntohs(len);
-#else
 	len = ns_get16((u_char *) &len);
-#endif
 
 	return ((int) len);
 }
