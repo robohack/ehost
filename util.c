@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.22 2006-12-21 19:22:03 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.23 2006-12-21 23:52:41 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -1765,86 +1765,127 @@ valid_name(name, wildcard, localpart, underscore)
 	return (TRUE);
 }
 
-/* 
+
+/* 
 ** CANONICAL -- Check whether domain name is a canonical host name
 ** ---------------------------------------------------------------
 **
 **	Returns:
-**		Nonzero if the name is definitely not canonical.
-**		0 if it is canonical, or if it remains undecided.
+**
+**		Non-zero if the name is not canonical or if there was an error.
+**
+**		0 if it is canonical.
 */
-
 int
 canonical(name)
 	input char *name;		/* the domain name to check */
 {
-	struct hostent *hp;
 	querybuf_t answer;
-	int status;
-	int save_errno;
-	int save_herrno;
-	int result = 0;
-	register int n;
+	querybuf_t *answerbuf = &answer;
+	register int answerlen;
+	int save_errno = errno;
+	int save_herrno = h_errno;
+	int result = NO_RREC;
 	
-	/*
-	 * Preserve state when querying, to avoid clobbering current values.
-	 */
-	save_errno = errno;
-	save_herrno = h_errno;
-
-	if (debug || verbose)
+	if (debug || verbose >= print_level+1)
 		printf("Checking if %s is a canonical hostname ...\n", name);
 
-	/*
-	 * ignore errors here -- we want the errors from geth_byname()
-	 */
-	n = get_info(&answer, name, T_A, C_IN);
+	answerlen = get_info(&answer, name, T_A, C_IN);
 
-	/*
-	 * XXX ideally the details should be printed _after_ the error message
-	 * that the caller will print...
-	 */
-	if (n >= 0 && (debug || verbose >= print_level)) {
+	if (answerlen >= 0) {
 		int oquick = quick;
+		HEADER *bp;			/* HEADER pointer to answerbuf */
+		int qdcount, ancount, nscount, arcount;
+		u_char *msg;			/* u_char pointer to answerbuf */
+		u_char *eom;			/* pointer to end of answerbuf */
+		u_char *eor;			/* predicted position of next record */
+		register u_char *cp;		/* current pointer to RRs in answerbuf */
+		char recname[MAXDNAME+1];	/* record name in LHS */
+		int type, class, ttl, dlen;	/* fixed values in every record */
+
+		bp = (HEADER *) answerbuf;
+		qdcount = ntohs((u_short) bp->qdcount);
+		ancount = ntohs((u_short) bp->ancount);
+		nscount = ntohs((u_short) bp->nscount);
+		arcount = ntohs((u_short) bp->arcount);
+
+		msg = (u_char *) answerbuf;
+		eom = (u_char *) answerbuf + answerlen;
+		cp  = (u_char *) answerbuf + HFIXEDSZ;
+
+		/*
+		 * XXX ideally the details should be printed _after_ the error
+		 * message that the caller will print...
+		 */
+		if (debug || verbose > print_level+1) {
+			quick = 1;			/* avoid recursion! */
+			(void) print_info(answerbuf, answerlen, name, T_A, C_IN, FALSE);
+			quick = oquick;
+		}
+
+		while (ancount > 0 && cp < eom) {
+			register int n;
+
+			*recname = '\0';
+			type = 0;
+			class = 0;
+			ttl = 0;
+			dlen = 0;
+
+			/*
+			 * Pickup the standard values present in each resource record.
+			 */
+			if ((n = expand_name(name, T_NONE, cp, msg, eom, recname)) < 0) {
+				result = CACHE_ERROR;
+				break;
+			}
+			cp += n;
+			n = (3 * INT16SZ) + INT32SZ;
+			if (check_size(recname, T_NONE, cp, msg, eom, n) < 0) {
+				result = CACHE_ERROR;
+				break;
+			}
+			type = ns_get16(cp);
+			cp += INT16SZ;
+
+			class = ns_get16(cp);
+			cp += INT16SZ;
+
+			ttl = ns_get32(cp);
+			cp += INT32SZ;
+
+			dlen = ns_get16(cp);
+			cp += INT16SZ;
+
+			if (check_size(recname, type, cp, msg, eom, dlen) < 0) {
+				result = CACHE_ERROR;
+				break;
+			}
+			eor = cp + dlen;
+			cp += dlen;
+
+			if (should_test_valid(type) && !valid_name(recname, TRUE, FALSE, underskip)) {
+				pr_error("%s %s record has invalid name",
+					 recname, pr_type(type));
+			}
+			if (type == T_A && sameword(name, recname)) {
+				result = 0;
+				break;
+			} else if (type == T_CNAME && sameword(name, recname)) {
+				result = HOST_NOT_CANON;
+				break;
+			} else {
+				pr_warning("unexpected record type %s in answer section of A RR query for %s",
+					   pr_type(type), name);
+			}
+
+			ancount--;
+		}
+	} else
+		result = h_errno;
 	
-		quick = 1;			/* avoid recursion! */
-		(void) print_info(&answer, n, name, T_A, C_IN, FALSE);
-		quick = oquick;
-	}
-
-	hp = geth_byname(name);
-	status = h_errno;
-
 	set_errno(save_errno);
 	set_h_errno(save_herrno);
-
-	/*
-	 * Indicate negative result only after definitive lookup failures.
-	 */
-	if (hp == NULL) {
-		/* authoritative denial -- not existing or no A record */
-		if (status == NO_DATA || status == NO_RREC ||
-		    status == HOST_NOT_FOUND || status == NO_HOST)
-			return (status);
-
-		/* nameserver failure -- still undecided, assume ok */
-		if ((verbose > print_level) || debug)
-			fprintf(stderr, "%s: canonical(%s): %s [%d]\n", argv0, name, hstrerror(status), status);
-		return (0);
-	}
-
-	/*
-	 * The given name exists and there is an associated A record.
-	 * The name of this A record should be the name we queried about.
-	 * If this is not the case then the answer was probably a CNAME.
-	 *
-	 * XXX:  ... unless we got the answer from something other than the
-	 * DNS, such as /etc/hosts, in which case the "official" name will be
-	 * the the one listed first in /etc/hosts, not the name we queried....
-	 */
-	result = sameword(hp->h_name, name) ? 0 : HOST_NOT_CANON;
-
-	geth_freehostent(hp);
 
 	return (result);
 }
