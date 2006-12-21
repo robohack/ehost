@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.24 2006-12-20 20:19:06 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.25 2006-12-21 19:21:43 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -715,6 +715,9 @@ main(argc, argv)
 
 	if (loadzone && dumpzone)
 		usage_error("Conflicting options --load and --dump");
+
+	if (canoncheck && canonskip)
+		usage_error("Conflicting options --canonskip and --canoncheck");
 
 	/*
 	 * Open log file if requested.
@@ -1595,6 +1598,10 @@ host_query(name, addr)
 				continue;
 			}
 		} else {
+			if (querytype != T_NONE && querytype != T_ANY && querytype != T_PTR) {
+				errmsg("Invalid query type (%s) for use with geth_byaddr() (try adding '-i')", pr_type(querytype));
+				return FALSE;
+			}
 			if ((hp = geth_byaddr((char *) &inaddr, (socklen_t) INADDRSZ, AF_INET))) {
 				print_host("Name", hp);
 				result = TRUE;
