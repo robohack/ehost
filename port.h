@@ -3,7 +3,7 @@
 **
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.18 2006-12-18 18:49:31 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.19 2006-12-21 23:54:45 -0800 woods Exp $"
 /*
  * from: @(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
  */
@@ -237,8 +237,8 @@ typedef u_char		nbuf_t;
      (defined(__GLIBC__) && defined(__BIND) && (__BIND - 0) <= 19960801))
 # define ns_get16(src)		_getshort(src)
 # define ns_get32(src)		_getlong(src)
-# define ns_put16(src, dst)	__putshort((unsigned short) src, dst)
-# define ns_put32(src, dst)	__putlong((unsigned long) src, dst)
+# define ns_put16(src, dst)	__putshort(src, dst)
+# define ns_put32(src, dst)	__putlong(src, dst)
 #endif
 
 #ifndef _IPADDR_T
@@ -470,9 +470,26 @@ HANDLE hReadWriteEvent;
 # define VA_START(args, lastarg)       va_start(args)
 #endif
 
+/*
+ * Macro to test if we're using a GNU C compiler of a specific vintage
+ * or later, for e.g. features that appeared in a particular version
+ * of GNU C.  Usage:
+ *
+ *	#if __GNUC_PREREQ__(major, minor)
+ *	...cool feature...
+ *	#else
+ *	...delete feature...
+ *	#endif
+ */
+#if defined(__GNUC__) && !defined(__GNUC_PREREQ__)
+#define	__GNUC_PREREQ__(x, y)						\
+	((__GNUC__ == (x) && __GNUC_MINOR__ >= (y)) ||			\
+	 (__GNUC__ > (x)))
+#elif !defined(__GNUC_PREREQ__)
+#define	__GNUC_PREREQ__(x, y)	0
+#endif
+
 /* adapt for GCC's lack of adherence to lint's standard ARGSUSED comment */
-#ifdef __GNUC__
-# define GCC_UNUSED_HACK	__attribute__((unused))
-#else
-# define GCC_UNUSED_HACK	/* nothing */
+#if !__GNUC_PREREQ__(2, 5) && !defined(__attribute__)
+# define __attribute__(x)	/* delete __attribute__ if non-gcc or old gcc */
 #endif
