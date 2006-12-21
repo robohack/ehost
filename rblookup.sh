@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.10 2004-08-10 20:27:54 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.11 2006-12-21 23:53:20 -0800 woods Exp $"
 #
 # rblookup - Lookup a dotted quad IP address, or hostname in one of many
 #		Reverse/Realtime DNS-based Lists
@@ -79,6 +79,7 @@ reversed=""
 #	http://www.declude.com/junkmail/support/ip4r.htm
 #
 #	http://moensted.dk/spam/	# less info, but also comprehensive
+#					# also does lookups in ~676 lists!
 #
 #	http://openrbl.org/zones/	# incomplete, very little info, but has
 #					# an on-line test interface.
@@ -88,19 +89,25 @@ reversed=""
 #
 #	http://www.iki.fi/era/rbl/rbl.html	# very dated 2001/12/02
 #
-#	http://moensted.dk/spam/
+#	http://www.DNSstuff.com/	# more than just blacklist testing!
 #
 # some published stats by some users of DNS Black Lists.
 #
 #	http://www.sdsc.edu/~jeff/spam/Blacklists_Compared.html
 #	http://mail.vene.ws/cgi-bin/stats.pl?blacklist
 #	http://abuse.easynet.nl/spamstats.html
-#	http://basic.wirehub.nl/reports/
+#	http://www.dnsbl.net.au/stats/
 #
 # more stats of some kind:
 #
 #	http://openrbl.org/stats.htm
 #
+
+# The Abusive Hosts Blocking List
+# <URL:http://www.ahbl.org/>
+#
+AHBL_ALL_ROOT="dnsbl.ahbl.org"
+ALL_RBLS="${AHBL_ALL_ROOT} ${ALL_RBLS}"
 
 # Blitzed Open Proxy Monitor List
 # <URL:http://opm.blitzed.org/info>
@@ -132,8 +139,10 @@ ALL_RBLS="${DEVNULL_ROOT} ${ALL_RBLS}"
 # 127.0.0.8	an insecure formmail.cgi script
 # 127.0.0.9	open proxy servers
 #
-DNSRBL_ROOT="dun.dnsrbl.net spam.dnsrbl.net"
-ALL_RBLS="${DNSRBL_ROOT} ${ALL_RBLS}"
+# GONE?!?!?!?
+#
+#DNSRBL_ROOT="dun.dnsrbl.net spam.dnsrbl.net"
+#ALL_RBLS="${DNSRBL_ROOT} ${ALL_RBLS}"
 
 # DSBL - Distributed Sender Boycott List
 # <URL:http://www.dsbl.org/>
@@ -147,10 +156,18 @@ ALL_RBLS="${DSBL_ROOT} ${ALL_RBLS}"
 ABUSEAT_ROOT="cbl.abuseat.org"
 ALL_RBLS="${ABUSEAT_ROOT} ${ALL_RBLS}"
 
+# McFadden Associates Spam Blacklist
+# <URL:http://bl.csma.biz/>
+#
+CSMA_BL_ROOT="bl.csma.biz"
+ALL_RBLS="${CSMA_BL_ROOT} ${ALL_RBLS}"
+CSMA_SBL_ROOT="sbl.csma.biz"
+ALL_RBLS="${CSMA_SBL_ROOT} ${ALL_RBLS}"
+
 # five-ten-sg.com blackholes
 # <URL:http://www.five-ten-sg.com/blackhole.php>
 #
-# 127.0.0.2	Lists direct spam sources.
+# 127.0.0.2	Lists direct spam sources (by netblock for the misc.spam group).
 # 127.0.0.3	Lists spam sites before they get into DUL
 # 127.0.0.4	Lists bulk mailers that don't use confirmed opt-in
 # 127.0.0.5	Lists multi-stage open relays
@@ -214,18 +231,22 @@ ALL_RBLS="${NJABL_ROOT} ${ALL_RBLS}"
 # ORDB - third son of ORBS
 # <URL:http://www.ordb.org/>
 #
-ORDB_ROOT="relays.ordb.org "
-ALL_RBLS="${ORDB_ROOT} ${ALL_RBLS}"
+# ORDB is shutting down as of 2006/12/18
+#
+#ORDB_ROOT="relays.ordb.org "
+#ALL_RBLS="${ORDB_ROOT} ${ALL_RBLS}"
 
-# reynolds boycott list
+# 
 # <URL:http://dnsbl.net.au/>
+#
+# (formerly the reynolds boycott list)
 #
 # Note this is strictly a pay-for subscription service and must not be
 # used for production without a subscription.
 #
 # ``comprises everything of "type 1", which is everything''
 #
-REYNOLDS_T1_BL_ROOT="t1.dnsbl.net.au"
+DNSBL_NET_AU_ROOT="t1.dnsbl.net.au"
 ALL_RBLS="${REYNOLDS_T1_BL_ROOT} ${ALL_RBLS}"
 
 # rfc-ignorant IP-based whois List
@@ -286,17 +307,12 @@ SPAMGUARD_ROOT="spamguard.leadmon.net"
 ALL_RBLS="${SPAMGUARD_ROOT} ${ALL_RBLS}"
 
 # Spamhaus Block List
-# <URL:http://www.spamhaus.org/sbl/index.lasso>
+# <URL:http://www.spamhaus.org/zen/>
 #
 # verified spam sources
 #
-SPAMHAUS_SBL_ROOT="sbl.spamhaus.org"
-ALL_RBLS="${SPAMHAUS_SBL_ROOT} ${ALL_RBLS}"
-#
-# open proxies, trojans, and other 3rd-party exploits
-#
-SPAMHAUS_XBL_ROOT="xbl.spamhaus.org"
-ALL_RBLS="${SPAMHAUS_XBL_ROOT} ${ALL_RBLS}"
+SPAMHAUS_ZEN_ROOT="zen.spamhaus.org"
+ALL_RBLS="${SPAMHAUS_ZEN_ROOT} ${ALL_RBLS}"
 
 # spamsources.fabel.dk blackholes
 # <URL:http://www.fabel.dk/relay/>
@@ -317,7 +333,11 @@ ALL_RBLS="${SPAMSOURCES_FABEL_ROOT} ${ALL_RBLS}"
 # 127.0.0.5	- open relays
 # 127.0.0.6	- sent spam to sorbs.net
 # 127.0.0.7	- vulnerable web servers
+# 127.0.0.8	- sites demanding never to be tested
 # 127.0.0.9	- hijacked networks
+# 127.0.0.10	- Dynamic IP Address ranges
+# 127.0.0.11	- domain names with A or MX pointing to bad address space.
+# 127.0.0.12	- domains that are never used for e-mail
 #
 SORBS_ROOT="dnsbl.sorbs.net"
 ALL_RBLS="${SORBS_ROOT} ${ALL_RBLS}"
@@ -343,6 +363,16 @@ ORVEDB_RSBL_ROOT="orvedb.aupads.org"
 ALL_RBLS="${ORVEDB_RSBL_ROOT} ${ALL_RBLS}"
 DUINV_RSBL_ROOT="duinv.aupads.org"
 ALL_RBLS="${DUINV_RSBL_ROOT} ${ALL_RBLS}"
+
+# The CBL - Composite Blocking List
+# <URL:http://cbl.abuseat.org/>
+#
+# The CBL operates in an entirely automated way using very large
+# spamtraps and smart heuristics to detect real spam sources. There
+# is an automated no-questions-asked removals procedure too.
+#
+ABUSEAT_RSBL_ROOT="cbl.abuseat.org"
+ALL_RBLS="${ABUSEAT_RSBL_ROOT} ${ALL_RBLS}"
 
 # ----------------------------------------------------------------------
 # Exit codes from <sysexits.h>, just in case we are called from a mailer
