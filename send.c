@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.17 2003-11-17 05:29:26 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.18 2006-12-21 23:51:46 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -616,11 +616,12 @@ static jmp_buf timer_buf;
 /*ARGSUSED*/
 sigtype_t
 timer(sig)
-	int sig;
+	int sig __attribute__((unused));
 {
 	longjmp(timer_buf, 1);
 	/*NOTREACHED*/
 }
+
 
 int
 host_res_connect(sock, addr, addrlen)
@@ -679,11 +680,7 @@ host_res_write(sock, addr, host, buf, bufsize)
 	/*
 	 * Write the length of the query buffer.
 	 */
-#if 0
-	len = htons((u_short) bufsize);
-#else
-	ns_put16((u_int) bufsize, (u_char *) &len);
-#endif
+	ns_put16((u_int16_t) bufsize, (u_char *) &len);
 
 	if (send(sock, (char *) &len, (sock_buflen_t) INT16SZ, 0) != INT16SZ) {
 		host_res_perror(addr, host, "write query length");
