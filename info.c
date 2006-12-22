@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.20 2003-12-04 03:29:00 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.21 2006-12-22 00:26:31 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -427,14 +427,19 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 	eom = (u_char *) answerbuf + answerlen;
 	cp  = (u_char *) answerbuf + HFIXEDSZ;
 
+	/* XXX can we get the address of the server which answered here? */
+	if ((type != T_AXFR) && !bp->ra && !norecurs)
+		pr_warning("The server at %s does not allow recursion.", server ? server : "(default)");
+
 	/*
 	 * Skip the query section in the response (present only in normal queries).
 	 */
 	if (qdcount) {
-		if (debug)
-			printf("Query section contains (%d record%s):\n", qdcount, plural(qdcount));
+		if (debug && verbose >= print_level+1)
+			printf("Query section contains %d record%s (not shown).\n", qdcount, plural(qdcount));
 
-		while (qdcount > 0 && cp < eom) { /* process all records */
+		/* count, but don't print, the query section records */
+		while (qdcount > 0 && cp < eom) {
 			if (!(cp = skip_qrec(name, type, class, cp, msg, eom)))
 				return (FALSE);
 			qdcount--;
@@ -462,7 +467,7 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 			soaname = NULL, subname = NULL, adrname = NULL, address = 0;
 
 			print_level++;
-			cp = print_rrec(name, type, class, cp, msg, eom, regular);
+			cp = print_rrec(name, type, class, bp, cp, msg, eom, regular);
 			print_level--;
 			if (!cp)
 				return (FALSE);
@@ -488,19 +493,21 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 	 * The nameserver and additional info section are normally not
 	 * processed.  Both sections shouldn't exist in zone transfers.
 	 */
-	if (type != T_NS || (!verbose && exclusive))
+	if ((type != T_NS && ntohs((u_short) bp->ancount) > 0) || (!verbose && exclusive))
 		return (TRUE);
 
 	if (nscount) {
-		if (type == T_NS && ntohs((u_short) bp->ancount) == 0) /* ancount already used up! */
+#if 0 /* XXX this  */
+		if (type == T_NS || ntohs((u_short) bp->ancount) == 0)
 			printf("Refer to%s the following %d authoritative server%s:\n",
 			       ((nscount > 1) ? " one of" : ""), nscount, plural(nscount));
 		else
+#endif
 			printf("Authority section contains (%d record%s):\n", nscount, plural(nscount));
 
 		while (nscount > 0 && cp < eom) {
 			print_level++;
-			cp = print_rrec(name, type, class, cp, msg, eom, FALSE);
+			cp = print_rrec(name, type, class, bp, cp, msg, eom, FALSE);
 			print_level--;
 			if (!cp)
 				return (FALSE);
@@ -522,7 +529,7 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 
 		while (arcount > 0 && cp < eom) {
 			print_level++;
-			cp = print_rrec(name, type, class, cp, msg, eom, FALSE);
+			cp = print_rrec(name, type, class, bp, cp, msg, eom, FALSE);
 			print_level--;
 			if (!cp)
 				return (FALSE);
@@ -608,27 +615,12 @@ print_data(fmt, va_alist)
 **		These variables must have been cleared before calling
 **		print_info() and may be checked afterwards.
 */
-
-/* print domain names after certain conversions */
-#define pr_name(x)	pr_domain(x, listing)
-
-/* check the LHS record name of these records for invalid characters */
-#define should_test_valid(t)	(((t == T_A) && !reverse) || t == T_MX || t == T_AAAA)
-
-/* check the RHS domain name of these records for canonical host names */
-#define should_test_canon(t)	(t == T_NS || t == T_MX)
-
-/* an ordinary PTR record in a reverse zone */
-#define should_test_ptr(t,s)	(((t == T_PTR) && reverse) && !zeroname(s))
-
-/* an ordinary A record in a forward zone */
-#define should_test_addr(t,a)	(((t == T_A) && !reverse) && !fakeaddr(a))
-
 u_char *
-print_rrec(name, qtype, qclass, cp, msg, eom, regular)
+print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 	input const char *name;		/* full name we are querying about */
 	input int qtype;		/* record type we are querying about */
 	input int qclass;		/* record class we are querying about */
+	input HEADER *bp;		/* query header */
 	input register u_char *cp;	/* current position in answer buf */
 	input u_char *msg;		/* begin of answer buf */
 	input u_char *eom;		/* end of answer buf */
@@ -1509,25 +1501,32 @@ print_rrec(name, qtype, qclass, cp, msg, eom, regular)
 	}
 
 	/*
-	 * The RHS of various resource records MUST refer to a canonical host name,
-	 * i.e. it must exist, and have an A record, and not be a CNAME.
+	 * The RHS of various resource records MUST refer to a canonical host
+	 * name, i.e. it must exist, and have an A record, and not be a CNAME.
+	 *
 	 * By default this test is suppressed during deep recursive zone
-	 * listings.  Results are cached globally, not on a per-zone basis.
+	 * listings.
+	 *
+	 * Results are cached over an entire run, not on a per-zone basis.
 	 */
-	if (canonskip) {
-		static bool_t notwarned = FALSE;
+	if (!canoncheck && canonskip && server) {
+		static bool_t warned = FALSE;
 
-		if (verbose && !notwarned) {
-			pr_warning("skipping canonical checks -- %s may not be recursive",
-				   server ? server : "specified nameserver");
-			notwarned = TRUE;
+		if (verbose && !warned) {
+			pr_warning("skipping canonical checks at server %s -- %s",
+				   server,
+				   ((type != T_AXFR) && bp->ra) ? "use --canoncheck to enable" : "it is not allowing recursion");
+			warned = TRUE;
 		}
-	} else if (should_test_canon(type) && ((n = check_canon(dname)) != 0)) {
+	} else if (!bp->ra) {
+		static bool_t warned = FALSE;
+
+		if (!warned) {
+			pr_warning("skipping canonical checks -- server %s is not allowing recursion", server);
+			warned = TRUE;
+		}
+	} else if (!canonskip && should_test_canon(type) && ((n = check_canon(dname)) != 0)) {
 		/* only report definitive target host failures */
-		/*
-		 * XXX server is not likely, and probably should never be, set
-		 * when canonskip is set.
-		 */
 		if (n == HOST_NOT_FOUND) {
 			pr_error("%s %s host %s does not exist%s%s",
 				 rname, pr_type(type), dname,
