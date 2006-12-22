@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.26 2006-12-21 23:56:27 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.27 2006-12-22 03:48:46 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1029,7 +1029,13 @@ cvtopt(optstring)
 	if (sameword(optstring, "checkzone")) {
 		if (recursive == 0)
 			recursive = 1;
-		return ("-CAl");
+		canoncheck = TRUE;
+		checkmode = TRUE;
+		listmode = TRUE;
+		addrmode = TRUE;
+		if (querytype == T_NONE)
+			querytype = -1;	/* suppress zone data output */
+		return ("-");
 	}
 
 	/*
