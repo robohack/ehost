@@ -4,7 +4,7 @@
 ** from: @(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: host.h,v 1.17 2006-12-21 23:55:39 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.18 2006-12-22 18:46:42 -0800 woods Exp $"
 
 #if defined(apollo) && defined(lint)
 # define __attribute(x)		/* XXX ??? */
@@ -197,14 +197,11 @@ extern res_state_t _res;		/* defined in res_init.c */
 #define is_quoted(a, b)	(((a) > (b)) && ((a)[-1] == '\\'))
 #define is_empty(s)	(((s) == NULL) || ((s)[0] == '\0'))
 
-/* print domain names after certain conversions */
-#define pr_name(x)	pr_domain(x, listing)
-
 /* check the LHS record name of these records for invalid characters */
 #define should_test_valid(t)	(((t == T_A) && !reverse) || t == T_MX || t == T_AAAA)
 
 /* check the RHS domain name of these records for canonical host names */
-#define should_test_canon(t)	(t == T_NS || t == T_MX)
+#define should_test_canon(t)	(t == T_NS || t == T_MX || t == T_PTR)
 
 /* an ordinary PTR record in a reverse zone */
 #define should_test_ptr(t,s)	(((t == T_PTR) && reverse) && !zeroname(s))
