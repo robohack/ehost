@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: test.c,v 1.7 2004-10-17 18:39:49 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: test.c,v 1.8 2006-12-22 03:49:02 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)test.c	e07@nikhef.nl (Eric Wassenaar) 991515";
@@ -38,8 +38,8 @@ static char Version[] = "@(#)test.c	e07@nikhef.nl (Eric Wassenaar) 991515";
 /*ARGSUSED*/
 bool_t
 test(name, addr)
-	input char *name GCC_UNUSED_HACK;	/* name to query about */
-	input ipaddr_t addr GCC_UNUSED_HACK;	/* explicit address of query */
+	input char *name __attribute__((unused));	/* name to query about */
+	input ipaddr_t addr __attribute__((unused));	/* explicit address of query */
 {
 	return (TRUE);
 }
