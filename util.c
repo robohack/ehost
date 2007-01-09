@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.24 2007-01-09 21:05:45 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.25 2007-01-09 21:15:45 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -1789,156 +1789,153 @@ canonical(name)
 	register int answerlen;
 	int save_errno = errno;
 	int save_herrno = h_errno;
-	int result = NO_RREC;
+	int result = NO_RREC;		/* h_errno value, default is no answer */
+	int oquick = quick;
+	HEADER *bp;			/* HEADER pointer to answerbuf */
+	int qdcount, ancount, nscount, arcount;
+	u_char *msg;			/* u_char pointer to answerbuf */
+	u_char *eom;			/* pointer to end of answerbuf */
+	register u_char *cp;		/* current pointer to RRs in answerbuf */
+	char recname[MAXDNAME+1];	/* record name in LHS */
+	int type, class, ttl, dlen;	/* fixed values in every record */
 	
 	if (debug || verbose >= print_level)
 		printf("Checking if %s is a canonical hostname ... %s", name, debug ? "\n" : "");
 
-	answerlen = get_info(&answer, name, T_A, C_IN);
-
-	if (answerlen > 0) {
-		int oquick = quick;
-		HEADER *bp;			/* HEADER pointer to answerbuf */
-		int qdcount, ancount, nscount, arcount;
-		u_char *msg;			/* u_char pointer to answerbuf */
-		u_char *eom;			/* pointer to end of answerbuf */
-		register u_char *cp;		/* current pointer to RRs in answerbuf */
-		char recname[MAXDNAME+1];	/* record name in LHS */
-		int type, class, ttl, dlen;	/* fixed values in every record */
-
-		bp = (HEADER *) answerbuf;
-		qdcount = ntohs((u_short) bp->qdcount);
-		ancount = ntohs((u_short) bp->ancount);
-		nscount = ntohs((u_short) bp->nscount);
-		arcount = ntohs((u_short) bp->arcount);
-
-		msg = (u_char *) answerbuf;
-		eom = (u_char *) answerbuf + answerlen;
-		cp  = (u_char *) answerbuf + HFIXEDSZ;
-
-		/*
-		 * XXX ideally the details should be printed _after_ the error
-		 * message that the caller will print...
-		 */
-		if (debug || verbose > print_level+1) {
-			if (!debug)
-				printf("\n");
-			quick = TRUE;			/* avoid infinite recursion! */
-			/* XXX should we force listing=FALSE too? */
-			(void) print_info(answerbuf, answerlen, name, T_A, C_IN, FALSE);
-			quick = oquick;
-		}
-
-		/*
-		 * Skip the query section in the response (present only in normal queries).
-		 */
-		if (qdcount) {
-			/* count, but don't print, the query section records */
-			while (qdcount > 0 && cp < eom) {
-				if (!(cp = skip_qrec(name, T_A, C_IN, cp, msg, eom))) {
-					result = h_errno;
-					goto canonical_done;
-				}
-				qdcount--;
-			}
-			if (qdcount) {
-				pr_error("invalid qdcount after T_A query for %s", name);
-				result = NO_RECOVERY;
-				goto canonical_done;
-			}
-		}
-
-		while (ancount > 0 && cp < eom) {
-			register int n;
-
-			*recname = '\0';
-			type = 0;
-			class = 0;
-			ttl = 0;
-			dlen = 0;
-
-			/*
-			 * Pickup the standard values present in each resource record.
-			 */
-			if ((n = expand_name(name, T_NONE, cp, msg, eom, recname)) < 0) {
-				result = CACHE_ERROR;
-				goto canonical_done;
-			}
-			cp += n;
-			n = (3 * INT16SZ) + INT32SZ;
-			if (check_size(recname, T_NONE, cp, msg, eom, n) < 0) {
-				result = CACHE_ERROR;
-				goto canonical_done;
-			}
-			type = ns_get16(cp);
-			cp += INT16SZ;
-
-			class = ns_get16(cp);
-			cp += INT16SZ;
-
-			ttl = ns_get32(cp);
-			cp += INT32SZ;
-
-			dlen = ns_get16(cp);
-			cp += INT16SZ;
-
-			if (check_size(recname, type, cp, msg, eom, dlen) < 0) {
-				result = CACHE_ERROR;
-				goto canonical_done;
-			}
-			cp += dlen;
-
-			if (should_test_valid(type) && !valid_name(recname, TRUE, FALSE, underskip)) {
-				pr_error("%s %s record has an invalid hostname",
-					 recname, pr_type(type));
-			}
-			if (type == T_A) { /* XXX T_AAAA */
-				if (!sameword(name, recname)) {
-					pr_error("unexpected A RR for %s in answer section of A RR query for %s",
-						 recname, name);
-					result = CACHE_ERROR;
-					goto canonical_done;
-				}
-				/*
-				 * There is no need to check any other records
-				 * -- we have found one of the type we need to
-				 * know that this recname is indeed a canonical
-				 * hostname.
-				 */
-				result = 0;
-				if (verbose >= print_level) /* but not needed if debug! */
-					printf("OK.\n");
-				break;
-			} else if (type == T_CNAME) {
-				if (sameword(name, recname)) {
-					if (ancount > 1) {
-						pr_error("unexpected additional records with CNAME in answer section of A RR query for %s",
-							 name);
-					}
-					result = HOST_NOT_CANON; /* Clearly! */
-				} else {
-					pr_error("unexpected CNAME RR for %s in answer section of A RR query for %s",
-						 recname, name);
-					result = CACHE_ERROR;
-				}
-				goto canonical_done;
-			} else {
-				pr_error("unexpected record type %s%s%s in answer section of A RR query for %s",
-					 pr_type(type),
-					 sameword(name, recname) ? "" : " for ",
-					 sameword(name, recname) ? "" : recname,
-					 name);
-				result = CACHE_ERROR;
-				/*
-				 * cannot proceed without decoding the whole
-				 * record...
-				 */
-				goto canonical_done;
-			}
-			/* NOTREACHED */
-		}
-	} else {
+	if ((answerlen = get_info(&answer, name, T_A, C_IN)) < 0) {
 		result = h_errno;
+		goto canonical_done;
+	}
+
+	bp = (HEADER *) answerbuf;
+	qdcount = ntohs((u_short) bp->qdcount);
+	ancount = ntohs((u_short) bp->ancount);
+	nscount = ntohs((u_short) bp->nscount);
+	arcount = ntohs((u_short) bp->arcount);
+
+	msg = (u_char *) answerbuf;
+	eom = (u_char *) answerbuf + answerlen;
+	cp  = (u_char *) answerbuf + HFIXEDSZ;
+
+	/*
+	 * XXX ideally the details should be printed _after_ the error
+	 * message that the caller will print...
+	 */
+	if (debug || verbose > print_level+1) {
+		if (!debug)
+			printf("\n");
+		quick = TRUE;			/* avoid infinite recursion! */
+		/* XXX should we force listing=FALSE too? */
+		(void) print_info(answerbuf, answerlen, name, T_A, C_IN, FALSE);
+		quick = oquick;
+	}
+
+	/*
+	 * Skip the query section in the response (present only in normal queries).
+	 */
+	if (qdcount) {
+		/* count, but don't print, the query section records */
+		while (qdcount > 0 && cp < eom) {
+			if (!(cp = skip_qrec(name, T_A, C_IN, cp, msg, eom))) {
+				result = h_errno;
+				goto canonical_done;
+			}
+			qdcount--;
+		}
+		if (qdcount) {
+			pr_error("invalid qdcount after T_A query for %s", name);
+			result = NO_RECOVERY;
+			goto canonical_done;
+		}
+	}
+
+	while (ancount > 0 && cp < eom) {
+		register int n;
+
+		*recname = '\0';
+		type = 0;
+		class = 0;
+		ttl = 0;
+		dlen = 0;
+
+		/*
+		 * Pickup the standard values present in each resource record.
+		 */
+		if ((n = expand_name(name, T_NONE, cp, msg, eom, recname)) < 0) {
+			result = CACHE_ERROR;
+			goto canonical_done;
+		}
+		cp += n;
+		n = (3 * INT16SZ) + INT32SZ;
+		if (check_size(recname, T_NONE, cp, msg, eom, n) < 0) {
+			result = CACHE_ERROR;
+			goto canonical_done;
+		}
+		type = ns_get16(cp);
+		cp += INT16SZ;
+
+		class = ns_get16(cp);
+		cp += INT16SZ;
+
+		ttl = ns_get32(cp);
+		cp += INT32SZ;
+
+		dlen = ns_get16(cp);
+		cp += INT16SZ;
+
+		if (check_size(recname, type, cp, msg, eom, dlen) < 0) {
+			result = CACHE_ERROR;
+			goto canonical_done;
+		}
+		cp += dlen;
+
+		if (should_test_valid(type) && !valid_name(recname, TRUE, FALSE, underskip)) {
+			pr_error("%s %s record has an invalid hostname",
+				 recname, pr_type(type));
+		}
+		if (type == T_A) { /* XXX T_AAAA */
+			if (!sameword(name, recname)) {
+				pr_error("unexpected A RR for %s in answer section of A RR query for %s",
+					 recname, name);
+				result = CACHE_ERROR;
+				goto canonical_done;
+			}
+			/*
+			 * There is no need to check any other records -- we
+			 * have found one of the type we need to know that this
+			 * recname is indeed a canonical hostname.
+			 */
+			result = 0;
+			if (verbose >= print_level) /* but not needed if debug! */
+				printf("OK.\n");
+			break;
+		} else if (type == T_CNAME) {
+			if (sameword(name, recname)) {
+				if (ancount > 1) {
+					pr_error("unexpected additional records with CNAME in answer section of A RR query for %s",
+						 name);
+				}
+				result = HOST_NOT_CANON; /* Clearly! */
+			} else {
+				pr_error("unexpected CNAME RR for %s in answer section of A RR query for %s",
+					 recname, name);
+				result = CACHE_ERROR;
+			}
+			goto canonical_done;
+		} else {
+			pr_error("unexpected record type %s%s%s in answer section of A RR query for %s",
+				 pr_type(type),
+				 sameword(name, recname) ? "" : " for ",
+				 sameword(name, recname) ? "" : recname,
+				 name);
+			result = CACHE_ERROR;
+			/*
+			 * cannot proceed without decoding the whole
+			 * record...
+			 */
+			goto canonical_done;
+		}
+		/* NOTREACHED */
 	}
 	
   canonical_done:
