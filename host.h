@@ -4,7 +4,7 @@
 ** from: @(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: host.h,v 1.18 2006-12-22 18:46:42 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.19 2007-01-09 21:16:02 -0800 woods Exp $"
 
 #if defined(apollo) && defined(lint)
 # define __attribute(x)		/* XXX ??? */
@@ -198,6 +198,7 @@ extern res_state_t _res;		/* defined in res_init.c */
 #define is_empty(s)	(((s) == NULL) || ((s)[0] == '\0'))
 
 /* check the LHS record name of these records for invalid characters */
+/* XXX should the T_AAAA records only be tested if !reverse too? */
 #define should_test_valid(t)	(((t == T_A) && !reverse) || t == T_MX || t == T_AAAA)
 
 /* check the RHS domain name of these records for canonical host names */
