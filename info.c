@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.21 2006-12-22 00:26:31 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.22 2007-01-09 21:16:57 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -277,6 +277,7 @@ get_domaininfo(name, domain)
 **	Returns:
 **		Real length of answer buffer, if obtained. Negative length if
 **		query failed, or -1 if no answer (h_errno is set appropriately).
+**		(can never return anything > 0 && < HFIXEDSZ)
 **
 **	This is the equivalent of the resolver module res_query().
 */
@@ -592,8 +593,12 @@ print_data(fmt, va_alist)
  */
 #define doprintf(x)	(doprint) ? print_data x : (void) 0
 
+/* print domain names after certain conversions */
+#define pr_name(x)	pr_domain(x, listing)
 
-/*
+
+
+/*
 ** PRINT_RREC -- Decode single resource record and output relevant data
 ** --------------------------------------------------------------------
 **
@@ -605,14 +610,15 @@ print_data(fmt, va_alist)
 **		Sets ``doprint'' appropriately for use by print_data().
 **
 **	Side effects:
-**		Updates resource record statistics in record_stats[].
-**		Sets ``soaname'' if this is an SOA record.
-**		Sets ``subname'' if this is an NS record.
-**		Sets ``adrname'' if this is an A record.
+**		If listing updates resource record statistics in record_stats[].
+**		Sets ``soaname'' if this is an SOA record (&& listing).
+**		Sets ``subname'' if this is an NS record (&& listing).
+**		Sets ``adrname'' if this is an A record (&& listing).
 **		Sets ``address'' if this is an A record.
-**		Sets ``cname'' if this is a valid CNAME record.
-**		Sets ``mname'' if this is a valid MAILB record.
-**		These variables must have been cleared before calling
+**		Sets ``cname'' if this is a valid CNAME record (&& regular).
+**		Sets ``mname'' if this is a valid MAILB record (&& regular).
+**
+**		These variables must have been cleared before calling (???)
 **		print_info() and may be checked afterwards.
 */
 u_char *
@@ -1488,15 +1494,15 @@ print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 	 * deep recursive listings.
 	 */
 	if (should_test_valid(type) && !valid_name(rname, TRUE, FALSE, underskip)) {
-		pr_error("%s %s record has invalid name",
+		pr_error("%s %s record has an invalid target name",
 			 rname, pr_type(type));
 	}
 	if (should_test_canon(type) && !valid_name(dname, FALSE, FALSE, underskip)) {
-		pr_error("%s %s host %s has invalid name",
+		pr_error("%s %s host %s has an invalid target name",
 			 rname, pr_type(type), dname);
 	}
 	if (should_test_ptr(type, rname) && !valid_name(dname, FALSE, FALSE, underskip)) {
-		pr_error("%s %s host %s has invalid name",
+		pr_error("%s %s host %s has an invalid target name",
 			 rname, pr_type(type), dname);
 	}
 
@@ -1518,7 +1524,7 @@ print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 				   ((type != T_AXFR) && bp->ra) ? "use --canoncheck to enable" : "it is not allowing recursion");
 			warned = TRUE;
 		}
-	} else if (!bp->ra) {
+	} else if (!bp->ra && server) {
 		static bool_t warned = FALSE;
 
 		if (!warned) {
@@ -1526,13 +1532,12 @@ print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 			warned = TRUE;
 		}
 	} else if (!canonskip && should_test_canon(type) && ((n = check_canon(dname)) != 0)) {
-		/* only report definitive target host failures */
-		if (n == HOST_NOT_FOUND) {
+		if (n == HOST_NOT_FOUND || n == NO_HOST) {
 			pr_error("%s %s host %s does not exist%s%s",
 				 rname, pr_type(type), dname,
 				 server ? " at " : "",
 				 server ? server : "");
-		} else if (n == NO_DATA) {
+		} else if (n == NO_DATA || n == NO_RREC) {
 			pr_error("%s %s host %s has no A record%s%s",
 				 rname, pr_type(type), dname,
 				 server ? " at " : "",
@@ -1540,10 +1545,20 @@ print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 		} else if (n == HOST_NOT_CANON) {
 			pr_error("%s %s host %s is not canonical",
 				 rname, pr_type(type), dname);
-		} else if (n) {
+		} else if (n == SERVER_FAILURE) {
+			pr_error("%s %s error querying for host %s%s%s",
+				 rname, pr_type(type), dname,
+				 server ? " at " : "",
+				 server ? server : "");
+		} else if (n <= NO_DATA) {
 			pr_error("%s %s host %s: %s%s%s",
 				 rname, pr_type(type), dname, hstrerror(n), /* XXX host_hstrerror() */
 				 server ? " at " : "",
+				 server ? server : "");
+		} else {
+			pr_error("%s %s host %s: (NO_DATA + %d)%s%s",
+				 rname, pr_type(type), dname, n - NO_DATA, /* XXX host_hstrerror() */
+				 server ? ", using " : "",
 				 server ? server : "");
 		}
 		/* authoritative failure to find nameserver target host */
@@ -1584,9 +1599,14 @@ print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 		} else if (n == HOST_NOT_CANON) {
 			pr_warning("%s %s host %s is not canonical",
 				   rname, pr_type(type), dname);
-		} else if (n) {
+		} else if (n <= NO_DATA) {
 			pr_error("%s %s host %s: %s%s%s",
 				 rname, pr_type(type), dname, hstrerror(n), /* XXX host_hstrerror() */
+				 server ? ", using " : "",
+				 server ? server : "");
+		} else {
+			pr_error("%s %s host %s: (NO_DATA + %d)%s%s",
+				 rname, pr_type(type), dname, n - NO_DATA, /* XXX host_hstrerror() */
 				 server ? ", using " : "",
 				 server ? server : "");
 		}
@@ -1595,18 +1615,18 @@ print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 	/*
 	 * On request, reverse map the address of an A record, and verify that
 	 * it is registered and maps back to the name of the A record.
-	 * Currently this option has effect here only during zone listings.
+	 * Currently this option only effect during zone listing modes.
 	 *
 	 * Note that in reverse zones there are usually no A records, except
 	 * perhaps to specify a network mask as suggested in RFC 1101.
 	 */
 	if (addrmode && should_test_addr(type, address)) {
 		if (!(host = mapreverse(rname, inaddr))) {
-			pr_warning("%s address %s is not registered",
-				   rname, inet_ntoa(inaddr));
+			pr_error("%s address %s is not registered",
+				 rname, inet_ntoa(inaddr));
 		} else if (host != rname) {
-			pr_warning("%s address %s maps to %s",
-				   rname, inet_ntoa(inaddr), host);
+			pr_error("%s address %s maps to %s",
+				 rname, inet_ntoa(inaddr), host);
 		}
 	}
 
@@ -1621,9 +1641,12 @@ print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 		} else if (n == NO_DATA) {
 			pr_warning("%s %s target %s has no ANY record",
 				   rname, pr_type(type), dname);
-		} else if (n) {
+		} else if (n <= NO_DATA) {
 			pr_error("%s %s host %s: %s",
 				 rname, pr_type(type), dname, hstrerror(n)); /* XXX host_hstrerror() */
+		} else {
+			pr_error("%s %s host %s: (NO_DATA + %d)",
+				 rname, pr_type(type), dname, n - NO_DATA); /* XXX host_hstrerror() */
 		}
 	}
 
