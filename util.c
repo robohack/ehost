@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.23 2006-12-21 23:52:41 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.24 2007-01-09 21:05:45 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -1650,8 +1650,8 @@ check_size(name, type, cp, msg, eor, size)
 {
 	if (cp + size > eor) {
 		if (type != T_HINFO) {
-			pr_error("incomplete %s record for %s, offset %s",
-				 pr_type(type), name, dtoa((int) (cp - msg)));
+			pr_error("incomplete %s record for %s, offset %d, missing %lu",
+				 pr_type(type), name, (int) (cp - msg), (unsigned long) ((cp + size) - eor));
 		} else {
 			pr_warning("incomplete %s record for %s",
 				   pr_type(type), name);
@@ -1738,6 +1738,10 @@ valid_name(name, wildcard, localpart, underscore)
 		if ((c == '.') && in_label(p, name))
 			continue;
 
+		/* used in CIDR names, but should only be in the forward zone's PTR records */
+		if ((c == '/') && in_label(p, name) && !reverse) /* && type == T_PTR */
+			continue;
+
 		/* allow '*' for use in wildcard names */
 		if ((c == '*') && (p == name && p[1] == '.') && wildcard)
 			continue;
@@ -1787,18 +1791,17 @@ canonical(name)
 	int save_herrno = h_errno;
 	int result = NO_RREC;
 	
-	if (debug || verbose >= print_level+1)
-		printf("Checking if %s is a canonical hostname ...\n", name);
+	if (debug || verbose >= print_level)
+		printf("Checking if %s is a canonical hostname ... %s", name, debug ? "\n" : "");
 
 	answerlen = get_info(&answer, name, T_A, C_IN);
 
-	if (answerlen >= 0) {
+	if (answerlen > 0) {
 		int oquick = quick;
 		HEADER *bp;			/* HEADER pointer to answerbuf */
 		int qdcount, ancount, nscount, arcount;
 		u_char *msg;			/* u_char pointer to answerbuf */
 		u_char *eom;			/* pointer to end of answerbuf */
-		u_char *eor;			/* predicted position of next record */
 		register u_char *cp;		/* current pointer to RRs in answerbuf */
 		char recname[MAXDNAME+1];	/* record name in LHS */
 		int type, class, ttl, dlen;	/* fixed values in every record */
@@ -1818,9 +1821,31 @@ canonical(name)
 		 * message that the caller will print...
 		 */
 		if (debug || verbose > print_level+1) {
-			quick = 1;			/* avoid recursion! */
+			if (!debug)
+				printf("\n");
+			quick = TRUE;			/* avoid infinite recursion! */
+			/* XXX should we force listing=FALSE too? */
 			(void) print_info(answerbuf, answerlen, name, T_A, C_IN, FALSE);
 			quick = oquick;
+		}
+
+		/*
+		 * Skip the query section in the response (present only in normal queries).
+		 */
+		if (qdcount) {
+			/* count, but don't print, the query section records */
+			while (qdcount > 0 && cp < eom) {
+				if (!(cp = skip_qrec(name, T_A, C_IN, cp, msg, eom))) {
+					result = h_errno;
+					goto canonical_done;
+				}
+				qdcount--;
+			}
+			if (qdcount) {
+				pr_error("invalid qdcount after T_A query for %s", name);
+				result = NO_RECOVERY;
+				goto canonical_done;
+			}
 		}
 
 		while (ancount > 0 && cp < eom) {
@@ -1837,13 +1862,13 @@ canonical(name)
 			 */
 			if ((n = expand_name(name, T_NONE, cp, msg, eom, recname)) < 0) {
 				result = CACHE_ERROR;
-				break;
+				goto canonical_done;
 			}
 			cp += n;
 			n = (3 * INT16SZ) + INT32SZ;
 			if (check_size(recname, T_NONE, cp, msg, eom, n) < 0) {
 				result = CACHE_ERROR;
-				break;
+				goto canonical_done;
 			}
 			type = ns_get16(cp);
 			cp += INT16SZ;
@@ -1859,31 +1884,64 @@ canonical(name)
 
 			if (check_size(recname, type, cp, msg, eom, dlen) < 0) {
 				result = CACHE_ERROR;
-				break;
+				goto canonical_done;
 			}
-			eor = cp + dlen;
 			cp += dlen;
 
 			if (should_test_valid(type) && !valid_name(recname, TRUE, FALSE, underskip)) {
-				pr_error("%s %s record has invalid name",
+				pr_error("%s %s record has an invalid hostname",
 					 recname, pr_type(type));
 			}
-			if (type == T_A && sameword(name, recname)) {
+			if (type == T_A) { /* XXX T_AAAA */
+				if (!sameword(name, recname)) {
+					pr_error("unexpected A RR for %s in answer section of A RR query for %s",
+						 recname, name);
+					result = CACHE_ERROR;
+					goto canonical_done;
+				}
+				/*
+				 * There is no need to check any other records
+				 * -- we have found one of the type we need to
+				 * know that this recname is indeed a canonical
+				 * hostname.
+				 */
 				result = 0;
+				if (verbose >= print_level) /* but not needed if debug! */
+					printf("OK.\n");
 				break;
-			} else if (type == T_CNAME && sameword(name, recname)) {
-				result = HOST_NOT_CANON;
-				break;
+			} else if (type == T_CNAME) {
+				if (sameword(name, recname)) {
+					if (ancount > 1) {
+						pr_error("unexpected additional records with CNAME in answer section of A RR query for %s",
+							 name);
+					}
+					result = HOST_NOT_CANON; /* Clearly! */
+				} else {
+					pr_error("unexpected CNAME RR for %s in answer section of A RR query for %s",
+						 recname, name);
+					result = CACHE_ERROR;
+				}
+				goto canonical_done;
 			} else {
-				pr_warning("unexpected record type %s in answer section of A RR query for %s",
-					   pr_type(type), name);
+				pr_error("unexpected record type %s%s%s in answer section of A RR query for %s",
+					 pr_type(type),
+					 sameword(name, recname) ? "" : " for ",
+					 sameword(name, recname) ? "" : recname,
+					 name);
+				result = CACHE_ERROR;
+				/*
+				 * cannot proceed without decoding the whole
+				 * record...
+				 */
+				goto canonical_done;
 			}
-
-			ancount--;
+			/* NOTREACHED */
 		}
-	} else
+	} else {
 		result = h_errno;
+	}
 	
+  canonical_done:
 	set_errno(save_errno);
 	set_h_errno(save_herrno);
 
