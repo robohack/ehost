@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.25 2007-01-09 21:15:45 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.26 2007-01-13 18:49:30 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -1906,7 +1906,7 @@ canonical(name)
 			 * recname is indeed a canonical hostname.
 			 */
 			result = 0;
-			if (verbose >= print_level) /* but not needed if debug! */
+			if (verbose >= print_level && !debug)
 				printf("OK.\n");
 			break;
 		} else if (type == T_CNAME) {
