@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.26 2006-12-20 20:19:06 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.27 2007-01-13 19:47:20 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -542,7 +542,7 @@ list_zone(name)
 	 */
 	if (recursive && (recursion_level == 0)) {
 		if (verbose || statistics || checkmode || hostmode)
-			printf("\n");
+			printf("\nCumulative Totals:\n");
 
 		if (statistics)
 			print_stats(total_stats, total_zones, name, querytype, queryclass);
@@ -1801,11 +1801,12 @@ get_zone(name, inaddr, host)
 		if (debug > 2)
 			printf("%sgot an answer of %d bytes\n", debug_prefix, n);
 
-		if (debug)
+		if (debug > 1)
 			pr_query((qbuf_t *) answer, n, stdout);
 
-		if (verbose || debug)
+		if (debug > 1)
 			print_answer((querybuf_t *) answer, (size_t) n, T_AXFR);
+
 		/*
 		 * Analyze the contents of the answer and check for errors.  An
 		 * error can be expected only in the very first packet.  The

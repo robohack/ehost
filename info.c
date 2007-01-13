@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.22 2007-01-09 21:16:57 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.23 2007-01-13 19:47:20 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -460,7 +460,7 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 	if (ancount) {
 		if ((type != T_AXFR) && verbose >= print_level+1 && !bp->aa)
 			printf("The following answer is not authoritative:\n");
-		if (verbose >= print_level+1)
+		if (verbose > print_level+2)
 			printf("Answer section contains (%d record%s):\n", ancount, plural(ancount));
 
 		while (ancount > 0 && cp < eom) {
