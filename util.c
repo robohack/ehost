@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.26 2007-01-13 18:49:30 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.27 2007-01-13 19:46:44 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -894,6 +894,7 @@ print_answer(answerbuf, answerlen, type)
 		  (type != T_NS && ancount == 0) ||
 		  (type == T_NS && (nscount == 0 && ancount == 0)));
 
+	/* note: this function is only called when debug || verbose are set  */
 	printf("%s", verbose ? "" : debug_prefix);
 
 	printf("Query for %s records %s", pr_type(type), failed ? "failed" : "done");
@@ -1799,8 +1800,8 @@ canonical(name)
 	char recname[MAXDNAME+1];	/* record name in LHS */
 	int type, class, ttl, dlen;	/* fixed values in every record */
 	
-	if (debug || verbose >= print_level)
-		printf("Checking if %s is a canonical hostname ... %s", name, debug ? "\n" : "");
+	if (debug || verbose > print_level)
+		printf("Checking if %s is a canonical hostname...\n", name);
 
 	if ((answerlen = get_info(&answer, name, T_A, C_IN)) < 0) {
 		result = h_errno;
@@ -1822,8 +1823,6 @@ canonical(name)
 	 * message that the caller will print...
 	 */
 	if (debug || verbose > print_level+1) {
-		if (!debug)
-			printf("\n");
 		quick = TRUE;			/* avoid infinite recursion! */
 		/* XXX should we force listing=FALSE too? */
 		(void) print_info(answerbuf, answerlen, name, T_A, C_IN, FALSE);
@@ -1906,8 +1905,6 @@ canonical(name)
 			 * recname is indeed a canonical hostname.
 			 */
 			result = 0;
-			if (verbose >= print_level && !debug)
-				printf("OK.\n");
 			break;
 		} else if (type == T_CNAME) {
 			if (sameword(name, recname)) {
