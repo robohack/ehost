@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.14 2006-12-21 23:49:57 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: geth.c,v 1.15 2007-01-13 19:55:20 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)geth.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -51,7 +51,7 @@ geth_byname(name)
 	int my_h_errno;
 #endif
 
-	if (verbose > print_level)
+	if (verbose > print_level+2)
 		printf("Finding addresses for %s ...\n", name);
 
 	if (debug || verbose > print_level+1) {
@@ -96,8 +96,8 @@ geth_byaddr(addr, size, family)
 	int my_h_errno;
 #endif
 
-	if (debug || verbose > print_level) {
-		printf("Finding reverse mapping for %s ...\n",
+	if (debug || verbose > print_level+2) {
+		printf("Finding reverse mapping for %s\n",
 		       inet_ntoa(incopy(addr)));
 	}
 	if (debug || verbose > print_level+1) {
