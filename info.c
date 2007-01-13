@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.23 2007-01-13 19:47:20 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.24 2007-01-13 19:55:10 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -1615,7 +1615,7 @@ print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 	/*
 	 * On request, reverse map the address of an A record, and verify that
 	 * it is registered and maps back to the name of the A record.
-	 * Currently this option only effect during zone listing modes.
+	 * Currently this option only effect for '-A' or '--checkzone'.
 	 *
 	 * Note that in reverse zones there are usually no A records, except
 	 * perhaps to specify a network mask as suggested in RFC 1101.
