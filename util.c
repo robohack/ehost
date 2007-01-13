@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.27 2007-01-13 19:46:44 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.28 2007-01-13 21:31:36 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -1951,6 +1951,10 @@ canonical(name)
 **		Given name if the address maps back properly, or
 **		in case of transient nameserver failures.
 **		Reverse name if it differs from the given name.
+**
+**	XXX FixME:
+**		Should be doing a strict T_PTR lookup and searching for a
+**		target name that matches the given domain
 */
 
 char *
