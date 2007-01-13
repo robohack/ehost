@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.27 2007-01-13 19:47:20 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.28 2007-01-13 21:31:24 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -540,7 +540,7 @@ list_zone(name)
 	/*
 	 * Print final overall statistics.
 	 */
-	if (recursive && (recursion_level == 0)) {
+	if (recursive && (recursion_level == 0) && nzones > 0) {
 		if (verbose || statistics || checkmode || hostmode)
 			printf("\nCumulative Totals:\n");
 
