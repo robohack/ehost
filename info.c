@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.24 2007-01-13 19:55:10 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.25 2007-01-14 00:14:07 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -1532,6 +1532,7 @@ print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 			warned = TRUE;
 		}
 	} else if (!canonskip && should_test_canon(type) && ((n = check_canon(dname)) != 0)) {
+		/* XXX should just call ns_error()!!!! */
 		if (n == HOST_NOT_FOUND || n == NO_HOST) {
 			pr_error("%s %s host %s does not exist%s%s",
 				 rname, pr_type(type), dname,
@@ -1546,20 +1547,20 @@ print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 			pr_error("%s %s host %s is not canonical",
 				 rname, pr_type(type), dname);
 		} else if (n == SERVER_FAILURE) {
-			pr_error("%s %s error querying for host %s%s%s",
-				 rname, pr_type(type), dname,
-				 server ? " at " : "",
-				 server ? server : "");
+			pr_warning("%s %s error querying for host %s%s%s",
+				   rname, pr_type(type), dname,
+				   server ? " at " : "",
+				   server ? server : "");
 		} else if (n <= NO_DATA) {
 			pr_error("%s %s host %s: %s%s%s",
 				 rname, pr_type(type), dname, hstrerror(n), /* XXX host_hstrerror() */
 				 server ? " at " : "",
 				 server ? server : "");
 		} else {
-			pr_error("%s %s host %s: (NO_DATA + %d)%s%s",
-				 rname, pr_type(type), dname, n - NO_DATA, /* XXX host_hstrerror() */
-				 server ? ", using " : "",
-				 server ? server : "");
+			pr_warning("%s %s host %s: (NO_DATA + %d)%s%s",
+				   rname, pr_type(type), dname, n - NO_DATA, /* XXX host_hstrerror() */
+				   server ? ", using " : "",
+				   server ? server : "");
 		}
 		/* authoritative failure to find nameserver target host */
 		if (type == T_NS && (n == NO_DATA || n == HOST_NOT_FOUND)) {
@@ -1583,21 +1584,25 @@ print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 	 * Also note that this may generate warnings for PTR records for host 0
 	 * or host 255 entries, indicating network names as suggested by RFC
 	 * 1101.
+	 *
+	 * XXX maybe this should be unified with the should_test_canon() handling above
 	 */
 	if (addrmode && should_test_ptr(type, rname) && ((n = check_canon(dname)) != 0)) {
-		/* only report definitive target host failures */
-		if (n == HOST_NOT_FOUND) {
-			pr_warning("%s %s host %s does not exist%s%s",
-				   rname, pr_type(type), dname,
-				   server ? " at " : "",
-				   server ? server : "");
-		} else if (n == NO_DATA) {
-			pr_warning("%s %s host %s has no A record%s%s",
-				   rname, pr_type(type), dname,
-				   server ? " at " : "",
-				   server ? server : "");
+		/* XXX should just call ns_error()!!!! */
+		if ((n == HOST_NOT_FOUND || n == NO_HOST) && server) {
+			pr_warning("%s %s host %s does not exist at %s",
+				   rname, pr_type(type), dname, server);
+		} else if ((n == HOST_NOT_FOUND || n == NO_HOST) && !server) {
+			pr_error("%s %s host %s does not exist",
+				   rname, pr_type(type), dname);
+		} else if ((n == NO_DATA || n == NO_RREC) && server) {
+			pr_warning("%s %s host %s has no A record at %s",
+				   rname, pr_type(type), dname, server);
+		} else if ((n == NO_DATA || n == NO_RREC) && !server) {
+			pr_error("%s %s host %s has no A record",
+				   rname, pr_type(type), dname);
 		} else if (n == HOST_NOT_CANON) {
-			pr_warning("%s %s host %s is not canonical",
+			pr_error("%s %s host %s is not canonical",
 				   rname, pr_type(type), dname);
 		} else if (n <= NO_DATA) {
 			pr_error("%s %s host %s: %s%s%s",
@@ -1634,7 +1639,8 @@ print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 	 * On request, check the target in CNAME records for existence.
 	 */
 	if (cnamecheck && (type == T_CNAME) && ((n = anyrecord(dname)) != 0)) {
-		/* only report definitive target host failures */
+		/* only report definitive target host failures (and true errors) */
+		/* XXX should just call ns_error()!!!! */
 		if (n == HOST_NOT_FOUND) {
 			pr_warning("%s %s target %s does not exist",
 				   rname, pr_type(type), dname);
@@ -1644,8 +1650,8 @@ print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 		} else if (n <= NO_DATA) {
 			pr_error("%s %s host %s: %s",
 				 rname, pr_type(type), dname, hstrerror(n)); /* XXX host_hstrerror() */
-		} else {
-			pr_error("%s %s host %s: (NO_DATA + %d)",
+		} else if (n == QUERY_REFUSED || n == SERVER_FAILURE || n == CACHE_ERROR) {
+			pr_warning("%s %s host %s: (NO_DATA + %d)",
 				 rname, pr_type(type), dname, n - NO_DATA); /* XXX host_hstrerror() */
 		}
 	}
