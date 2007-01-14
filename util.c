@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.28 2007-01-13 21:31:36 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.29 2007-01-14 00:13:25 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -809,14 +809,46 @@ ns_error(name, type, class, host)
 		 * Nameserver status: REFUSED
 		 */
 		if (class != C_IN) {
-			pr_error("%s %s record in class %s query refused",
+			pr_warning("%s %s record in class %s query refused",
+				   name, pr_type(type), pr_class(class));
+		} else if (host != NULL) {
+			pr_warning("%s %s record query refused by %s",
+				   name, pr_type(type), host);
+		} else {
+			pr_warning("%s %s record query refused",
+				   name, pr_type(type));
+		}
+		break;
+
+	case HOST_NOT_CANON:
+		/*
+		 * The hostname was found to actually be an alias.
+		 */
+		if (class != C_IN) {
+			pr_error("%s %s record in class %s is not canonical",
 				 name, pr_type(type), pr_class(class));
 		} else if (host != NULL) {
-			pr_error("%s %s record query refused by %s",
+			pr_error("%s %s record is not canonical at %s",
 				 name, pr_type(type), host);
 		} else {
-			pr_error("%s %s record query refused",
+			pr_error("%s %s record is not canonical",
 				 name, pr_type(type));
+		}
+		break;
+
+	case CACHE_ERROR:
+		/*
+		 * The local cache file was not usable.
+		 */
+		if (class != C_IN) {
+			pr_warning("%s %s record in class %s cache error",
+				   name, pr_type(type), pr_class(class));
+		} else if (host != NULL) {
+			pr_warning("%s %s record cache error with %s",
+				   name, pr_type(type), host);
+		} else {
+			pr_warning("%s %s record cache error",
+				   name, pr_type(type));
 		}
 		break;
 
@@ -1861,13 +1893,11 @@ canonical(name)
 		 * Pickup the standard values present in each resource record.
 		 */
 		if ((n = expand_name(name, T_NONE, cp, msg, eom, recname)) < 0) {
-			result = CACHE_ERROR;
 			goto canonical_done;
 		}
 		cp += n;
 		n = (3 * INT16SZ) + INT32SZ;
 		if (check_size(recname, T_NONE, cp, msg, eom, n) < 0) {
-			result = CACHE_ERROR;
 			goto canonical_done;
 		}
 		type = ns_get16(cp);
@@ -1883,7 +1913,6 @@ canonical(name)
 		cp += INT16SZ;
 
 		if (check_size(recname, type, cp, msg, eom, dlen) < 0) {
-			result = CACHE_ERROR;
 			goto canonical_done;
 		}
 		cp += dlen;
@@ -1896,7 +1925,7 @@ canonical(name)
 			if (!sameword(name, recname)) {
 				pr_error("unexpected A RR for %s in answer section of A RR query for %s",
 					 recname, name);
-				result = CACHE_ERROR;
+				result = NO_RECOVERY;
 				goto canonical_done;
 			}
 			/*
@@ -1916,7 +1945,7 @@ canonical(name)
 			} else {
 				pr_error("unexpected CNAME RR for %s in answer section of A RR query for %s",
 					 recname, name);
-				result = CACHE_ERROR;
+				result = NO_RECOVERY;
 			}
 			goto canonical_done;
 		} else {
@@ -1925,7 +1954,7 @@ canonical(name)
 				 sameword(name, recname) ? "" : " for ",
 				 sameword(name, recname) ? "" : recname,
 				 name);
-			result = CACHE_ERROR;
+			result = NO_RECOVERY;
 			/*
 			 * cannot proceed without decoding the whole
 			 * record...
