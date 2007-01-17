@@ -1,23 +1,73 @@
 # -*-indented-text-*-
 #
-#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.12 2004-08-12 20:31:01 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.13 2007-01-17 22:17:52 -0800 woods Exp $"
 #
 
-	URL:		ftp://ftp.weird.com/pub/local/host.tar.gz
+	URL:		http://www.weird.com/~woods/projects/host/
+	DOWNLOAD:	ftp://ftp.weird.com/pub/local/host.tar.gz
 
 	Originally:	ftp://ftp.nikhef.nl/pub/network/host.tar.Z
 	Based on:	@(#)RELEASE_NOTES       e07@nikhef.nl (Eric Wassenaar) 991529
 
 Contents of this file:
 
-    <release date>	Descriptions of important user-visible changes per release
+    BUILDING HOST	Quick-and-dirty "how to build host" instructions
+    <release date>	Notes about important user-visible changes per release
     NOTES		Important issues to keep in mind
     MISC		Miscellaneous reminders
     HOSTCOUNT		Info about the RIPE NCC monthly European hostcount
 
 # ----------------------------------------------------------------------
+# BUILDING HOST
+# ----------------------------------------------------------------------
+
+If you're building "host" on a *BSD derivative then just run:
+
+	make -f Makefile.BSD
+
+On all other platforms you should edit "Makefile" as appropriate for
+your build environment, following the instructions therein, and then
+build with a compatible "make".
+
+Note that this source-only distribution of "host" is primarily intended
+for use by system integrators and developers.  If you are having trouble
+using this distribution to upgrade an existing copy of "host" supplied
+as part of your OS then you should ask for help from your OS technical
+support contact(s).
+
+
+# ----------------------------------------------------------------------
 # Description of important user-visible changes per release
 # ----------------------------------------------------------------------
+
+2007/01/17
+
+	- the --checkzone option now actually works.
+
+	- canonical hostname checks are not done if the answer they are
+          found in doesn't have the "recursion available" flag set.
+
+	- the logic for printing the warning when canonical hostname
+          checks are skipped has been corrected.
+
+	- the way that canonical hostname checks are done has been fixed
+	  so that only initial results from the query for A RRs are
+	  used, avoiding a second call to gethostbyname() and thus
+	  hopefully avoiding any confusion /etc/hosts might add to the
+	  mess, at least on some (most?) systems.
+
+	- a warning is now printed whenever a query requesting recursion
+	  results in an answer without the "ra" (recursion available)
+	  flag.
+
+	- fix a portability problem with NetBSD 3.x and newer which
+          incorporated the BIND-8 resolver, but not completely, silently
+          leaving out the getnodeby*() functions normally privided by
+          this resolver API.
+
+	- various minor updates to the default list of DNS zones used by
+	  the rblookup script.
+
 
 2004/08/12
 
@@ -1404,6 +1454,19 @@ Contents of this file:
 		truncated TCP answers properly, but host is now
 		protected.
 
+	The following command deserves special attention:
+
+	   host --checkzone zone
+
+	It will perform an extensive analysis of the given single zone
+	by turning on all implemented checks.  All zone administrators
+	are encouraged to regularly exercise this for their own zones.
+	If all zones passed all tests with this command, the Internet
+	would be MUCH more consistent and probably more reliable.
+
+	Statistics about the zone can be gathered by also specifying the
+	options "--statistics --hostcount".
+
 # ----------------------------------------------------------------------
 # MISC
 # ----------------------------------------------------------------------
@@ -1501,14 +1564,3 @@ Contents of this file:
 
 	Various other switches can be specified to turn on extra checking
 	and verbose logging.
-
-	The following command deserves special attention:
-
-	   host -C -A -l zone
-
-	It will perform an extensive analysis of the given single zone
-	by turning on all implemented checks.  All zone administrators
-	are encouraged to regularly exercise this for their own zones.
-	If all zones passed all tests with this command, the Internet
-	would be MUCH more consistent and probably more reliable.
-
