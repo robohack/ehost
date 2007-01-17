@@ -3,7 +3,7 @@
 **
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.19 2006-12-21 23:54:45 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.20 2007-01-17 22:11:45 -0800 woods Exp $"
 /*
  * from: @(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
  */
@@ -184,6 +184,11 @@ typedef int		bool_t;		/* boolean type */
 
 /*
  * For now we assume these are constant in all resolvers...
+ *
+ * Note these are arbitrary values used to size the data structures filled by
+ * the standard get*by*() APIs.  We use these defined values to print error
+ * messages should an RR set be encountered which might not be fully handled by
+ * those APIs.
  */
 #define MAXALIAS	35	/* maximum aliases count from gethnamaddr.c */
 #define MAXADDRS	35	/* maximum address count from gethnamaddr.c */
