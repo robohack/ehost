@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.25 2007-01-14 00:14:07 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.26 2007-01-26 21:56:52 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -335,7 +335,7 @@ get_info(answerbuf, name, type, class)
 	/*
 	 * Analyze the status of the answer from the nameserver.
 	 */
-	if ((verbose > print_level) || debug)
+	if ((verbose > print_level+1) || debug)
 		print_answer(answerbuf, (size_t) n, type);
 
 	bp = (HEADER *) answerbuf;
