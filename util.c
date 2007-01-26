@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.29 2007-01-14 00:13:25 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.30 2007-01-26 22:00:17 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -632,6 +632,7 @@ ns_error(name, type, class, host)
 	case ECONNREFUSED:
 		/*
 		 * The contacted host does not have a nameserver running.
+		 *
 		 * The standard res_send() also returns this if none of
 		 * the intended hosts could be reached via datagrams.
 		 */
@@ -652,6 +653,26 @@ ns_error(name, type, class, host)
 			pr_error("Nameserver not responding"); /* default resolv.conf NS should respond! */
 		break;
 
+	case ECONNRESET:
+		/*
+		 * 
+		 */
+		if (host != NULL)
+			pr_warning("Nameserver %s dropped the connection", host);
+		else
+			pr_error("Nameserver dropped the connection");
+		break;
+
+	case ENOTCONN:
+		/*
+		 * 
+		 */
+		if (host != NULL)
+			pr_warning("Nameserver %s connection not open", host);
+		else
+			pr_error("Nameserver connection not open");
+		break;
+
 	case ENETDOWN:
 	case ENETUNREACH:
 	case EHOSTDOWN:
@@ -664,6 +685,15 @@ ns_error(name, type, class, host)
 			pr_warning("Nameserver %s not reachable", host);
 		else
 			pr_error("Nameserver not reachable"); /* default resolv.conf NS should be reachable! */
+		break;
+
+	default:
+		if (debug && errno) {
+			if (host != NULL)
+				pr_warning("Nameserver %s error: %s", host, strerror(errno));
+			else
+				pr_error("Nameserver error: %s", strerror(errno));
+		}
 		break;
 	}
 
@@ -1832,9 +1862,9 @@ canonical(name)
 	char recname[MAXDNAME+1];	/* record name in LHS */
 	int type, class, ttl, dlen;	/* fixed values in every record */
 	
-	if (debug || verbose > print_level)
+	if (debug || verbose > print_level) {
 		printf("Checking if %s is a canonical hostname...\n", name);
-
+	}
 	if ((answerlen = get_info(&answer, name, T_A, C_IN)) < 0) {
 		result = h_errno;
 		goto canonical_done;
@@ -1937,10 +1967,6 @@ canonical(name)
 			break;
 		} else if (type == T_CNAME) {
 			if (sameword(name, recname)) {
-				if (ancount > 1) {
-					pr_error("unexpected additional records with CNAME in answer section of A RR query for %s",
-						 name);
-				}
 				result = HOST_NOT_CANON; /* Clearly! */
 			} else {
 				pr_error("unexpected CNAME RR for %s in answer section of A RR query for %s",
@@ -1965,6 +1991,13 @@ canonical(name)
 	}
 	
   canonical_done:
+	if (debug && result) {		/* XXX ((debug && result) || errno) [result cannot be zero if there was an error?] */
+		set_h_errno(result);
+		ns_error(name, T_A, C_IN, server);
+	} else if (verbose > print_level && result == 0) { /* the caller will print any errors.... */
+		printf("Hostname %s is canonical.\n", name);
+	}
+
 	set_errno(save_errno);
 	set_h_errno(save_herrno);
 
@@ -1984,6 +2017,8 @@ canonical(name)
 **	XXX FixME:
 **		Should be doing a strict T_PTR lookup and searching for a
 **		target name that matches the given domain
+**
+** XXX this does logically the same check as addr.c:check_addr_name()
 */
 
 char *
