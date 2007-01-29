@@ -3,13 +3,9 @@ HOST ToDo -- Things that could be fixed/improved/added.
 Patches to close any of these items will be gratefully accepted!  Other
 suggestions and comments are also encouraged.
 
-- fix the following bogus warning when there are multiple PTRs:  [[FIXED?]]
-
-   !!! ns.sec.aci.on.ca address 192.168.0.250 maps to admin.sec.aci.on.ca
-
-  # host -ai 192.168.0.250              
-  250.0.168.192.in-addr.arpa      PTR     admin.sec.aci.on.ca
-  250.0.168.192.in-addr.arpa      PTR     ns.sec.aci.on.ca
+- try looking through the additional records in a reply in order to do
+  canonical checks, especially when the queried server isn't allowing
+  recursion
 
 - do not use gethostbyname()/gethostbyaddr() (i.e. util.c:geth_by*()) to
   do basic A and PTR lookups and checks [i.e. addr.c:check_addr() and
@@ -18,7 +14,8 @@ suggestions and comments are also encouraged.
   native implementations can be tested.
 
 - add support for getaddrinfo(), getnameinfo(), et al., replacing
-  getipnodeby*(), and of course gethostby*() too, where possible.
+  getipnodeby*(), and of course gethostby*() too, where possible and
+  where it is still used.
 
 - RFC 3490 (3491, and 3492) internationalization support (suggested by
   Peter da Silva).  See pksrc/devel/libidn for sample implementaiton.
