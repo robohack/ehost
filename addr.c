@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.11 2003-11-17 05:29:26 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: addr.c,v 1.12 2007-01-29 02:30:46 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)addr.c	e07@nikhef.nl (Eric Wassenaar) 990605";
@@ -50,9 +50,21 @@ check_addr(name)
 	unsigned int matched = 0;
 	char *hname;
 	char hnamebuf[MAXDNAME + 1];
-#if defined(HAVE_GETIPNODEBYNAME)
 	int my_h_errno;
-#endif
+
+	if (verbose)
+		printf("Checking reverse mapping consistency for host %s\n", name);
+
+	/*
+	 * First just verify whether the mapped host name is canonical or not.
+	 */
+	print_level++;
+	if ((my_h_errno = canonical(name)) != 0 && !debug) {
+		set_h_errno(my_h_errno);
+		ns_error(name, T_A, C_IN, server);
+		/* no real point in giving up here yet though.... */
+	}
+	print_level--;
 
 	/*
 	 * Look up the specified host to fetch all of its addresses.
@@ -80,12 +92,19 @@ check_addr(name)
 	hname[MAXDNAME] = '\0';
 
 	if (!sameword(hname, name))
-		pr_warning("hostname may not be canonical -- returned name does not match query name.");
+		pr_warning("primary hostname with the same address as %s is %s", name, hname);
 
-	for (i = 0; hp->h_addr_list[i]; i++)
+	/* XXX are there any systems where h_addr is not just h_addr_list[0]? */
+
+	for (i = 0; hp->h_addr_list[i]; i++) {
 		naddrs++;
+		if (verbose) {
+			printf("Hostname %s maps to address %s\n",
+			       hnamebuf, inet_ntoa(incopy(hp->h_addr_list[i])));
+		}
+	}
 
-	if (verbose) {
+	if (verbose && naddrs) {
 		printf("Found %d address%s for host %s\n",
 		       naddrs, plurale(naddrs), hname);
 	}
@@ -93,17 +112,13 @@ check_addr(name)
 		sys_error("malloc(%d): failed: ", naddrs * sizeof(*inaddr), strerror(errno));
 		return (FALSE);
 	}
-	for (i = 0; hp->h_addr_list[i]; i++) {
+	for (i = 0; hp->h_addr_list[i]; i++)
 		inaddr[i] = incopy(hp->h_addr_list[i]);
 
-		if (verbose)
-			printf("Hostname %s maps to address %s\n", hnamebuf, inet_ntoa(inaddr[i]));
-	}
-
 	/*
-	 * XXX this check only detects something if your libbind has been
-	 * patched to either dynamically allocate its internal arrays, or at
-	 * least has had them expanded beyond the norm.
+	 * XXX this check only detects something if the libbind host is linked
+	 * with has been patched to either dynamically allocate its internal
+	 * arrays, or at least has had them expanded beyond the norm.
 	 */
 	if (naddrs > MAXADDRS) {
 		pr_error("%s: most resolvers only support %d A records per RR set, found %d.",
@@ -152,14 +167,14 @@ check_addr_name(inaddr, name)
 	int my_h_errno;
 #endif
 
-	/*
-	 * Fetch the reverse mapping of the given host address.
-	 */
 	iname = strcpy(inamebuf, inet_ntoa(inaddr));
 
 	if (verbose)
-		printf("Checking %s address %s\n", name, iname);
+		printf("Checking if address %s has the hostname %s\n", iname, name);
 
+	/*
+	 * Fetch the reverse mapping of the given host address.
+	 */
 	/*
 	 * XXX ARGH!  We should avoid using the upper-level BIND resolver for
 	 * this query so that we can ensure we always get _all_ of the answers!
@@ -183,27 +198,21 @@ check_addr_name(inaddr, name)
 	 * Check whether the ``official'' hostname matches.  This is simply the
 	 * name in the first (or only) PTR record encountered.
 	 */
-	if (!sameword(hp->h_name, name)) {
-		if (!hp->h_aliases[0]) {	/* "&& verbose"? */
-			pr_error("%s address %s maps to hostname %s",
-				 name, iname, hp->h_name);
-		} else if (verbose) {
-			printf("%s address %s maps to hostname %s\n",
-			       name, iname, hp->h_name);
-		}
-	} else {
+	if (sameword(hp->h_name, name))
 		matched++;
 
-		if (debug) {
-			printf("%s address %s maps to hostname %s\n",
-			       name, iname, hp->h_name);
-		}
+	if (verbose) {
+		printf("%s address %s maps to hostname %s\n",
+		       name, iname, hp->h_name);
 	}
+
 	/*
 	 * A match may also be found among the ``aliases''.
 	 *
 	 * They are available (as of BIND 4.9) when multiple PTR records are
 	 * used.
+	 *
+	 * XXX loop is not strictly necessary if (!verbose && matched)
 	 */
 	for (i = 0; hp->h_aliases[i]; i++) {
 		if (sameword(hp->h_aliases[i], name))
@@ -214,9 +223,13 @@ check_addr_name(inaddr, name)
 			       name, iname, hp->h_aliases[i]);
 		}
 	}
+
 	if (!matched) {
 		pr_error("Hostname %s does not belong to address %s",
 			 name, iname);
+	} else if (matched > 1) {	/* XXX this should be impossible */
+		pr_warning("Hostname %s does not belong to address %s",
+			   name, iname);
 	}
 
 #if defined(HAVE_FREEHOSTENT)
@@ -251,12 +264,15 @@ check_name(addr)
 	int my_h_errno;
 #endif
 
-	/*
-	 * Check whether the address is registered by fetching its host name.
-	 */
 	inaddr.s_addr = addr;
 	iname = strcpy(inamebuf, inet_ntoa(inaddr));
 
+	if (verbose)
+		printf("Checking forward mapping consistency for address %s\n", iname);
+
+	/*
+	 * Check whether the address is registered by fetching its host name.
+	 */
 	/*
 	 * XXX ARGH!  We should avoid using the upper-level BIND resolver for
 	 * this query so that we can ensure we always get _all_ of the answers!
@@ -286,10 +302,13 @@ check_name(addr)
 	 * In case of multiple PTR records, additional names are stored in
 	 * h_aliases.
 	 */
-	for (i = 0; hp->h_aliases[i]; i++)
+	for (i = 0; hp->h_aliases[i]; i++) {
 		naliases++;
+		if (verbose)
+			printf("Address %s maps to hostname %s\n", iname, hp->h_aliases[i]);
+	}
 
-	if (verbose) {
+	if (verbose && naliases) {
 		printf("Found %d hostname%s for %s\n",
 		       naliases + 1, plural(naliases + 1), iname);
 	}
@@ -302,15 +321,12 @@ check_name(addr)
 		for (i = 0; hp->h_aliases[i]; i++) {
 			aname = strncpy(&anamebuf[i * (MAXDNAME + 1)], hp->h_aliases[i], (size_t) MAXDNAME);
 			aname[MAXDNAME] = '\0';
-			
-			if (verbose)
-				printf("Address %s maps to hostname %s\n", iname, aname);
 		}
 	}
 	/*
-	 * XXX this check only detects something if your libbind has been
-	 * patched to either dynamically allocate its internal arrays, or at
-	 * least has had them expanded beyond the norm.
+	 * XXX this check only detects something if the libbind host is linked
+	 * with has been patched to either dynamically allocate its internal
+	 * arrays, or at least has had them expanded beyond the norm.
 	 */
 	if (naliases > MAXALIAS) {
 		/* report the full number of PTRs so the message makes sense */
@@ -349,6 +365,10 @@ check_name(addr)
 **	Returns:
 **		TRUE if given address was found among host addresses.
 **		FALSE otherwise.
+**
+** XXX We could probably replace this function with a with a variant of
+** canonical() that had a slightly different API -- one that would optionally
+** also check that "addr" was amongst the T_A records listed for the host.
 */
 
 static bool_t
@@ -361,15 +381,29 @@ check_name_addr(name, addr)
 	struct in_addr inaddr;
 	char *iname, inamebuf[MAXDNAME+1];
 	unsigned int matched = 0;
-#if defined(HAVE_GETIPNODEBYNAME)
 	int my_h_errno;
-#endif
 
 	inaddr.s_addr = addr;
 	iname = strcpy(inamebuf, inet_ntoa(inaddr));
 
+	if (verbose) {
+		printf("Checking if %s is a hostname with an address matching %s\n",
+		       name, iname);
+	}
+
 	/*
-	 * Lookup the host name found to fetch its addresses.
+	 * First just verify whether the mapped host name is canonical or not.
+	 */
+	print_level++;
+	if ((my_h_errno = canonical(name)) != 0 && !debug) {
+		set_h_errno(my_h_errno);
+		ns_error(name, T_A, C_IN, server);
+		/* no real point in giving up here yet though.... */
+	}
+	print_level--;
+
+	/*
+	 * Look up the host 'name' to fetch its addresses.
 	 */
 	/*
 	 * XXX ARGH!  We should avoid using the upper-level BIND resolver for
@@ -391,31 +425,26 @@ check_name_addr(name, addr)
 #endif
 
 	/*
-	 * Verify whether the mapped host name is canonical.
-	 */
-	if (!sameword(hp->h_name, name)) {
-		pr_error("%s target host %s is not canonical (%s)",
-			 iname, name, hp->h_name);
-	}
-
-	/*
 	 * Check whether the given address is listed among the known addresses.
 	 */
 	for (i = 0; hp->h_addr_list[i]; i++) {
 		inaddr = incopy(hp->h_addr_list[i]);
 
-		if (verbose) {
-			printf("Checking %s address %s\n",
-			       name, inet_ntoa(inaddr));
-		}
-
 		if (inaddr.s_addr == addr)
 			matched++;
+
+		if (verbose) {
+			printf("Hostname %s maps to address %s\n",
+			       name, inet_ntoa(inaddr));
+		}
 	}
 
 	if (!matched) {
 		pr_error("address %s does not belong to hostname %s",
 			 iname, name);
+	} else if (verbose) {
+		printf("Address %s is a target of the hostname %s\n",
+		       iname, name);
 	}
 #if defined(HAVE_FREEHOSTENT)
 	freehostent(hp);
