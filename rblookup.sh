@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.11 2006-12-21 23:53:20 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.12 2007-07-25 22:32:49 -0800 woods Exp $"
 #
 # rblookup - Lookup a dotted quad IP address, or hostname in one of many
 #		Reverse/Realtime DNS-based Lists
@@ -273,21 +273,6 @@ ALL_RBLS="${SPAMBAG_ROOT} ${ALL_RBLS}"
 SPAMCOP_ROOT="bl.spamcop.net"
 ALL_RBLS="${SPAMCOP_ROOT} ${ALL_RBLS}"
 
-# spam.exsilla.net blackholes
-# <URL:http://www.exsilia.net/>
-#
-# Lists spam sites that we seen by the exsilia.net systems.  Will block
-# IP ranges and upstream providers.
-#
-# 127.0.0.2: Spamming;
-# 127.0.0.3: Sends viruses;
-# 127.0.0.5: Abuse or postmaster bounces.
-#
-# Has TXT records.
-#
-SPAM_EXSILLA_ROOT="spam.exsilia.net"
-ALL_RBLS="${SPAM_EXSILLA_ROOT} ${ALL_RBLS}"
-
 # SpamGuard by Howard Leadmon
 # <URL:http://www.leadmon.net/spamguard/>
 #
@@ -309,7 +294,7 @@ ALL_RBLS="${SPAMGUARD_ROOT} ${ALL_RBLS}"
 # Spamhaus Block List
 # <URL:http://www.spamhaus.org/zen/>
 #
-# verified spam sources
+# ZEN contains all of the SBL, XBL, and PBL
 #
 SPAMHAUS_ZEN_ROOT="zen.spamhaus.org"
 ALL_RBLS="${SPAMHAUS_ZEN_ROOT} ${ALL_RBLS}"
