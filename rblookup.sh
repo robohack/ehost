@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.12 2007-07-25 22:32:49 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: rblookup.sh,v 1.13 2008-10-05 21:04:54 -0800 woods Exp $"
 #
 # rblookup - Lookup a dotted quad IP address, or hostname in one of many
 #		Reverse/Realtime DNS-based Lists
@@ -151,10 +151,16 @@ DSBL_ROOT="list.dsbl.org unconfirmed.dsbl.org multihop.dsbl.org"
 ALL_RBLS="${DSBL_ROOT} ${ALL_RBLS}"
 
 # ABUSEAT lists
+# The CBL - Composite Blocking List
 # <URL:http://www.abuseat.org/>
+# <URL:http://cbl.abuseat.org/>
 #
-ABUSEAT_ROOT="cbl.abuseat.org"
-ALL_RBLS="${ABUSEAT_ROOT} ${ALL_RBLS}"
+# The CBL operates in an entirely automated way using very large
+# spamtraps and smart heuristics to detect real spam sources. There
+# is an automated no-questions-asked removals procedure too.
+#
+ABUSEAT_RSBL_ROOT="cbl.abuseat.org"
+ALL_RBLS="${ABUSEAT_RSBL_ROOT} ${ALL_RBLS}"
 
 # McFadden Associates Spam Blacklist
 # <URL:http://bl.csma.biz/>
@@ -216,7 +222,7 @@ MAPS_RSS_ROOT="relays.mail-abuse.org"
 
 # Not Just Another Black List
 # <URL:http://njabl.org/>
-# <URL:http://njabl.org/dynablock.html>
+# <URL:http://njabl.org/dynablock.html> (gone -- use pbl.spamhaus.org)
 #
 # 127.0.0.2	lists open relays and known spam sources
 # 127.0.0.3	lists dial-up addresses
@@ -225,7 +231,7 @@ MAPS_RSS_ROOT="relays.mail-abuse.org"
 # 127.0.0.8	lists servers with insecure formmail scripts
 # 127.0.0.9	lists open proxy sources
 #
-NJABL_ROOT="dnsbl.njabl.org dynablock.njabl.org"
+NJABL_ROOT="dnsbl.njabl.org"
 ALL_RBLS="${NJABL_ROOT} ${ALL_RBLS}"
 
 # ORDB - third son of ORBS
@@ -348,16 +354,6 @@ ORVEDB_RSBL_ROOT="orvedb.aupads.org"
 ALL_RBLS="${ORVEDB_RSBL_ROOT} ${ALL_RBLS}"
 DUINV_RSBL_ROOT="duinv.aupads.org"
 ALL_RBLS="${DUINV_RSBL_ROOT} ${ALL_RBLS}"
-
-# The CBL - Composite Blocking List
-# <URL:http://cbl.abuseat.org/>
-#
-# The CBL operates in an entirely automated way using very large
-# spamtraps and smart heuristics to detect real spam sources. There
-# is an automated no-questions-asked removals procedure too.
-#
-ABUSEAT_RSBL_ROOT="cbl.abuseat.org"
-ALL_RBLS="${ABUSEAT_RSBL_ROOT} ${ALL_RBLS}"
 
 # ----------------------------------------------------------------------
 # Exit codes from <sysexits.h>, just in case we are called from a mailer
