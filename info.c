@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.26 2007-01-26 21:56:52 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.27 2011-08-07 17:38:06 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -431,6 +431,13 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 	/* XXX can we get the address of the server which answered here? */
 	if ((type != T_AXFR) && !bp->ra && !norecurs)
 		pr_warning("The server at %s does not allow recursion.", server ? server : "(default)");
+
+	/*
+	 * if there's an error in the status byte then there's probably not
+	 * anything else in the answer worth printing
+	 */
+	if (bp->rcode != NOERROR)
+		return (FALSE);
 
 	/*
 	 * Skip the query section in the response (present only in normal queries).
