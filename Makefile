@@ -1,5 +1,5 @@
 #
-#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.16 2003-06-05 01:01:45 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: Makefile,v 1.17 2011-08-07 17:38:45 -0800 woods Exp $"
 #
 # from:	@(#)Makefile            e07@nikhef.nl (Eric Wassenaar) 991515
 
@@ -127,6 +127,10 @@ COPTIM = -O2
 COPTIM = -O
 
 CDEBUG = -g
+
+#
+#	make -f Makefile  __GNUC__=4 __GNULD__=2
+#
 
 # GCC lint-like warnings -- any warnings are likely bugs in the
 # platform headers or in gcc itself....
