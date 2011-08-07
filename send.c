@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.18 2006-12-21 23:51:46 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.19 2011-08-07 17:56:42 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -306,7 +306,6 @@ send_stream(addr, query, querylen, answer, anslen)
 	/*
 	 * Read the answer into the 'answer' buffer.
 	 */
-  reread:
 	if ((n = host_res_read_stream(srvsock, addr, host, (char *) answer, (size_t) len)) < 0) {
 		(void) host_res_close(srvsock);
 		return (-1);
