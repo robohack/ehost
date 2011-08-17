@@ -3,6 +3,11 @@ HOST ToDo -- Things that could be fixed/improved/added.
 Patches to close any of these items will be gratefully accepted!  Other
 suggestions and comments are also encouraged.
 
+- with '-v' show the associated A records for the NS records used when
+  doing SOA (or NS, if possible) record lookups ('-C' or '-t ns').
+  Currently '-vv' does this for '-C' (and '-vvv' does this for '-t ns'),
+  but this is too noisy.
+
 - try looking through the additional records in a reply in order to do
   canonical checks, especially when the queried server isn't allowing
   recursion
@@ -17,8 +22,8 @@ suggestions and comments are also encouraged.
   getipnodeby*(), and of course gethostby*() too, where possible and
   where it is still used.
 
-- RFC 3490 (3491, and 3492) internationalization support (suggested by
-  Peter da Silva).  See pksrc/devel/libidn for sample implementaiton.
+- RFC 3490 (3491, and 3492) internationalisation support (suggested by
+  Peter da Silva).  See pkgsrc/devel/libidn for sample implementation.
 
 - implement host_h_strerror() to return descriptions for extended error
   codes from get_info() -- or maybe don't over-load h_errno in
@@ -47,13 +52,16 @@ suggestions and comments are also encouraged.
 - build more mechanisms to allow checking using only authoritative
   sources, i.e. in the same way '-C' does; e.g. MX, NS, and PTR lookups,
   which might require looking up two separate sets of NS records, one
-  for the the MX, NS, or PTR domain and one for the target canonical
-  host's domain.  Need to deal with cases where the target name is the
-  zone name.
+  for the MX, NS, or PTR domain and one for the target canonical host's
+  domain.  Need to deal with cases where the target name is the zone
+  name.
 
 - allow for setting the (stream) read timeout (conn_timeout) at runtime.
 
-- clean up the host_res_*() mess.
+- clean up the host_res_*() mess -- are the extra error mechanisms worth
+  the headache of trying to maintain a local copy of res_send()?
+  Probably not, as '-u' can show all of the errors properly, no?  Need
+  some symbol rename magic to use it with BIND-8 and newer anyway.
 
 - don't strip the trailing dot from PTR targets that have only one label.
 
@@ -75,6 +83,4 @@ suggestions and comments are also encouraged.
   Originally asked by Matti Aarnio <matti.aarnio@sonera.fi>
 
 - try to build a regression test suite (but how do we feed it known
-  bogus junk to test error handling?  nc?).
-
-- think about using autobuild.
+  bogus junk to test error handling?  Use nc(1)?).

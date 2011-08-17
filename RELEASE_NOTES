@@ -1,6 +1,6 @@
 # -*-indented-text-*-
 #
-#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.13 2007-01-17 22:17:52 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: RELEASE_NOTES,v 1.14 2011-08-17 02:25:40 -0800 woods Exp $"
 #
 
 	URL:		http://www.weird.com/~woods/projects/host/
@@ -40,15 +40,21 @@ support contact(s).
 # Description of important user-visible changes per release
 # ----------------------------------------------------------------------
 
+2007/01/28
+
+	- various updates and fixes for error, verbose, and debug
+	  output, especially address validation (-A)
+
+
 2007/01/17
 
 	- the --checkzone option now actually works.
 
 	- canonical hostname checks are not done if the answer they are
-          found in doesn't have the "recursion available" flag set.
+	  found in doesn't have the "recursion available" flag set.
 
 	- the logic for printing the warning when canonical hostname
-          checks are skipped has been corrected.
+	  checks are skipped has been corrected.
 
 	- the way that canonical hostname checks are done has been fixed
 	  so that only initial results from the query for A RRs are
@@ -61,9 +67,9 @@ support contact(s).
 	  flag.
 
 	- fix a portability problem with NetBSD 3.x and newer which
-          incorporated the BIND-8 resolver, but not completely, silently
-          leaving out the getnodeby*() functions normally privided by
-          this resolver API.
+	  incorporated the BIND-8 resolver, but not completely, silently
+	  leaving out the getnodeby*() functions normally privided by
+	  this resolver API.
 
 	- various minor updates to the default list of DNS zones used by
 	  the rblookup script.
@@ -84,7 +90,7 @@ support contact(s).
 	  which completely broke all zone listings.  Sorry!
 
 	- setting the preferred server(s) for zone listings is now done
-          only with the '--prefserver=serverlist' option.
+	  only with the '--prefserver=serverlist' option.
 
 	- the poorly documented '-P' or '--parent' option now works much
 	  better!  The NS records of the zone to be listed or checked
