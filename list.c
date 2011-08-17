@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: list.c,v 1.28 2007-01-13 21:31:24 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: list.c,v 1.29 2011-08-17 01:01:00 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)list.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -2151,7 +2151,7 @@ check_zone(name, host)
 	register int n;
 
 	if (verbose)
-		printf("Checking SOA for %s at %s ...\n", name, host);
+		printf("Checking SOA for %s at %s ...\n", name, host); /* XXX show host's address too */
 	else if (authserver)
 		printf("%-20s\tNS\t%s\n", name, host);
 	else
