@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: info.c,v 1.27 2011-08-07 17:38:06 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: info.c,v 1.28 2011-08-17 01:00:33 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)info.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -319,7 +319,7 @@ get_info(answerbuf, name, type, class)
 	if ((n = res_send((qbuf_t *) &query, n, (qbuf_t *) answerbuf, (int) sizeof(*answerbuf))) < 0) {
 		if (debug)
 			printf("%sres_send failed\n", debug_prefix);
-		set_h_errno(TRY_AGAIN);
+		set_h_errno(TRY_AGAIN);	/* ??? */
 		return (-1);
 	}
 
@@ -428,7 +428,6 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 	eom = (u_char *) answerbuf + answerlen;
 	cp  = (u_char *) answerbuf + HFIXEDSZ;
 
-	/* XXX can we get the address of the server which answered here? */
 	if ((type != T_AXFR) && !bp->ra && !norecurs)
 		pr_warning("The server at %s does not allow recursion.", server ? server : "(default)");
 
@@ -505,7 +504,7 @@ print_info(answerbuf, answerlen, name, type, class, regular)
 		return (TRUE);
 
 	if (nscount) {
-#if 0 /* XXX this  */
+#if 0 /* XXX this is noise? */
 		if (type == T_NS || ntohs((u_short) bp->ancount) == 0)
 			printf("Refer to%s the following %d authoritative server%s:\n",
 			       ((nscount > 1) ? " one of" : ""), nscount, plural(nscount));
