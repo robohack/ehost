@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.27 2006-12-22 03:48:46 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.28 2011-08-17 02:16:40 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -329,6 +329,7 @@ main(argc, argv)
 	bool_t extended = FALSE;	/* accept extended argument syntax */
 
 	assert(sizeof(int) >= 4);	/* probably paranoid */
+	assert(INADDR_NONE == NOT_DOTTED_QUAD); /* Houston, we have a problem! */
 #ifdef obsolete
 	assert(sizeof(u_short) == 2);	/* perhaps less paranoid */
 	assert(sizeof(ipaddr_t) == 4);	/* but this is critical */
@@ -1294,11 +1295,17 @@ execute_name(name)
 	if (inet_aton(queryname, &inaddr))
 		queryaddr = inaddr.s_addr;
 	else
-#endif
+		queryaddr = NOT_DOTTED_QUAD;
+#else
+	/*
+	 * XXX are some inet_addr(3) implementations so broken they parse "."
+	 * wrongly and see it as some number?
+	 */
 	if (sameword(queryname, "."))
 		queryaddr = NOT_DOTTED_QUAD;
 	else
 		queryaddr = inet_addr(queryname);
+#endif
 
 	/*
 	 * Generate reverse in-addr.arpa query if so requested.
