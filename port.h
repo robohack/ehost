@@ -3,7 +3,7 @@
 **
 */
 
-#ident "@(#)host:$Name:  $:$Id: port.h,v 1.20 2007-01-17 22:11:45 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: port.h,v 1.21 2011-08-17 02:18:51 -0800 woods Exp $"
 /*
  * from: @(#)port.h              e07@nikhef.nl (Eric Wassenaar) 991328
  */
@@ -246,13 +246,20 @@ typedef u_char		nbuf_t;
 # define ns_put32(src, dst)	__putlong(src, dst)
 #endif
 
-#ifndef _IPADDR_T
-# if defined(__alpha) || defined(__arch64__)
+/*
+ * XXX we should probably convert to using the more standard "in_addr_t"
+ */
+#if !defined(__in_addr_t)
+/* note: assume an ISO C 1990 preprocessor or newer, using unsigned long */
+# if ULONG_MAX > (1 << 31)
 typedef unsigned int	ipaddr_t;
-# else
+# elif ULONG_MAX == (1 << 31)
 typedef unsigned long	ipaddr_t;
+# else
+#  include "houston, we have a problem!"
 # endif
-# define _IPADDR_T	ipaddr_t
+#else
+typedef __in_addr_t	ipaddr_t;
 #endif
 
 /*
