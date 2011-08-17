@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: util.c,v 1.30 2007-01-26 22:00:17 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: util.c,v 1.31 2011-08-17 01:02:27 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)util.c	e07@nikhef.nl (Eric Wassenaar) 991527";
@@ -633,8 +633,8 @@ ns_error(name, type, class, host)
 		/*
 		 * The contacted host does not have a nameserver running.
 		 *
-		 * The standard res_send() also returns this if none of
-		 * the intended hosts could be reached via datagrams.
+		 * The standard res_send() also returns this if none of the
+		 * intended hosts could be reached via datagrams.
 		 */
 		if (host != NULL)
 			pr_error("Nameserver %s not running", host);
@@ -646,6 +646,9 @@ ns_error(name, type, class, host)
 		/*
 		 * The contacted server did not give any reply at all
 		 * within the specified time frame.
+		 *
+		 * The standard res_send() also returns this if the server
+		 * returned SERVFAIL, e.g. because they don't do recursion, etc.
 		 */
 		if (host != NULL)
 			pr_warning("Nameserver %s not responding", host);
@@ -800,6 +803,7 @@ ns_error(name, type, class, host)
 		 * some internal server errors, forwarding failures, or when
 		 * the server is not authoritative for a specific class.
 		 * Also if the zone data has expired at a secondary server.
+		 * Also if the server is not allowing recursion.
 		 * Nameserver status: SERVFAIL
 		 */
 		if (class != C_IN) {
