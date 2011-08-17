@@ -2,11 +2,14 @@
 #	Makefile.BSD - input for BSD Pmake (for use in base OS or for packages)
 #
 # Define control variables on the command-line as necessary.
+# (some attempt is made to sometimes auto-define them)
 #
-#	make -f Makefile.BSD __NetBSD__=1 __GNUC__=2 __GNULD__=2
+#	make -f Makefile.BSD __NetBSD__=1 __GNUC__=4 __GNULD__=2
 #
-#ident	"@(#)host:$Name:  $:$Id: Makefile.BSD,v 1.14 2007-01-09 21:17:39 -0800 woods Exp $"
+#ident	"@(#)host:$Name:  $:$Id: Makefile.BSD,v 1.15 2011-08-17 02:25:03 -0800 woods Exp $"
 #
+
+.include <bsd.own.mk>
 
 # is the build happening in the full NetBSD build environment?
 #
@@ -15,24 +18,26 @@
 #
 .if defined(MAKE) && defined(MACHINE) && defined(MACHINE_ARCH) && defined(TOOLDIR) && defined(USETOOLS)
 
-__NetBSD__ = 1
+__NetBSD__ = defined
 
-.elif defined(HOSTNAME) && ${HOSTNAME} == "proven"
+.elif defined(NETBSDSRCDIR)
+
+# hosted build on NetBSD
+# (same as above for now)
+#
+__NetBSD__ = defined
+
+.elif defined(.FreeBSD) && (${.FreeBSD} == "true")
+
+__FreeBSD__ = defined
+
+.elif defined(TEST_HOST_RES_SEND)
 
 PREFIX ?= /usr/pkg
-CC = PATH=/usr/pkg/gcc-ssp/bin:$$PATH /usr/pkg/gcc-ssp/bin/cc
-CFLAGS += -pipe -fstack-protector
-__NetBSD__ = 1
-
-.elif defined(HOSTNAME) && ${HOSTNAME} == "proven-bind8"
-
-PREFIX ?= /usr/pkg
-CC = PATH=/usr/pkg/gcc-ssp/bin:$$PATH /usr/pkg/gcc-ssp/bin/cc
-CFLAGS += -pipe -fstack-protector
 CPPFLAGS += -I${PREFIX}/bind/include -DHOST_RES_SEND
 LDFLAGS += -L${PREFIX}/lib
 LDADD += -lbind
-__NetBSD__ = 1
+__NetBSD__ = defined
 
 .endif
 
@@ -45,16 +50,57 @@ __GNUC_MINOR__ !=	echo __GNUC_MINOR__ | $(CC) -E -c - | sed '/\#/d' | tr -d ' \0
 .if !defined(__GNUC_PATCHLEVEL__)
 __GNUC_PATCHLEVEL__ !=	echo __GNUC_PATCHLEVEL__ | $(CC) -E -c - | sed '/\#/d' | tr -d ' \012'
 .endif
-.if !defined(__GNULD__)
-__GNULD__ !=		$(LD) -v | awk '{print int($4);}' | tr -d ' \012'
+
+# Silly Apple....
+#
+.if defined(.FreeBSD) && (${.FreeBSD} == "false")
+
+__Darwin__ = defined
+
+#
+# NOTE: Mac OS X does not use GNU ld.
+#
+__GNULD__ = 0
+
+NO_SHARED =	no
+LDSTATIC =	# empty
+
+OPTIM ?=	-O3
+LDADD +=	-lresolv
+CFLAGS =	${OPTIM} -pipe
+
+# At some point Apple imported the BIND-9 nameserver to OS X
+#
+CFLAGS +=	-DBIND_8_COMPAT
+
+.else
+
+. if !defined(__GNULD__)
+__GNULD__ !=		$(LD) -v | awk '{print int($$4);}' | tr -d ' \012'
+. endif
+
+.endif
+
+.if defined(__FreeBSD__)
+NO_SHARED = YES
+.endif
+
+.if ${__GNUC__} >= 1
+CFLAGS +=	-pipe
+.endif
+
+.if ${__GNUC__} >= 4
+CFLAGS +=	-fstack-protector-all
 .endif
 
 CPPFLAGS += -DDEBUG
 
 PREFIX ?= /usr
 
-LDSTATIC = -static
-NOSHARED = YES
+LDSTATIC ?= -static
+.if !defined(NO_SHARED)
+NOSHARED ?= YES
+.endif
 
 BINDIR ?= ${PREFIX}/bin
 BINOWN ?= root
@@ -66,13 +112,6 @@ MANDIR ?= ${PREFIX}/share/man/man
 .else
 # 4.4BSD, including BSD/OS
 MANDIR ?= ${PREFIX}/share/man/cat
-.endif
-
-# this check is a nasty hack and will break building 'host' in the
-# NetBSD source tree on any host that doesn't have this file....
-#
-.if exists(/usr/share/mk/bsd.own.mk)
-. include <bsd.own.mk>
 .endif
 
 PROG =	host
@@ -95,19 +134,17 @@ MISCS = malloc.c README_NT
 
 ALL_FILES = Makefile Makefile.BSD ${DOCS} ${HDRS} ${SRCS} ${MANS} ${MISCS}
 
-# on NetBSD/i386 some functions want "short int" parameters but they
-# somehow don't get declared properly and we end up with the likes of
+# Don't use "-Werror" on NetBSD
+#
+# on NetBSD/i386 some functions have prototypes declaring one or more of their parameters as "short int", but since it  and we end up with the likes of
 # "passing arg 1 of `__byte_swap_word_variable' with different width
 # due to prototype".
-#
-# We also have a a few unused parameters that GCC is _way_ too
-# pedantic about and without giving us any per-instance "lint" comment
-# way of saying "yeah, we know".
 #
 # Some versions of GCC also get the "integer constant" signed/unsigned
 # check completely wrong on some platforms (e.g. i386).
 #
 NOGCCERROR = 1
+# for some older systems....
 NO_WERROR = 1
 
 # Take control of our own warning flags (WARNS=2 would be OK, but incomplete)
@@ -119,7 +156,6 @@ __GNUC__ ?= 1
 # no, we're not that pedantic!
 #CWARNFLAGS += -pedantic
 #
-CWARNFLAGS += -W
 CWARNFLAGS += -Wall
 #
 # these aren't always in "-Wall"
@@ -129,8 +165,11 @@ CWARNFLAGS += -Wswitch
 CWARNFLAGS += -Wcomment
 #
 # in addition to -Wall
+#CWARNFLAGS += -Wtraditional
 .if ${__GNUC__} <= 2
-CWARNFLAGS += -Wtraditional
+CWARNFLAGS += -W
+.else
+CWARNFLAGS += -Wextra
 .endif
 CWARNFLAGS += -Wcast-qual
 # -Wid-clash-LEN is sadly no longer supported in 3.2.2 or 3.3.3
@@ -169,6 +208,7 @@ CWARNFLAGS += -Wbad-function-cast
 .if ${__GNUC__} >= 3
 # Yuck:  this is broken in at least 3.2.2...
 #CWARNFLAGS += -Wunreachable-code
+CWARNFLAGS += -Wdeclaration-after-statement
 .endif
 
 .if !defined(__NetBSD__) && !defined(__FreeBSD__)
@@ -178,10 +218,12 @@ CFLAGS += ${CWARNFLAGS}
 __GNULD__ ?= 1
 
 .if ${__GNULD__} >= 1
-LDFLAGS += -W
-LDFLAGS += -Wall
-LDFLAGS += -Wid-clash-30
+. if !defined(__FreeBSD__)
 LDFLAGS += -Wl,--warn-common
+. endif
+LDFLAGS += -Wl,--fatal-warnings
+LDFLAGS += -Wl,--unresolved-symbols=report-all
+LDFLAGS += -Wl,--error-unresolved-symbols
 .endif
 
 SOELIM = soelim
@@ -190,6 +232,8 @@ SOELIM = soelim
 
 .include <bsd.prog.mk>
 
+# XXX maybe should create a temp file, only clobber target if temp is different
+#
 .sh:
 	@rm -f $@
 	sed -e 's,@CONFDIR@,${CONFDIR},g' < ${.CURDIR}/$@.sh > $@
@@ -215,3 +259,27 @@ host2netbsd: ${ALL_SOURCES} Makefile
 	${INSTALL_DIR} ${SRCINSTDIR}
 	cp Makefile.BSD ${SRCINSTDIR}/Makefile
 	cp ${ALL_SOURCES} ${SRCINSTDIR}
+
+.PHONY: show-vars
+show-vars:
+	@echo NETBSDSRCDIR=${NETBSDSRCDIR}
+	@echo BSDSRCDIR=${BSDSRCDIR}
+	@echo __NetBSD__=${__NetBSD__}
+	@echo __FreeBSD__=${__FreeBSD__}
+	@echo .FreeBSD=${.FreeBSD}
+	@echo __Darwin__=${__Darwin__}
+	@echo __GNUC__=${__GNUC__}
+	@echo __GNUC_MINOR__=${__GNUC_MINOR__}
+	@echo __GNUC_PATCHLEVEL__=${__GNUC_PATCHLEVEL__}
+	@echo __GNULD__=${__GNULD__}
+	@echo NOSHARED=${NOSHARED}
+	@echo NO_SHARED=${NO_SHARED}
+	@echo LDSTATIC=${LDSTATIC}
+	@echo MAKE=${MAKE}
+	@echo MACHINE=${MACHINE}
+	@echo MACHINE_ARCH=${MACHINE_ARCH}
+	@echo TOOLDIR=${TOOLDIR}
+	@echo USETOOLS=${USETOOLS}
+
+.PHONY: clean-cvs-parents
+	rm *.~1.*.~
