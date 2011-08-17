@@ -17,7 +17,7 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ident "@(#)host:$Name:  $:$Id: send.c,v 1.19 2011-08-07 17:56:42 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: send.c,v 1.20 2011-08-17 01:01:44 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)send.c	e07@nikhef.nl (Eric Wassenaar) 991331";
@@ -431,6 +431,8 @@ wait:
 		}
 		goto wait;
 	}
+
+	/* XXX check that the query section matches what we sent!!! */
 
 	/*
 	 * Never leave the socket open.
