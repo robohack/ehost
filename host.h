@@ -4,7 +4,7 @@
 ** from: @(#)host.h              e07@nikhef.nl (Eric Wassenaar) 991529
 */
 
-#ident "@(#)host:$Name:  $:$Id: host.h,v 1.19 2007-01-09 21:16:02 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: host.h,v 1.20 2011-08-17 00:59:29 -0800 woods Exp $"
 
 #if defined(apollo) && defined(lint)
 # define __attribute(x)		/* XXX ??? */
@@ -81,7 +81,7 @@
 
 #include "port.h"		/* various portability definitions */
 #include "conf.h"		/* various configuration definitions */
-#include "type.h"		/* types should be in <arpa/nameser.h> */
+#include "type.h"		/* stuff that should be in <arpa/nameser.h> */
 #include "exit.h"		/* exit codes come from <sysexits.h> */
 
 #ifndef NO_DATA
@@ -108,7 +108,7 @@
 # define NOCHANGE	0xf		/* compatibility with older BIND versions */
 #endif
 
-#define NOT_DOTTED_QUAD	((ipaddr_t) -1)
+#define NOT_DOTTED_QUAD	((ipaddr_t) -1)	/* xxx should this be INADDR_NONE??? */
 #define BROADCAST_ADDR	((ipaddr_t) 0xffffffffU)
 #define LOCALHOST_ADDR	((ipaddr_t) 0x7f000001U)
 
@@ -137,7 +137,7 @@
 #define MAXDLEN		(MAXPACKET - HFIXEDSZ)	/* upper bound for dlen */
 
 typedef union {
-	HEADER header;			/* from <arpa/nameser.h> */
+	HEADER header;			/* from <arpa/nameser{_compat}.h> */
 	u_char packet[MAXPACKET];
 } querybuf_t;
 
