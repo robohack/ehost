@@ -39,7 +39,7 @@
  * re-distribute your own modifications to others.
  */
 
-#ident "@(#)host:$Name:  $:$Id: main.c,v 1.28 2011-08-17 02:16:40 -0800 woods Exp $"
+#ident "@(#)host:$Name:  $:$Id: main.c,v 1.29 2013-09-27 23:53:38 -0800 woods Exp $"
 
 #if 0
 static char Version[] = "@(#)main.c	e07@nikhef.nl (Eric Wassenaar) 991529";
@@ -1477,12 +1477,14 @@ execute(name, addr)
 		 * glue records).
 		 */
 		char pzn[MAXDNAME + 2];
+		char *last_dot;
 		char *parent_zone;
 		int save_verbose;
 
 		/* there is always one final parent:  "." */
 		assert(strlen(name) <= MAXDNAME);
-		sprintf(pzn, "%s.", name);
+		last_dot = strrchr(name, '.');
+		sprintf(pzn, "%s%s", name, (last_dot && *last_dot == '.' && *(last_dot+1) == '\0') ? "" : ".");
 		parent_zone = pzn;
 
 		if (verbose > 1)
@@ -1493,11 +1495,19 @@ execute(name, addr)
 			verbose--;
 
 		/*
-		 * XXX since this code mimics similar code enabled by 'parent'
-		 * in list.c:get_servers(), which we call via use_servers(), we
+		 * since this code mimics similar code enabled by 'parent' in
+		 * list.c:get_servers(), which we call via use_servers(), we
 		 * must turn off the parent flag when calling use_servers()!
 		 */
 		parent = FALSE;
+
+		/*
+		 * initially we must force recursion on in case it was turned
+		 * off on the command line -- we'll be asking the default
+		 * resolv.conf nameserver(s) for these NS records, and it will
+		 * likely have to do a recursive lookup
+		 */
+		_res.options |= RES_RECURSE;
 
 		while ((parent_zone = strchr(parent_zone, '.'))) {
 			size_t dot_offset = 0;
@@ -1517,6 +1527,9 @@ execute(name, addr)
 			}
 			/* make sure next call to use_servers works right! */
 			server = NULL;
+			/* don't loop forever.... */
+			if (sameword(parent_zone, "."))
+				break;
 			/* restore any trimmed trailing dot in case it's the last one */
 			if (dot_offset)
 				parent_zone[dot_offset] = '.';
