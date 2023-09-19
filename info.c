@@ -322,6 +322,12 @@ get_info(answerbuf, name, type, class)
 		set_h_errno(TRY_AGAIN);	/* ??? */
 		return (-1);
 	}
+	/* xxx if n > sizeof(*answerbuf) then the query should be retried with a larger buffer */
+	if (n > (int) sizeof(*answerbuf)) {
+		pr_error("answer length %s too big for buffer (%s) after %s query for %s\n",
+		         dtoa(n), dtoa(sizeof(*answerbuf)), pr_type(type), name);
+		/* xxx continue to deal with it as best as we can for now */
+	}
 
 	set_errno(0);	/* reset after we got an answer */
 
@@ -380,6 +386,10 @@ get_info(answerbuf, name, type, class)
 			break;
 		}
 		n = querysize(n);
+		if (debug) {
+			printf("get_info(%s): returning %d\n",
+			       name, -n);
+		}
 
 		return (-n);
 	}
@@ -1524,7 +1534,7 @@ print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 	if (!canoncheck && canonskip && server) {
 		static bool_t warned = FALSE;
 
-		if (verbose && !warned) {
+		if (verbose && !warned && !norecurs) {
 			pr_warning("skipping canonical checks at server %s -- %s",
 				   server,
 				   ((type != T_AXFR) && bp->ra) ? "use --canoncheck to enable" : "it is not allowing recursion");
@@ -1533,7 +1543,7 @@ print_rrec(name, qtype, qclass, bp, cp, msg, eom, regular)
 	} else if (!bp->ra && server) {
 		static bool_t warned = FALSE;
 
-		if (!warned) {
+		if (!warned && !norecurs) {
 			pr_warning("skipping canonical checks -- server %s is not allowing recursion", server);
 			warned = TRUE;
 		}

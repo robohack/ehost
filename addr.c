@@ -134,13 +134,15 @@ check_addr(name)
 	}
 
 	free((ptr_t *) inaddr);
-	
+
 #if defined(HAVE_FREEHOSTENT)
 	freehostent(hp);
 #endif
 
 	if (matched != naddrs)
-		pr_error("Not all addresses for hostname %s have a matching hostname.", hname);
+		pr_error("%s addresses for hostname %s have a matching hostname.",
+			 matched ? "Not all of the" : "None of the",
+			 hname);
 
 	return ((matched == naddrs) ? TRUE : FALSE);
 }
@@ -353,7 +355,9 @@ check_name(addr)
 #endif
 
 	if (matched != (naliases + 1))
-		pr_error("Not all hostnames for address %s have a matching address.", iname);
+		pr_error("%s hostnames for address %s have a matching address.",
+			 matched ? "Not all of the" : "None of the",
+			 iname);
 
 	return ((matched == (naliases + 1)) ? TRUE : FALSE);
 }
