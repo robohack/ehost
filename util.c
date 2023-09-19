@@ -1015,7 +1015,7 @@ pr_error(fmt, va_alist)
 	VA_START(ap, fmt);
 	(void) vfprintf(stderr, fmt, ap);
 	va_end(ap);
-	(void) fputs("\n", stderr);
+	(void) fputc('\n', stderr);
 
 	/* flag an error */
 	errorcount++;
