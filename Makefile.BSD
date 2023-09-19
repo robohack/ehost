@@ -136,7 +136,9 @@ ALL_FILES = Makefile Makefile.BSD ${DOCS} ${HDRS} ${SRCS} ${MANS} ${MISCS}
 
 # Don't use "-Werror" on NetBSD
 #
-# on NetBSD/i386 some functions have prototypes declaring one or more of their parameters as "short int", but since it  and we end up with the likes of
+# on NetBSD/i386 some functions have prototypes declaring one or more
+# of their parameters as "short int", but since it is impossible to
+# pass a short in reality, we end up with warnings of the likes of
 # "passing arg 1 of `__byte_swap_word_variable' with different width
 # due to prototype".
 #
