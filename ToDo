@@ -3,6 +3,13 @@ HOST ToDo -- Things that could be fixed/improved/added.
 Patches to close any of these items will be gratefully accepted!  Other
 suggestions and comments are also encouraged.
 
+- coalesce multiple dots in domain names(? - is there a standard?)
+
+- get rid of HAVE_FREEHOSTENT and just provide an empty one if needed.
+
+- consider using http://www.corpit.ru/mjt/udns.html (a stub resolver
+  library)
+
 - with '-v' show the associated A records for the NS records used when
   doing SOA (or NS, if possible) record lookups ('-C' or '-t ns').
   Currently '-vv' does this for '-C' (and '-vvv' does this for '-t ns'),
@@ -11,6 +18,24 @@ suggestions and comments are also encouraged.
 - try looking through the additional records in a reply in order to do
   canonical checks, especially when the queried server isn't allowing
   recursion
+
+- there are odd results when an in-addr.arpa name points to an (invalid)
+  hostname that is just the IP address, e.g.:
+
+	252.163.72.178.in-addr.arpa.  54m49s IN PTR  178.72.163.252.
+
+	$ host -vA -a 178.72.163.252
+	Query about 178.72.163.252 for record types ANY
+	Checking forward mapping consistency for address 178.72.163.252
+	Address 178.72.163.252 maps to hostname 178.72.163.252
+	Checking if 178.72.163.252 is a hostname with an address matching 178.72.163.252
+	 !!! 178.72.163.252 does not exist, try an authoritative server
+	Hostname 178.72.163.252 maps to address 178.72.163.252
+	Address 178.72.163.252 is a target of the hostname 178.72.163.252
+
+  In the above the last two lines should not be shown?  Probably there
+  should also be a "***" line complaining that the PTR target is an
+  invalid hostname.  And the "does not exist" should be a "***" too.
 
 - do not use gethostbyname()/gethostbyaddr() (i.e. util.c:geth_by*()) to
   do basic A and PTR lookups and checks [i.e. addr.c:check_addr() and
@@ -70,6 +95,10 @@ suggestions and comments are also encouraged.
   check the nameservers listed inside the zone and it all gets a whole
   lot messier....
 
+- or maybe we just need the '--listed-ns' or '--auth-ns' option to use
+  (one/all of) the domain's published authoritative nameservers for any
+  query.
+
 - implement something more along the lines of the algorithm used in
   BIND's res_findzonecut.c when looking for the true parent zone,
   especially when looking for the published NS records that delegate a
@@ -84,3 +113,8 @@ suggestions and comments are also encouraged.
 
 - try to build a regression test suite (but how do we feed it known
   bogus junk to test error handling?  Use nc(1)?).
+
+- implement drill(1)'s -T or something like it:
+
+    Trace name from the root down.  When using this option the @server
+    and the type arguments are not used.
