@@ -72,7 +72,7 @@ for domain in $@; do
 	case "$domain" in
 	*.*)
 		;;
-	*)	
+	*)
 		domain=${domain}.
 	esac
 	if [ -z "$pzone" ]; then
@@ -81,7 +81,7 @@ for domain in $@; do
 	case "$pzone" in
 	*.*)
 		;;
-	*)	
+	*)
 		pzone=${pzone}.
 	esac
 	pub_nslist=$(host --canonskip -t NS $pzone | awk '$2 == "NS" {print $NF}')
