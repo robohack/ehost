@@ -14,11 +14,11 @@
 #
 # Usage:
 #
-#	rblookup [-Mdv] [-r rbl_list] hostname|IP#
+#	rblookup [-dsv] [-r rbl_list] hostname|IP#
 #
-#		-M		- include the MAPS zones
-#		-r rbl_list	- use the specified RBLs
 #		-d 		- for debugging
+#		-r rbl_list	- use the specified RBLs
+#		-s		- use Smail's current list of RBLs
 #		-v		- verbose output (show each RBL)
 #
 #	Operand Syntax:
@@ -54,18 +54,12 @@
 #	  command line flag, otherwise just query the default entries.
 
 # ----------------------------------------------------------------------
-# Setup environment.
-# ----------------------------------------------------------------------
-
-CONFDIR=@CONFIDR@
-
-# ----------------------------------------------------------------------
 # Internal vriables.
 # ----------------------------------------------------------------------
 
 argv0=$(basename $0)
 
-options="[-Mdv] [-r rbl_list]"
+options="[-sdv] [-r rbl_list]"
 usage="Usage: $argv0 $options hostname|IP# ..."
 reversed=""
 
@@ -76,20 +70,15 @@ reversed=""
 # A semi-canonical list of RBLs and associated commentary can be found
 # at both of the following sites:
 #
-#	http://www.declude.com/junkmail/support/ip4r.htm
+#	https://whatismyipaddress.com/blacklist-check
 #
-#	http://moensted.dk/spam/	# less info, but also comprehensive
-#					# also does lookups in ~676 lists!
+#	http://www.rbls.org/	# complete, but just an on-line test interface,
+#				# no commentary.
 #
-#	http://openrbl.org/zones/	# incomplete, very little info, but has
-#					# an on-line test interface.
+#	https://www.rtsak.com/dns-lookup/	# does many things, including
+#						# the rbls.org DNSBL lookups
 #
-#	http://www.rbls.org/	# complete, but just a list and an on-line test
-#				# interface, no commentary.
-#
-#	http://www.iki.fi/era/rbl/rbl.html	# very dated 2001/12/02
-#
-#	http://www.DNSstuff.com/	# more than just blacklist testing!
+#	http://www.DNSstuff.com/	# much more than just blacklist testing!
 #
 # some published stats by some users of DNS Black Lists.
 #
@@ -98,16 +87,25 @@ reversed=""
 #	http://abuse.easynet.nl/spamstats.html
 #	http://www.dnsbl.net.au/stats/
 #
-# more stats of some kind:
-#
-#	http://openrbl.org/stats.htm
-#
+
+##smtp_rbl_domains = "\
+##        :zen.spamhaus.org;127.0.0.2, 127.0.0.4, 127.0.0.5, 127.0.0.6, 127.0.0.7,127.0.0.8, 127.0.0.10, 127.0.0.11\
+##        :psbl.surriel.com;127/8\
+##        :cbl.abuseat.org;127/8\
+##        :dnsbl.sorbs.net;127.0.0.2, 127.0.0.3, 127.0.0.4, 127.0.0.5, 127.0.0.6,127.0.0.7, 127.0.0.8, 127.0.0.9, 127.0.0.10, 127.0.0.11,127.0.0.12\
+##        :spamsources.fabel.dk;127.0.0.2\
+##        :bl.spamcop.net;127.0.0.2\
+
 
 # The Abusive Hosts Blocking List
 # <URL:http://www.ahbl.org/>
 #
-AHBL_ALL_ROOT="dnsbl.ahbl.org"
-ALL_RBLS="${AHBL_ALL_ROOT} ${ALL_RBLS}"
+# N.B.:  This zone now blacklists everything, and the TXT says:
+#
+#	"List shut down.  See: http://www.ahbl.org/content/last-notice-wildcarding-services-jan-1st"
+#
+#AHBL_ALL_ROOT="dnsbl.ahbl.org"
+#ALL_RBLS="${AHBL_ALL_ROOT} ${ALL_RBLS}"
 
 # Blitzed Open Proxy Monitor List
 # <URL:http://opm.blitzed.org/info>
@@ -165,13 +163,17 @@ ALL_RBLS="${ABUSEAT_RSBL_ROOT} ${ALL_RBLS}"
 # McFadden Associates Spam Blacklist
 # <URL:http://bl.csma.biz/>
 #
-CSMA_BL_ROOT="bl.csma.biz"
-ALL_RBLS="${CSMA_BL_ROOT} ${ALL_RBLS}"
-CSMA_SBL_ROOT="sbl.csma.biz"
-ALL_RBLS="${CSMA_SBL_ROOT} ${ALL_RBLS}"
+# N.B.:  Dead and gone.
+#
+#CSMA_BL_ROOT="bl.csma.biz"
+#ALL_RBLS="${CSMA_BL_ROOT} ${ALL_RBLS}"
+#CSMA_SBL_ROOT="sbl.csma.biz"
+#ALL_RBLS="${CSMA_SBL_ROOT} ${ALL_RBLS}"
 
 # five-ten-sg.com blackholes
 # <URL:http://www.five-ten-sg.com/blackhole.php>
+#
+# N.B.:  Dead and gone.
 #
 # 127.0.0.2	Lists direct spam sources (by netblock for the misc.spam group).
 # 127.0.0.3	Lists spam sites before they get into DUL
@@ -182,9 +184,11 @@ ALL_RBLS="${CSMA_SBL_ROOT} ${ALL_RBLS}"
 # 127.0.0.8	Lists servers running vulnerable web scripts that can send spam
 # 127.0.0.9	Lists servers with "other issues."
 #
-FIVETENSG_ROOT="blackholes.five-ten-sg.com"
-ALL_RBLS="${FIVETENSG_ROOT} ${ALL_RBLS}"
+#FIVETENSG_ROOT="blackholes.five-ten-sg.com"
+#ALL_RBLS="${FIVETENSG_ROOT} ${ALL_RBLS}"
 
+# N.B.:  mail-abuse.org has been taken over by trendmicro.com!
+#
 # MAPS RBL: Mail Abuse Protection System Realtime Blackhole List
 # <URL:http://mail-abuse.org/rbl/>
 # 
@@ -192,7 +196,7 @@ ALL_RBLS="${FIVETENSG_ROOT} ${ALL_RBLS}"
 # blacklists of spam-originating systems.  Originally started by Paul
 # Vixie, this is the original "RBL" system.  Now a pay-for service.
 #
-MAPS_BLACKHOLES_ROOT="blackholes.mail-abuse.org"
+#MAPS_BLACKHOLES_ROOT="blackholes.mail-abuse.org"
 #ALL_RBLS="${MAPS_ROOT} ${ALL_RBLS}"
 
 # MAPS DUL: Mail Abuse Protection System Dial-up User List
@@ -205,7 +209,7 @@ MAPS_BLACKHOLES_ROOT="blackholes.mail-abuse.org"
 # Al Iverson, the then-current DUL maintainer, to host it on their
 # systems.  Now a pay-for service.
 # 
-MAPS_DUL_ROOT="dialups.mail-abuse.org"
+#MAPS_DUL_ROOT="dialups.mail-abuse.org"
 #ALL_RBLS="${DUL_ROOT} ${ALL_RBLS}"
 
 # MAPS RSS: MAPS Relay Spam Stopper
@@ -217,12 +221,14 @@ MAPS_DUL_ROOT="dialups.mail-abuse.org"
 # relays (and thus miss a vast number of the actively exploited
 # systems out there).  Now a pay-for service.
 #
-MAPS_RSS_ROOT="relays.mail-abuse.org"
+#MAPS_RSS_ROOT="relays.mail-abuse.org"
 #ALL_RBLS="${RSS_ROOT} ${ALL_RBLS}"
 
 # Not Just Another Black List
 # <URL:http://njabl.org/>
 # <URL:http://njabl.org/dynablock.html> (gone -- use pbl.spamhaus.org)
+#
+# N.B.:  Dead and gone.
 #
 # 127.0.0.2	lists open relays and known spam sources
 # 127.0.0.3	lists dial-up addresses
@@ -231,8 +237,8 @@ MAPS_RSS_ROOT="relays.mail-abuse.org"
 # 127.0.0.8	lists servers with insecure formmail scripts
 # 127.0.0.9	lists open proxy sources
 #
-NJABL_ROOT="dnsbl.njabl.org"
-ALL_RBLS="${NJABL_ROOT} ${ALL_RBLS}"
+#NJABL_ROOT="dnsbl.njabl.org"
+#ALL_RBLS="${NJABL_ROOT} ${ALL_RBLS}"
 
 # ORDB - third son of ORBS
 # <URL:http://www.ordb.org/>
@@ -268,10 +274,12 @@ ALL_RBLS="${RFC_IGNORANT_IPWHOIS_ROOT} ${ALL_RBLS}"
 #
 # list of spam support service providers and such
 #
-# They also have a whitelist
+# They also had a whitelist
 #
-SPAMBAG_ROOT="blacklist.spambag.org"
-ALL_RBLS="${SPAMBAG_ROOT} ${ALL_RBLS}"
+# N.B.:  Dead and gone.
+#
+#SPAMBAG_ROOT="blacklist.spambag.org"
+#ALL_RBLS="${SPAMBAG_ROOT} ${ALL_RBLS}"
 
 # SpamCop Blocking List
 # <URL:http://spamcop.net/bl.shtml>
@@ -387,11 +395,11 @@ while getopts dMr:v OPT; do
 	d)
 		show_or_exec=echo
 		;;
-	M)
-		ALL_RBLS="${MAPS_BLACKHOLES_ROOT} ${MAPS_DUL_ROOT} ${MAPS_RSS_ROOT} ${ALL_RBLS}"
-		;;
 	r)
 		rbllist="$OPTARG";
+		;;
+	s)
+		rbllist=$(smail -bP smtp_rbl_domains | sed -e 's/;[^:]*//g;s/:/ /g')
 		;;
 	v)
 		verbose=true
