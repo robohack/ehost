@@ -865,7 +865,7 @@ recv_sock(sock, buffer, buflen)
 	output char *buffer;		/* current buffer address */
 	input size_t buflen;		/* remaining buffer size */
 {
-	int fromlen;
+	socklen_t fromlen;
 	register int n;
 
 	if (setjmp(timer_buf) != 0) {
