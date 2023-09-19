@@ -250,13 +250,18 @@ typedef u_char		nbuf_t;
  * XXX we should probably convert to using the more standard "in_addr_t"
  */
 #if !defined(__in_addr_t)
-/* note: assume an ISO C 1990 preprocessor or newer, using unsigned long */
-# if ULONG_MAX > (1 << 31)
-typedef unsigned int	ipaddr_t;
-# elif ULONG_MAX == (1 << 31)
-typedef unsigned long	ipaddr_t;
+# if defined(_IN_ADDR_T) || defined(in_addr_t)
+typedef in_addr_t	ipaddr_t;
 # else
-#  include "houston, we have a problem!"
+/* note:  assume the preprocessor is using at least 32-bit unsigned long (ISO C 1990) */
+/* xxx if we knew we had uint32_t... */
+#  if UINT_MAX == 0xFFFFFFFFU
+typedef unsigned int	ipaddr_t;
+#  elif ULONG_MAX == 0xFFFFFFFFU
+typedef unsigned long	ipaddr_t;
+#  else
+#   include "houston, we have a problem!"
+#  endif
 # endif
 #else
 typedef __in_addr_t	ipaddr_t;
