@@ -182,10 +182,11 @@ extern res_state_t _res;		/* defined in res_init.c */
 #define fakename(a)	(samehead(a, "localhost.") || samehead(a, "loopback."))
 #define nulladdr(a)	(((a) == 0) || ((a) == htonl(BROADCAST_ADDR))) /* note htonl() not really needed */
 #define fakeaddr(a)	(nulladdr(a) || ((a) == htonl(LOCALHOST_ADDR)))
+/* xxx incopy() will have alignment issues for (struct hostent *)->h_addr_list */
 #define incopy(a)	*((const struct in_addr *) (a))
 #define querysize(n)	(((size_t ) (n) > sizeof(querybuf_t)) ? ((int) sizeof(querybuf_t)) : (n))
 
-#define newlist(a, n, t) (t *) xalloc((ptr_t *) (a), (size_t) ((n) * sizeof(t)))
+#define newlist(a, n, t) (t *) xalloc((ptr_t *) (a), (size_t) ((unsigned) (n) * sizeof(t)))
 #define newstruct(t)	(t *) xalloc((ptr_t *) NULL, (size_t) (sizeof(t)))
 #define newstring(s)	(char *) xalloc((ptr_t *) NULL, (size_t) (strlen(s) + 1))
 #define newstr(s)	strcpy(newstring(s), s)

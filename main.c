@@ -352,11 +352,11 @@ main(argc, argv)
 	(void) res_init();
 
 	_res.options |=  RES_DEFNAMES;	/* qualify single names */
-	_res.options &= ~RES_DNSRCH;	/* dotted names are qualified */
+	_res.options &= ~((unsigned) RES_DNSRCH);	/* dotted names are qualified */
 
 	_res.options |=  RES_RECURSE;	/* request nameserver recursion */
-	_res.options &= ~RES_DEBUG;	/* turn off debug printout */
-	_res.options &= ~RES_USEVC;	/* do not use virtual circuit */
+	_res.options &= ~((unsigned) RES_DEBUG);	/* turn off debug printout */
+	_res.options &= ~((unsigned) RES_USEVC);	/* do not use virtual circuit */
 
 	_res.retry = DEF_RETRIES;	/* number of datagram retries */
 	_res.retrans = DEF_RETRANS;	/* timeout in secs between retries */
@@ -579,7 +579,7 @@ main(argc, argv)
 
 			case 'r' :
 				norecurs = TRUE;
-				new_res.options &= ~RES_RECURSE;
+				new_res.options &= ~((unsigned) RES_RECURSE);
 				break;
 
 			case 'S' :
@@ -1547,7 +1547,7 @@ execute(name, addr)
 		 * above from the parent zone should all be authoritative and
 		 * may (should!) also be non-recursive.
 		 */
-		_res.options &= ~RES_RECURSE;
+		_res.options &= ~((unsigned) RES_RECURSE);
 		canonskip = TRUE;
 
 		if (verbose > 1 || debug > 1)
