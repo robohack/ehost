@@ -22,5 +22,5 @@ See the tribute to him in the [NIKHEF 2000 Annual
 report](https://www.nikhef.nl/wp-content/uploads/2016/01/Annual_Report-2000.pdf
 "NIKHEF 2000 Annual report").
 
-I have maintained Eric's versions of `host`, `ping`, and `vrfy` since
-then.
+I (Greg A. Woods) have maintained Eric's versions of `host`, `ping`, and `vrfy`
+since then.
