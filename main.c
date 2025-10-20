@@ -1368,7 +1368,7 @@ execute_name(name)
 	}
 	/* must have regular name or dotted quad in addrmode */
 	if (!listmode && addrmode && reverse) {
-		errmsg("Do not use '-i' with '-A'.");
+		errmsg("Do not use '-i' (or *.in-addr.arpa) with '-A' (without '-l').");
 		return (EX_USAGE);
 	}
 
